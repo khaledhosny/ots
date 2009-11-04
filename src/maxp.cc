@@ -15,7 +15,7 @@ bool ots_maxp_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   OpenTypeMAXP *maxp = new OpenTypeMAXP;
   file->maxp = maxp;
 
-  uint32_t version;
+  uint32_t version = 0;
   if (!table.ReadU32(&version)) {
     return OTS_FAILURE();
   }

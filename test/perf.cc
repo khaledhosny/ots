@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
   timersub(&end, &start, &elapsed);
 
   uint64_t us = ((elapsed.tv_sec * 1000 * 1000) + elapsed.tv_usec) / num_repeat;
-  std::fprintf(stderr, "%lu [us] %s (%lu bytes, %lu [byte/us])\n",
+  std::fprintf(stderr, "%llu [us] %s (%lu bytes, %llu [byte/us])\n",
                us, argv[1], st.st_size, (us ? st.st_size / us : 0));
 
   return 0;

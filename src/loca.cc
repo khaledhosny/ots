@@ -35,7 +35,7 @@ bool ots_loca_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     // than the number of glyphs in order to give the length of the final
     // glyph.
     for (unsigned i = 0; i <= num_glyphs; ++i) {
-      uint16_t offset;
+      uint16_t offset = 0;
       if (!table.ReadU16(&offset)) {
         return OTS_FAILURE();
       }
@@ -47,7 +47,7 @@ bool ots_loca_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     }
   } else {
     for (unsigned i = 0; i <= num_glyphs; ++i) {
-      uint32_t offset;
+      uint32_t offset = 0;
       if (!table.ReadU32(&offset)) {
         return OTS_FAILURE();
       }

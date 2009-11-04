@@ -18,7 +18,7 @@ bool ots_gasp_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   OpenTypeGASP *gasp = new OpenTypeGASP;
   file->gasp = gasp;
 
-  uint16_t num_ranges;
+  uint16_t num_ranges = 0;
   if (!table.ReadU16(&gasp->version) ||
       !table.ReadU16(&num_ranges)) {
     return OTS_FAILURE();
@@ -39,8 +39,8 @@ bool ots_gasp_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 
   gasp->gasp_ranges.reserve(num_ranges);
   for (unsigned i = 0; i < num_ranges; ++i) {
-    uint16_t max_ppem;
-    uint16_t behavior;
+    uint16_t max_ppem = 0;
+    uint16_t behavior = 0;
     if (!table.ReadU16(&max_ppem) ||
         !table.ReadU16(&behavior)) {
       return OTS_FAILURE();

@@ -93,7 +93,7 @@ bool ots_glyf_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
       // read the end-points array
       uint16_t num_flags = 0;
       for (int j = 0; j < num_contours; ++j) {
-        uint16_t tmp_index;
+        uint16_t tmp_index = 0;
         if (!table.ReadU16(&tmp_index)) {
           return OTS_FAILURE();
         }

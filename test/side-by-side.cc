@@ -8,6 +8,7 @@
 #include FT_FREETYPE_H
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include <cstdio>
 #include <cstdlib>

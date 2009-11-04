@@ -626,7 +626,7 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
             }
             // TODO(yusukes): check fd value?
           } else if (format == 3) {
-            uint16_t n_ranges;
+            uint16_t n_ranges = 0;
             if (!table.ReadU16(&n_ranges)) {
               return OTS_FAILURE();
             }
@@ -636,7 +636,7 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
 
             uint16_t last_gid = 0;
             for (unsigned j = 0; j < n_ranges; ++j) {
-              uint16_t first;  // GID
+              uint16_t first = 0;  // GID
               if (!table.ReadU16(&first)) {
                 return OTS_FAILURE();
               }
@@ -739,7 +739,7 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
       switch (format) {
         case 0:
           for (unsigned j = 1 /* .notdef is omitted */; j < glyphs; ++j) {
-            uint16_t sid;
+            uint16_t sid = 0;
             if (!table.ReadU16(&sid)) {
               return OTS_FAILURE();
             }
@@ -754,7 +754,7 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
         case 2: {
           uint32_t total = 1;  // .notdef is omitted.
           while (total < glyphs) {
-            uint16_t sid;
+            uint16_t sid = 0;
             if (!table.ReadU16(&sid)) {
               return OTS_FAILURE();
             }
@@ -770,7 +770,7 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
               }
               total += (left + 1);
             } else {
-              uint16_t left;
+              uint16_t left = 0;
               if (!table.ReadU16(&left)) {
                 return OTS_FAILURE();
               }

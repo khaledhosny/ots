@@ -24,7 +24,7 @@ bool ots_ltsh_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   OpenTypeLTSH *ltsh = new OpenTypeLTSH;
   file->ltsh = ltsh;
 
-  uint16_t num_glyphs;
+  uint16_t num_glyphs = 0;
   if (!table.ReadU16(&ltsh->version) ||
       !table.ReadU16(&num_glyphs)) {
     return OTS_FAILURE();

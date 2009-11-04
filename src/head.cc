@@ -15,7 +15,7 @@ bool ots_head_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   Buffer table(data, length);
   file->head = new OpenTypeHEAD;
 
-  uint32_t version;
+  uint32_t version = 0;
   if (!table.ReadU32(&version) ||
       !table.ReadU32(&file->head->revision)) {
     return OTS_FAILURE();

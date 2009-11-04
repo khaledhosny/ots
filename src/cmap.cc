@@ -45,7 +45,7 @@ bool Parse3x4(ots::OpenTypeFile *file, int encoding,
   if (!subtable.Skip(4)) {
     return OTS_FAILURE();
   }
-  uint16_t language;
+  uint16_t language = 0;
   if (!subtable.ReadU16(&language)) {
     return OTS_FAILURE();
   }
@@ -54,6 +54,7 @@ bool Parse3x4(ots::OpenTypeFile *file, int encoding,
   }
 
   uint16_t segcountx2, search_range, entry_selector, range_shift;
+  segcountx2 = search_range = entry_selector = range_shift = 0;
   if (!subtable.ReadU16(&segcountx2) ||
       !subtable.ReadU16(&search_range) ||
       !subtable.ReadU16(&entry_selector) ||
@@ -224,7 +225,7 @@ bool Parse31012(ots::OpenTypeFile *file,
   if (!subtable.Skip(8)) {
     return OTS_FAILURE();
   }
-  uint32_t language;
+  uint32_t language = 0;
   if (!subtable.ReadU32(&language)) {
     return OTS_FAILURE();
   }
@@ -232,7 +233,7 @@ bool Parse31012(ots::OpenTypeFile *file,
     return OTS_FAILURE();
   }
 
-  uint32_t num_groups;
+  uint32_t num_groups = 0;
   if (!subtable.ReadU32(&num_groups)) {
     return OTS_FAILURE();
   }
@@ -296,7 +297,7 @@ bool Parse31013(ots::OpenTypeFile *file,
   if (!subtable.Skip(8)) {
     return OTS_FAILURE();
   }
-  uint16_t language;
+  uint16_t language = 0;
   if (!subtable.ReadU16(&language)) {
     return OTS_FAILURE();
   }
@@ -304,7 +305,7 @@ bool Parse31013(ots::OpenTypeFile *file,
     return OTS_FAILURE();
   }
 
-  uint32_t num_groups;
+  uint32_t num_groups = 0;
   if (!subtable.ReadU32(&num_groups)) {
     return OTS_FAILURE();
   }
@@ -360,7 +361,7 @@ bool Parse100(ots::OpenTypeFile *file, const uint8_t *data, size_t length) {
   if (!subtable.Skip(4)) {
     return OTS_FAILURE();
   }
-  uint16_t language;
+  uint16_t language = 0;
   if (!subtable.ReadU16(&language)) {
     return OTS_FAILURE();
   }
@@ -389,7 +390,8 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   Buffer table(data, length);
   file->cmap = new OpenTypeCMAP;
 
-  uint16_t version, num_tables;
+  uint16_t version = 0;
+  uint16_t num_tables = 0;
   if (!table.ReadU16(&version) ||
       !table.ReadU16(&num_tables)) {
     return OTS_FAILURE();
@@ -450,7 +452,7 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 
     if ((subtable_headers[i].format == 0) ||
         (subtable_headers[i].format == 4)) {
-      uint16_t len;
+      uint16_t len = 0;
       if (!table.ReadU16(&len)) {
         return OTS_FAILURE();
       }

@@ -35,8 +35,8 @@ bool ots_hmtx_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 
   hmtx->metrics.reserve(num_hmetrics);
   for (unsigned i = 0; i < num_hmetrics; ++i) {
-    uint16_t adv;
-    int16_t lsb;
+    uint16_t adv = 0;
+    int16_t lsb = 0;
     if (!table.ReadU16(&adv) || !table.ReadS16(&lsb)) {
       return OTS_FAILURE();
     }
