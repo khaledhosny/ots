@@ -1,0 +1,5 @@
+How to build (on Linux):
+
+ $ cd ots/test/
+ $ sudo apt-get install scons g++ libfreetype6-dev
+ $ scons
