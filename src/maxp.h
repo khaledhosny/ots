@@ -24,10 +24,10 @@ struct OpenTypeMAXP {
   uint16_t max_fdefs;
   uint16_t max_idefs;
   uint16_t max_stack;
-  uint16_t max_glyf_insns;
+  uint16_t max_size_glyf_instructions;
 
   uint16_t max_c_components;
-  uint16_t max_c_recursion;
+  uint16_t max_c_depth;
 };
 
 }  // namespace ots

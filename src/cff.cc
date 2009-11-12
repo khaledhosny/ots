@@ -111,8 +111,9 @@ bool ParseIndex(ots::Buffer *table, CFFIndex *index) {
   return true;
 }
 
-bool ParseNameData(ots::Buffer *table, const CFFIndex &index) {
-  uint8_t name[256];
+bool ParseNameData(
+    ots::Buffer *table, const CFFIndex &index, std::string* out_name) {
+  uint8_t name[256] = {0};
   for (unsigned i = 1; i < index.offsets.size(); ++i) {
     size_t length = index.offsets[i] - index.offsets[i - 1];
     // font names should be no longer than 127 characters.
@@ -139,6 +140,7 @@ bool ParseNameData(ots::Buffer *table, const CFFIndex &index) {
     }
   }
 
+  *out_name = reinterpret_cast<char *>(name);
   return true;
 }
 
@@ -832,7 +834,7 @@ bool ots_cff_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   if (!ParseIndex(&table, &name_index)) {
     return OTS_FAILURE();
   }
-  if (!ParseNameData(&table, name_index)) {
+  if (!ParseNameData(&table, name_index, &(file->cff->name))) {
     return OTS_FAILURE();
   }
 

@@ -56,6 +56,7 @@ class OTSStream {
     }
 
     if (chksum_buffer_offset_ == 4) {
+      // TODO(yusukes): This cast breaks the strict-aliasing rule.
       chksum_ += ntohl(*reinterpret_cast<const uint32_t*>(chksum_buffer_));
       chksum_buffer_offset_ = 0;
     }

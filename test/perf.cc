@@ -71,7 +71,8 @@ int main(int argc, char **argv) {
   ::gettimeofday(&end, 0);
   timersub(&end, &start, &elapsed);
 
-  uint64_t us = ((elapsed.tv_sec * 1000 * 1000) + elapsed.tv_usec) / num_repeat;
+  long long unsigned us
+      = ((elapsed.tv_sec * 1000 * 1000) + elapsed.tv_usec) / num_repeat;
   std::fprintf(stderr, "%llu [us] %s (%lu bytes, %llu [byte/us])\n",
                us, argv[1], st.st_size, (us ? st.st_size / us : 0));
 

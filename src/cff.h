@@ -7,11 +7,15 @@
 
 #include "ots.h"
 
+#include <string>
+
 namespace ots {
 
 struct OpenTypeCFF {
   const uint8_t *data;
   size_t length;
+  // Name INDEX. This name is used in name.cc as a postscript font name.
+  std::string name;
 };
 
 }  // namespace ots

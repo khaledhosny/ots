@@ -44,9 +44,9 @@ bool ots_maxp_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
         !table.ReadU16(&maxp->max_fdefs) ||
         !table.ReadU16(&maxp->max_idefs) ||
         !table.ReadU16(&maxp->max_stack) ||
-        !table.ReadU16(&maxp->max_glyf_insns) ||
+        !table.ReadU16(&maxp->max_size_glyf_instructions) ||
         !table.ReadU16(&maxp->max_c_components) ||
-        !table.ReadU16(&maxp->max_c_recursion)) {
+        !table.ReadU16(&maxp->max_c_depth)) {
       return OTS_FAILURE();
     }
 
@@ -98,7 +98,7 @@ bool ots_maxp_serialise(OTSStream *out, OpenTypeFile *file) {
         !out->WriteU16(maxp->max_fdefs) ||
         !out->WriteU16(maxp->max_idefs) ||
         !out->WriteU16(maxp->max_stack) ||
-        !out->WriteU16(maxp->max_glyf_insns)) {
+        !out->WriteU16(maxp->max_size_glyf_instructions)) {
       return OTS_FAILURE();
     }
   } else {
@@ -114,7 +114,7 @@ bool ots_maxp_serialise(OTSStream *out, OpenTypeFile *file) {
   }
 
   if (!out->WriteU16(maxp->max_c_components) ||
-      !out->WriteU16(maxp->max_c_recursion)) {
+      !out->WriteU16(maxp->max_c_depth)) {
     return OTS_FAILURE();
   }
 

@@ -24,6 +24,7 @@ bool ots_hdmx_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   }
 
   if ((file->head->flags & 0x14) == 0) {
+    // http://www.microsoft.com/typography/otspec/recom.htm
     OTS_WARNING("the table should not be present when bit 2 and 4 of the "
                 "head->flags are not set");
     DROP_THIS_TABLE;
@@ -46,13 +47,14 @@ bool ots_hdmx_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     DROP_THIS_TABLE;
     return true;
   }
-  if (hdmx->size_device_record < (file->maxp->num_glyphs + 2)) {
+  const int32_t actual_size_device_record = file->maxp->num_glyphs + 2;
+  if (hdmx->size_device_record < actual_size_device_record) {
     OTS_WARNING("bad hdmx->size_device_record: %d", hdmx->size_device_record);
     DROP_THIS_TABLE;
     return true;
   }
 
-  hdmx->pad_len = hdmx->size_device_record - (file->maxp->num_glyphs + 2);
+  hdmx->pad_len = hdmx->size_device_record - actual_size_device_record;
   if (hdmx->pad_len > 3) {
     return OTS_FAILURE();
   }

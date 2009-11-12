@@ -54,10 +54,13 @@ bool ots_head_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   }
 
   // ppem must be a power of two
+#if 0
+  // We don't call ots_failure() for now since lots of TrueType fonts are
+  // not following this rule. Putting OTS_WARNING here is too noisy.
   if ((file->head->ppem - 1) & file->head->ppem) {
-    // We don't call ots_failure() for now since lots of TrueType fonts are
-    // not following this rule. Putting OTS_WARNING here is too noisy.
+    return OTS_FAILURE();
   }
+#endif
 
   if (!table.ReadR64(&file->head->created) ||
       !table.ReadR64(&file->head->modified)) {

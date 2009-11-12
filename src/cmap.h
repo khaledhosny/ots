@@ -19,19 +19,25 @@ struct OpenTypeCMAPSubtableRange {
 
 struct OpenTypeCMAP {
   OpenTypeCMAP()
-      : subtable_304_data(NULL),
-        subtable_304_length(0),
-        subtable_314_data(NULL),
-        subtable_314_length(0) {
+      : subtable_3_0_4_data(NULL),
+        subtable_3_0_4_length(0),
+        subtable_3_1_4_data(NULL),
+        subtable_3_1_4_length(0) {
   }
 
-  const uint8_t *subtable_304_data;
-  size_t subtable_304_length;
-  const uint8_t *subtable_314_data;
-  size_t subtable_314_length;
-  std::vector<OpenTypeCMAPSubtableRange> subtable_31012;
-  std::vector<OpenTypeCMAPSubtableRange> subtable_31013;
-  std::vector<uint8_t> subtable_100;
+  // Platform 3, Encoding 0, Format 4, MS Symbol table.
+  const uint8_t *subtable_3_0_4_data;
+  size_t subtable_3_0_4_length;
+  // Platform 3, Encoding 1, Format 4, MS Unicode BMP table.
+  const uint8_t *subtable_3_1_4_data;
+  size_t subtable_3_1_4_length;
+
+  // Platform 3, Encoding 10, Format 12, MS Unicode UCS-4 table.
+  std::vector<OpenTypeCMAPSubtableRange> subtable_3_10_12;
+  // Platform 3, Encoding 10, Format 13, MS UCS-4 Fallback table.
+  std::vector<OpenTypeCMAPSubtableRange> subtable_3_10_13;
+  // Platform 1, Encoding 0, Format 0, Mac Roman table.
+  std::vector<uint8_t> subtable_1_0_0;
 };
 
 }  // namespace ots

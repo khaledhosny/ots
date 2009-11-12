@@ -4,7 +4,12 @@
 
 #include "cmap.h"
 
+#include <set>
+#include <utility>
+#include <vector>
+
 #include "maxp.h"
+#include "os2.h"
 
 // cmap - Character To Glyph Index Mapping Table
 // http://www.microsoft.com/opentype/otspec/cmap.htm
@@ -27,20 +32,28 @@ struct Subtable314Range {
   uint32_t id_range_offset_offset;
 };
 
-// The maximum number of groups in format 12 or 13 subtables. Set so that we'll
-// allocate, at most, 8MB of memory when parsing these.
-const unsigned kMaxCMAPGroups = 699050;
+// The maximum number of groups in format 12 or 13 subtables.
+// Note: 0xFFFF is the maximum number of glyphs in a single font file.
+const unsigned kMaxCMAPGroups = 0xFFFF;
 
 // Glyph array size for the Mac Roman (format 0) table.
 const size_t kFormat0ArraySize = 256;
 
+// The upper limit of the Unicode code point.
+const uint32_t kUnicodeUpperLimit = 0x10FFFF;
+
+// Parses either 3.0.4 or 3.1.4 tables.
 bool Parse3x4(ots::OpenTypeFile *file, int encoding,
               const uint8_t *data, size_t length, uint16_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
   // 3.0.4 or 3.1.4 subtables are complex and, rather than expanding the
-  // whole thing and recompacting it, we valid it and include it verbatim
-  // in the ouput.
+  // whole thing and recompacting it, we validate it and include it verbatim
+  // in the output.
+
+  if (!file->os2) {
+    return OTS_FAILURE();
+  }
 
   if (!subtable.Skip(4)) {
     return OTS_FAILURE();
@@ -50,6 +63,7 @@ bool Parse3x4(ots::OpenTypeFile *file, int encoding,
     return OTS_FAILURE();
   }
   if (language) {
+    // Platform ID 3 (windows) subtables should have language '0'.
     return OTS_FAILURE();
   }
 
@@ -160,6 +174,19 @@ bool Parse3x4(ots::OpenTypeFile *file, int encoding,
     if (ranges[i].start_range <= ranges[i - 1].end_range) {
       return OTS_FAILURE();
     }
+
+    // On many fonts, the value of {first, last}_char_index are incorrect.
+    // Fix them.
+    if (file->os2->first_char_index != 0xFFFF &&
+        ranges[i].start_range != 0xFFFF &&
+        file->os2->first_char_index > ranges[i].start_range) {
+      file->os2->first_char_index = ranges[i].start_range;
+    }
+    if (file->os2->last_char_index != 0xFFFF &&
+        ranges[i].end_range != 0xFFFF &&
+        file->os2->last_char_index < ranges[i].end_range) {
+      file->os2->last_char_index = ranges[i].end_range;
+    }
   }
 
   // The last range must end at 0xffff
@@ -203,11 +230,11 @@ bool Parse3x4(ots::OpenTypeFile *file, int encoding,
   // We accept the table.
   // TODO(yusukes): transcode the subtable.
   if (encoding == 0) {
-    file->cmap->subtable_304_data = data;
-    file->cmap->subtable_304_length = length;
+    file->cmap->subtable_3_0_4_data = data;
+    file->cmap->subtable_3_0_4_length = length;
   } else if (encoding == 1) {
-    file->cmap->subtable_314_data = data;
-    file->cmap->subtable_314_length = length;
+    file->cmap->subtable_3_1_4_data = data;
+    file->cmap->subtable_3_1_4_length = length;
   } else {
     return OTS_FAILURE();
   }
@@ -237,17 +264,12 @@ bool Parse31012(ots::OpenTypeFile *file,
   if (!subtable.ReadU32(&num_groups)) {
     return OTS_FAILURE();
   }
-  // There are 12 bytes of data per group. In order to keep some sanity, we'll
-  // only allow ourselves to allocate 8MB of memory here. That means that
-  // we'll allow, at most, 8 * 1024 * 1024 / 12 groups. Note that this is
-  // still far in excess of the number of Unicode code-points currently
-  // allocated.
   if (num_groups == 0 || num_groups > kMaxCMAPGroups) {
     return OTS_FAILURE();
   }
 
   std::vector<ots::OpenTypeCMAPSubtableRange> &groups
-      = file->cmap->subtable_31012;
+      = file->cmap->subtable_3_10_12;
   groups.resize(num_groups);
 
   for (unsigned i = 0; i < num_groups; ++i) {
@@ -257,13 +279,27 @@ bool Parse31012(ots::OpenTypeFile *file,
       return OTS_FAILURE();
     }
 
-    if (groups[i].start_range > 0x10FFFF ||
-        groups[i].end_range > 0x10FFFF ||
+    if (groups[i].start_range > kUnicodeUpperLimit ||
+        groups[i].end_range > kUnicodeUpperLimit ||
         groups[i].start_glyph_id > 0xFFFF) {
       return OTS_FAILURE();
     }
 
-    // We assert that the glyph value is within range. Because the range
+    // [0xD800, 0xDFFF] are surrogate code points.
+    if (groups[i].start_range >= 0xD800 &&
+        groups[i].start_range <= 0xDFFF) {
+      return OTS_FAILURE();
+    }
+    if (groups[i].end_range >= 0xD800 &&
+        groups[i].end_range <= 0xDFFF) {
+      return OTS_FAILURE();
+    }
+    if (groups[i].start_range < 0xD800 &&
+        groups[i].end_range > 0xDFFF) {
+      return OTS_FAILURE();
+    }
+
+    // We assert that the glyph value is within range. Because of the range
     // limits, above, we don't need to worry about overflow.
     if (groups[i].end_range < groups[i].start_range) {
       return OTS_FAILURE();
@@ -317,7 +353,7 @@ bool Parse31013(ots::OpenTypeFile *file,
   }
 
   std::vector<ots::OpenTypeCMAPSubtableRange> &groups
-      = file->cmap->subtable_31013;
+      = file->cmap->subtable_3_10_13;
   groups.resize(num_groups);
 
   for (unsigned i = 0; i < num_groups; ++i) {
@@ -327,12 +363,11 @@ bool Parse31013(ots::OpenTypeFile *file,
       return OTS_FAILURE();
     }
 
-    // We conservatively limit all of the values to 2^30 which is vastly larger
-    // than the number of Unicode code-points defined and might protect some
-    // parsers from overflows
-    if (groups[i].start_range > 0x40000000 ||
-        groups[i].end_range > 0x40000000 ||
-        groups[i].start_glyph_id > 0x40000000) {
+    // We conservatively limit all of the values to protect some parsers from
+    // overflows
+    if (groups[i].start_range > kUnicodeUpperLimit ||
+        groups[i].end_range > kUnicodeUpperLimit ||
+        groups[i].start_glyph_id > 0xFFFF) {
       return OTS_FAILURE();
     }
 
@@ -370,13 +405,13 @@ bool Parse100(ots::OpenTypeFile *file, const uint8_t *data, size_t length) {
     OTS_WARNING("language id should be zero: %u", language);
   }
 
-  file->cmap->subtable_100.reserve(kFormat0ArraySize);
+  file->cmap->subtable_1_0_0.reserve(kFormat0ArraySize);
   for (size_t i = 0; i < kFormat0ArraySize; ++i) {
     uint8_t glyph_id = 0;
     if (!subtable.ReadU8(&glyph_id)) {
       return OTS_FAILURE();
     }
-    file->cmap->subtable_100.push_back(glyph_id);
+    file->cmap->subtable_1_0_0.push_back(glyph_id);
   }
 
   return true;
@@ -443,30 +478,34 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   }
 
   // the format of the table is the first couple of bytes in the table. The
-  // length of the table is in a format specific format afterwards.
+  // length of the table is stored in a format-specific way.
   for (unsigned i = 0; i < num_tables; ++i) {
     table.set_offset(subtable_headers[i].offset);
     if (!table.ReadU16(&subtable_headers[i].format)) {
       return OTS_FAILURE();
     }
 
-    if ((subtable_headers[i].format == 0) ||
-        (subtable_headers[i].format == 4)) {
-      uint16_t len = 0;
-      if (!table.ReadU16(&len)) {
-        return OTS_FAILURE();
-      }
-      subtable_headers[i].length = len;
-    } else if (subtable_headers[i].format == 12 ||
-               subtable_headers[i].format == 13) {
-      if (!table.Skip(2)) {
-        return OTS_FAILURE();
-      }
-      if (!table.ReadU32(&subtable_headers[i].length)) {
-        return OTS_FAILURE();
-      }
-    } else {
-      subtable_headers[i].length = 0;
+    uint16_t len = 0;
+    switch (subtable_headers[i].format) {
+      case 0:
+      case 4:
+        if (!table.ReadU16(&len)) {
+          return OTS_FAILURE();
+        }
+        subtable_headers[i].length = len;
+        break;
+      case 12:
+      case 13:
+        if (!table.Skip(2)) {
+          return OTS_FAILURE();
+        }
+        if (!table.ReadU32(&subtable_headers[i].length)) {
+          return OTS_FAILURE();
+        }
+        break;
+      default:
+        subtable_headers[i].length = 0;
+        break;
     }
   }
 
@@ -481,6 +520,33 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     const uint32_t end_byte
         = subtable_headers[i].offset + subtable_headers[i].length;
     if (end_byte > length) {
+      return OTS_FAILURE();
+    }
+  }
+
+  // check that the cmap subtables are not overlapping.
+  std::set<std::pair<uint32_t, uint32_t> > uniq_checker;
+  std::vector<std::pair<uint32_t, uint8_t> > overlap_checker;
+  for (unsigned i = 0; i < num_tables; ++i) {
+    const uint32_t end_byte
+        = subtable_headers[i].offset + subtable_headers[i].length;
+
+    if (!uniq_checker.insert(std::make_pair(subtable_headers[i].offset,
+                                            end_byte)).second) {
+      // Sometimes Unicode table and MS table share exactly the same data.
+      // We'll allow this.
+      continue;
+    }
+    overlap_checker.push_back(
+        std::make_pair(subtable_headers[i].offset, 1 /* start */));
+    overlap_checker.push_back(
+        std::make_pair(end_byte, 0 /* end */));
+  }
+  std::sort(overlap_checker.begin(), overlap_checker.end());
+  int overlap_count = 0;
+  for (unsigned i = 0; i < overlap_checker.size(); ++i) {
+    overlap_count += (overlap_checker[i].second ? 1 : -1);
+    if (overlap_count > 1) {
       return OTS_FAILURE();
     }
   }
@@ -504,6 +570,15 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   //   3             1            4       (MS Unicode BMP)
   //   3             10           12      (MS Unicode UCS-4)
   //   3             10           13      (MS UCS-4 Fallback mapping)
+  //
+  // Note:
+  //  * 0-0-4 table is (usually) written as a 3-1-4 table. If 3-1-4 table
+  //    also exists, the 0-0-4 table is ignored.
+  //  * 0-3-4 table is written as a 3-1-4 table. If 3-1-4 table also exists,
+  //    the 0-3-4 table is ignored.
+  //  * 0-3-12 table is written as a 3-10-12 table. If 3-10-12 table also
+  //    exists, the 0-3-12 table is ignored.
+  //
 
   for (unsigned i = 0; i < num_tables; ++i) {
     if (subtable_headers[i].platform == 0) {
@@ -522,8 +597,6 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
       } else if ((subtable_headers[i].encoding == 3) &&
                  (subtable_headers[i].format == 4)) {
         // parse and output the 0-3-4 table as 3-1-4 table.
-        file->cmap->subtable_314_data = 0;
-        file->cmap->subtable_314_length = 0;
         if (!Parse3x4(file, 1, data + subtable_headers[i].offset,
                       subtable_headers[i].length, num_glyphs)) {
           return OTS_FAILURE();
@@ -536,6 +609,7 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
           return OTS_FAILURE();
         }
       }
+
     } else if (subtable_headers[i].platform == 1) {
       // Mac platform
 
@@ -547,40 +621,37 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
           return OTS_FAILURE();
         }
       }
+
     } else if (subtable_headers[i].platform == 3) {
       // MS platform
 
-      if (subtable_headers[i].encoding == 0) {
-        if (subtable_headers[i].format == 4) {
-          if (!Parse3x4(file, 0, data + subtable_headers[i].offset,
-                        subtable_headers[i].length, num_glyphs)) {
-            return OTS_FAILURE();
-          }
-        }
-      } else if (subtable_headers[i].encoding == 1) {
-        if (subtable_headers[i].format == 4) {
-          // clear 0-0-4 or 0-3-4 table.
-          file->cmap->subtable_314_data = 0;
-          file->cmap->subtable_314_length = 0;
-          if (!Parse3x4(file, 1, data + subtable_headers[i].offset,
-                        subtable_headers[i].length, num_glyphs)) {
-            return OTS_FAILURE();
-          }
-        }
-      } else if (subtable_headers[i].encoding == 10) {
-        if (subtable_headers[i].format == 12) {
-          // clear 0-3-12 table.
-          file->cmap->subtable_31012.clear();
-          if (!Parse31012(file, data + subtable_headers[i].offset,
+      switch (subtable_headers[i].encoding) {
+        case 0:
+        case 1:
+          if (subtable_headers[i].format == 4) {
+            // parse 3-0-4 or 3-1-4 table.
+            if (!Parse3x4(file, subtable_headers[i].encoding,
+                          data + subtable_headers[i].offset,
                           subtable_headers[i].length, num_glyphs)) {
-            return OTS_FAILURE();
+              return OTS_FAILURE();
+            }
           }
-        } else if (subtable_headers[i].format == 13) {
-          if (!Parse31013(file, data + subtable_headers[i].offset,
-                          subtable_headers[i].length, num_glyphs)) {
-            return OTS_FAILURE();
+          break;
+        case 10:
+          if (subtable_headers[i].format == 12) {
+            file->cmap->subtable_3_10_12.clear();
+            if (!Parse31012(file, data + subtable_headers[i].offset,
+                            subtable_headers[i].length, num_glyphs)) {
+              return OTS_FAILURE();
+            }
+          } else if (subtable_headers[i].format == 13) {
+            file->cmap->subtable_3_10_13.clear();
+            if (!Parse31013(file, data + subtable_headers[i].offset,
+                            subtable_headers[i].length, num_glyphs)) {
+              return OTS_FAILURE();
+            }
           }
-        }
+          break;
       }
     }
   }
@@ -593,13 +664,13 @@ bool ots_cmap_should_serialise(OpenTypeFile *file) {
 }
 
 bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
-  const bool have_100 = file->cmap->subtable_100.size();
-  const bool have_304 = file->cmap->subtable_304_data;
+  const bool have_100 = file->cmap->subtable_1_0_0.size();
+  const bool have_304 = file->cmap->subtable_3_0_4_data;
   // MS Symbol and MS Unicode tables should not co-exist.
   // See the comment above in 0-0-4 parser.
-  const bool have_314 = (!have_304) && file->cmap->subtable_314_data;
-  const bool have_31012 = file->cmap->subtable_31012.size();
-  const bool have_31013 = file->cmap->subtable_31013.size();
+  const bool have_314 = (!have_304) && file->cmap->subtable_3_1_4_data;
+  const bool have_31012 = file->cmap->subtable_3_10_12.size();
+  const bool have_31013 = file->cmap->subtable_3_10_13.size();
   const unsigned num_subtables = static_cast<unsigned>(have_100) +
                                  static_cast<unsigned>(have_304) +
                                  static_cast<unsigned>(have_314) +
@@ -630,30 +701,31 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
         !out->WriteU16(0)) {  // language
       return OTS_FAILURE();
     }
-    if (!out->Write(&(file->cmap->subtable_100[0]), kFormat0ArraySize)) {
+    if (!out->Write(&(file->cmap->subtable_1_0_0[0]), kFormat0ArraySize)) {
       return OTS_FAILURE();
     }
   }
 
   const off_t offset_304 = out->Tell();
   if (have_304) {
-    if (!out->Write(file->cmap->subtable_304_data,
-                    file->cmap->subtable_304_length)) {
+    if (!out->Write(file->cmap->subtable_3_0_4_data,
+                    file->cmap->subtable_3_0_4_length)) {
       return OTS_FAILURE();
     }
   }
 
   const off_t offset_314 = out->Tell();
   if (have_314) {
-    if (!out->Write(file->cmap->subtable_314_data,
-                    file->cmap->subtable_314_length)) {
+    if (!out->Write(file->cmap->subtable_3_1_4_data,
+                    file->cmap->subtable_3_1_4_length)) {
       return OTS_FAILURE();
     }
   }
 
   const off_t offset_31012 = out->Tell();
   if (have_31012) {
-    std::vector<OpenTypeCMAPSubtableRange> &groups = file->cmap->subtable_31012;
+    std::vector<OpenTypeCMAPSubtableRange> &groups
+        = file->cmap->subtable_3_10_12;
     const unsigned num_groups = groups.size();
     if (!out->WriteU16(12) ||
         !out->WriteU16(0) ||
@@ -674,7 +746,8 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
 
   const off_t offset_31013 = out->Tell();
   if (have_31013) {
-    std::vector<OpenTypeCMAPSubtableRange> &groups = file->cmap->subtable_31013;
+    std::vector<OpenTypeCMAPSubtableRange> &groups
+        = file->cmap->subtable_3_10_13;
     const unsigned num_groups = groups.size();
     if (!out->WriteU16(13) ||
         !out->WriteU16(0) ||

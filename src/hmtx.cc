@@ -60,7 +60,7 @@ bool ots_hmtx_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   for (unsigned i = 0; i < num_lsbs; ++i) {
     int16_t lsb;
     if (!table.ReadS16(&lsb)) {
-      // Some Japanese font (e.g., mona.ttf) have bad hmtx table.
+      // Some Japanese fonts (e.g., mona.ttf) fail this test.
       return OTS_FAILURE();
     }
 

@@ -14,7 +14,8 @@ namespace ots {
 
 struct OpenTypeGASP {
   uint16_t version;
-  std::vector<std::pair<uint16_t, uint16_t> > gasp_ranges;  // max PPEM, etc.
+  // A array of (max PPEM, GASP behavior) pairs.
+  std::vector<std::pair<uint16_t, uint16_t> > gasp_ranges;
 };
 
 }  // namespace ots

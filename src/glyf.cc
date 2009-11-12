@@ -14,6 +14,158 @@
 // glyf - Glyph Data
 // http://www.microsoft.com/opentype/otspec/glyf.htm
 
+namespace {
+
+bool ParseFlagsForSimpleGlyph(ots::Buffer *table,
+                              uint32_t gly_length,
+                              uint32_t num_flags,
+                              uint32_t *flags_count_logical,
+                              uint32_t *flags_count_physical,
+                              uint32_t *xy_coordinates_length) {
+  uint8_t flag = 0;
+  if (!table->ReadU8(&flag)) {
+    return OTS_FAILURE();
+  }
+
+  uint32_t delta = 0;
+  if (flag & (1u << 1)) {  // x-Short
+    ++delta;
+  } else if (!(flag & (1u << 4))) {
+    delta += 2;
+  }
+
+  if (flag & (1u << 2)) {  // y-Short
+    ++delta;
+  } else if (!(flag & (1u << 5))) {
+    delta += 2;
+  }
+
+  if (flag & (1u << 3)) {  // repeat
+    if (*flags_count_logical + 1 >= num_flags) {
+      return OTS_FAILURE();
+    }
+    uint8_t repeat = 0;
+    if (!table->ReadU8(&repeat)) {
+      return OTS_FAILURE();
+    }
+    if (repeat == 0) {
+      return OTS_FAILURE();
+    }
+    delta += (delta * repeat);
+
+    *flags_count_logical += repeat;
+    if (*flags_count_logical >= num_flags) {
+      return OTS_FAILURE();
+    }
+    ++(*flags_count_physical);
+  }
+
+  if ((flag & (1u << 6)) || (flag & (1u << 7))) {  // reserved flags
+    return OTS_FAILURE();
+  }
+
+  *xy_coordinates_length += delta;
+  if (gly_length < *xy_coordinates_length) {
+    return OTS_FAILURE();
+  }
+
+  return true;
+}
+
+bool ParseSimpleGlyph(ots::OpenTypeFile *file, const uint8_t *data,
+                      ots::Buffer *table, int16_t num_contours,
+                      uint32_t gly_offset, uint32_t gly_length,
+                      uint32_t *new_size) {
+  ots::OpenTypeGLYF *glyf = file->glyf;
+
+  // read the end-points array
+  uint16_t num_flags = 0;
+  for (int i = 0; i < num_contours; ++i) {
+    uint16_t tmp_index = 0;
+    if (!table->ReadU16(&tmp_index)) {
+      return OTS_FAILURE();
+    }
+    if (tmp_index == 0xffffu) {
+      return OTS_FAILURE();
+    }
+    // check if the indices are monotonically increasing
+    if (i && (tmp_index + 1 <= num_flags)) {
+      return OTS_FAILURE();
+    }
+    num_flags = tmp_index + 1;
+  }
+
+  uint16_t bytecode_length = 0;
+  if (!table->ReadU16(&bytecode_length)) {
+    return OTS_FAILURE();
+  }
+  if ((file->maxp->version_1) &&
+      (file->maxp->max_size_glyf_instructions < bytecode_length)) {
+    return OTS_FAILURE();
+  }
+
+  const uint32_t gly_header_length = 10 + num_contours * 2 + 2;
+  if (gly_length < (gly_header_length + bytecode_length)) {
+    return OTS_FAILURE();
+  }
+
+  if (ots::g_transcode_hints) {
+    glyf->iov.push_back(std::make_pair(
+        data + gly_offset, gly_header_length + bytecode_length));
+  } else {
+    // enqueue two vectors: the glyph data up to the bytecode length, then
+    // a pointer to a static uint16_t 0 to overwrite the length.
+    glyf->iov.push_back(std::make_pair(
+        data + gly_offset, gly_header_length - 2));
+    glyf->iov.push_back(std::make_pair((const uint8_t*) "\x00\x00", 2));
+  }
+
+  if (!table->Skip(bytecode_length)) {
+    return OTS_FAILURE();
+  }
+
+  uint32_t flags_count_physical = 0;  // on memory
+  uint32_t xy_coordinates_length = 0;
+  for (uint32_t flags_count_logical = 0;
+       flags_count_logical < num_flags;
+       ++flags_count_logical, ++flags_count_physical) {
+    if (!ParseFlagsForSimpleGlyph(table,
+                                  gly_length,
+                                  num_flags,
+                                  &flags_count_logical,
+                                  &flags_count_physical,
+                                  &xy_coordinates_length)) {
+      return OTS_FAILURE();
+    }
+  }
+
+  if (gly_length < (gly_header_length + bytecode_length +
+                    flags_count_physical + xy_coordinates_length)) {
+    return OTS_FAILURE();
+  }
+
+  if (gly_length - (gly_header_length + bytecode_length +
+                    flags_count_physical + xy_coordinates_length) > 3) {
+    // We allow 0-3 bytes difference since gly_length is 4-bytes aligned,
+    // zero-padded length.
+    return OTS_FAILURE();
+  }
+
+  glyf->iov.push_back(std::make_pair(
+      data + gly_offset + gly_header_length + bytecode_length,
+      flags_count_physical + xy_coordinates_length));
+
+  *new_size
+      = gly_header_length + flags_count_physical + xy_coordinates_length;
+  if (ots::g_transcode_hints) {
+    *new_size += bytecode_length;
+  }
+
+  return true;
+}
+
+}  // namespace
+
 namespace ots {
 
 bool ots_glyf_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
@@ -68,7 +220,7 @@ bool ots_glyf_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
       return OTS_FAILURE();
     }
 
-    if (num_contours < -1) {
+    if (num_contours <= -2) {
       // -2, -3, -4, ... are reserved for future use.
       return OTS_FAILURE();
     }
@@ -89,126 +241,9 @@ bool ots_glyf_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     unsigned new_size = 0;
     if (num_contours >= 0) {
       // this is a simple glyph and might contain bytecode
-
-      // read the end-points array
-      uint16_t num_flags = 0;
-      for (int j = 0; j < num_contours; ++j) {
-        uint16_t tmp_index = 0;
-        if (!table.ReadU16(&tmp_index)) {
-          return OTS_FAILURE();
-        }
-        if (tmp_index == 0xffffu) {
-          return OTS_FAILURE();
-        }
-        // check if the indices are monotonically increasing
-        if (j && (tmp_index + 1 <= num_flags)) {
-          return OTS_FAILURE();
-        }
-        num_flags = tmp_index + 1;
-      }
-
-      uint16_t bytecode_length;
-      if (!table.ReadU16(&bytecode_length)) {
+      if (!ParseSimpleGlyph(file, data, &table,
+                            num_contours, gly_offset, gly_length, &new_size)) {
         return OTS_FAILURE();
-      }
-      if ((file->maxp->version_1) &&
-          (file->maxp->max_glyf_insns < bytecode_length)) {
-        return OTS_FAILURE();
-      }
-
-      const unsigned gly_header_length = 10 + num_contours * 2 + 2;
-      if (gly_length < (gly_header_length + bytecode_length)) {
-        return OTS_FAILURE();
-      }
-
-      if (g_transcode_hints) {
-        glyf->iov.push_back(std::make_pair(
-            data + gly_offset, gly_header_length + bytecode_length));
-      } else {
-        // enqueue two vectors: the glyph data up to the bytecode length, then
-        // a pointer to a static uint16_t 0 to overwrite the length.
-        glyf->iov.push_back(std::make_pair(
-            data + gly_offset, gly_header_length - 2));
-        glyf->iov.push_back(std::make_pair((const uint8_t*) "\x00\x00", 2));
-      }
-
-      if (!table.Skip(bytecode_length)) {
-        return OTS_FAILURE();
-      }
-
-      uint32_t flags_count_physical = 0;  // on memory
-      uint32_t xy_coordinates_length = 0;
-      for (uint32_t flags_count_logical = 0;
-           flags_count_logical < num_flags;
-           ++flags_count_logical, ++flags_count_physical) {
-        uint8_t flag = 0;
-        if (!table.ReadU8(&flag)) {
-          return OTS_FAILURE();
-        }
-
-        uint32_t delta = 0;
-        if (flag & (1u << 1)) {  // x-Short
-          ++delta;
-        } else if (!(flag & (1u << 4))) {
-          delta += 2;
-        }
-
-        if (flag & (1u << 2)) {  // y-Short
-          ++delta;
-        } else if (!(flag & (1u << 5))) {
-          delta += 2;
-        }
-
-        if (flag & (1u << 3)) {  // repeat
-          if (flags_count_logical + 1 >= num_flags) {
-            return OTS_FAILURE();
-          }
-          uint8_t repeat = 0;
-          if (!table.ReadU8(&repeat)) {
-            return OTS_FAILURE();
-          }
-          if (repeat == 0) {
-            return OTS_FAILURE();
-          }
-          delta += (delta * repeat);
-
-          flags_count_logical += repeat;
-          if (flags_count_logical >= num_flags) {
-            return OTS_FAILURE();
-          }
-          ++flags_count_physical;
-        }
-
-        if ((flag & (1u << 6)) || (flag & (1u << 7))) {  // reserved flags
-          return OTS_FAILURE();
-        }
-
-        xy_coordinates_length += delta;
-        if (gly_length < xy_coordinates_length) {
-          return OTS_FAILURE();
-        }
-      }
-
-      if (gly_length < (gly_header_length + bytecode_length +
-                        flags_count_physical + xy_coordinates_length)) {
-        return OTS_FAILURE();
-      }
-
-      if (gly_length - (gly_header_length + bytecode_length +
-                        flags_count_physical + xy_coordinates_length) > 3) {
-        // We allow 0-3 bytes difference since gly_length is 4-bytes aligned,
-        // zero-padded length.
-        return OTS_FAILURE();
-      }
-
-      glyf->iov.push_back(std::make_pair(
-          data + gly_offset + gly_header_length + bytecode_length,
-          flags_count_physical + xy_coordinates_length));
-
-      new_size
-          = gly_header_length + flags_count_physical + xy_coordinates_length;
-      if (g_transcode_hints) {
-        new_size += bytecode_length;
       }
     } else {
       // it's a composite glyph without any bytecode. Enqueue the whole thing

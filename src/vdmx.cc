@@ -45,7 +45,8 @@ bool ots_vdmx_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
       DROP_THIS_TABLE;
       return true;
     }
-    if (rec.y_start_ratio < rec.y_end_ratio) {
+
+    if (rec.y_start_ratio > rec.y_end_ratio) {
       OTS_WARNING("bad y ratio");
       DROP_THIS_TABLE;
       return true;
@@ -60,7 +61,7 @@ bool ots_vdmx_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
       // workaround for fonts which have 2 or more {0, 0, 0} terminators.
       OTS_WARNING("superfluous terminator found");
       DROP_THIS_TABLE;
-      return true;  // continue transcoding
+      return true;
     }
 
     vdmx->rat_ranges.push_back(rec);

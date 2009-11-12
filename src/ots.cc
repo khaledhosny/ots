@@ -22,7 +22,7 @@
   bool ots_##name##_serialise(OTSStream *s, OpenTypeFile *f); \
   void ots_##name##_free(OpenTypeFile *f); \
   }
-  // TODO(yusukes): change these function names to follow the coding rule.
+  // TODO(yusukes): change these function names to follow Chromium coding rule.
 FOR_EACH_TABLE_TYPE
 #undef F
 
@@ -73,12 +73,6 @@ struct OutputTable {
   }
 };
 
-struct BypassTable {
-  uint32_t tag;
-  size_t offset;  // offset into input data
-  size_t length;
-};
-
 const struct {
   uint32_t tag;
   bool (*parse)(ots::OpenTypeFile *otf, const uint8_t *data, size_t length);
@@ -86,47 +80,47 @@ const struct {
   bool (*should_serialise)(ots::OpenTypeFile *file);
   void (*free)(ots::OpenTypeFile *file);
   bool required;
-  bool bypass;
 } table_parsers[] = {
   { Tag("maxp"), ots::ots_maxp_parse, ots::ots_maxp_serialise,
-    ots::ots_maxp_should_serialise, ots::ots_maxp_free, 1, 0 },
-  { Tag("cmap"), ots::ots_cmap_parse, ots::ots_cmap_serialise,
-    ots::ots_cmap_should_serialise, ots::ots_cmap_free, 1, 0 },
+    ots::ots_maxp_should_serialise, ots::ots_maxp_free, true },
   { Tag("head"), ots::ots_head_parse, ots::ots_head_serialise,
-    ots::ots_head_should_serialise, ots::ots_head_free, 1, 0 },
-  { Tag("hhea"), ots::ots_hhea_parse, ots::ots_hhea_serialise,
-    ots::ots_hhea_should_serialise, ots::ots_hhea_free, 1, 0 },
-  { Tag("hmtx"), ots::ots_hmtx_parse, ots::ots_hmtx_serialise,
-    ots::ots_hmtx_should_serialise, ots::ots_hmtx_free, 1, 0 },
-  { Tag("name"), ots::ots_name_parse, ots::ots_name_serialise,
-    ots::ots_name_should_serialise, ots::ots_name_free, 1, 0 },
+    ots::ots_head_should_serialise, ots::ots_head_free, true },
   { Tag("OS/2"), ots::ots_os2_parse, ots::ots_os2_serialise,
-    ots::ots_os2_should_serialise, ots::ots_os2_free, 1, 0 },
+    ots::ots_os2_should_serialise, ots::ots_os2_free, true },
+  { Tag("cmap"), ots::ots_cmap_parse, ots::ots_cmap_serialise,
+    ots::ots_cmap_should_serialise, ots::ots_cmap_free, true },
+  { Tag("hhea"), ots::ots_hhea_parse, ots::ots_hhea_serialise,
+    ots::ots_hhea_should_serialise, ots::ots_hhea_free, true },
+  { Tag("hmtx"), ots::ots_hmtx_parse, ots::ots_hmtx_serialise,
+    ots::ots_hmtx_should_serialise, ots::ots_hmtx_free, true },
+  { Tag("name"), ots::ots_name_parse, ots::ots_name_serialise,
+    ots::ots_name_should_serialise, ots::ots_name_free, true },
   { Tag("post"), ots::ots_post_parse, ots::ots_post_serialise,
-    ots::ots_post_should_serialise, ots::ots_post_free, 1, 0 },
+    ots::ots_post_should_serialise, ots::ots_post_free, true },
   { Tag("loca"), ots::ots_loca_parse, ots::ots_loca_serialise,
-    ots::ots_loca_should_serialise, ots::ots_loca_free, 0, 0 },
+    ots::ots_loca_should_serialise, ots::ots_loca_free, false },
   { Tag("glyf"), ots::ots_glyf_parse, ots::ots_glyf_serialise,
-    ots::ots_glyf_should_serialise, ots::ots_glyf_free, 0, 0 },
+    ots::ots_glyf_should_serialise, ots::ots_glyf_free, false },
   { Tag("CFF "), ots::ots_cff_parse, ots::ots_cff_serialise,
-    ots::ots_cff_should_serialise, ots::ots_cff_free, 0, 0 },
+    ots::ots_cff_should_serialise, ots::ots_cff_free, false },
   { Tag("VDMX"), ots::ots_vdmx_parse, ots::ots_vdmx_serialise,
-    ots::ots_vdmx_should_serialise, ots::ots_vdmx_free, 0, 0 },
+    ots::ots_vdmx_should_serialise, ots::ots_vdmx_free, false },
   { Tag("hdmx"), ots::ots_hdmx_parse, ots::ots_hdmx_serialise,
-    ots::ots_hdmx_should_serialise, ots::ots_hdmx_free, 0, 0 },
+    ots::ots_hdmx_should_serialise, ots::ots_hdmx_free, false },
   { Tag("gasp"), ots::ots_gasp_parse, ots::ots_gasp_serialise,
-    ots::ots_gasp_should_serialise, ots::ots_gasp_free, 0, 0 },
+    ots::ots_gasp_should_serialise, ots::ots_gasp_free, false },
   { Tag("cvt "), ots::ots_cvt_parse, ots::ots_cvt_serialise,
-    ots::ots_cvt_should_serialise, ots::ots_cvt_free, 0, 0 },
+    ots::ots_cvt_should_serialise, ots::ots_cvt_free, false },
   { Tag("fpgm"), ots::ots_fpgm_parse, ots::ots_fpgm_serialise,
-    ots::ots_fpgm_should_serialise, ots::ots_fpgm_free, 0, 0 },
+    ots::ots_fpgm_should_serialise, ots::ots_fpgm_free, false },
   { Tag("prep"), ots::ots_prep_parse, ots::ots_prep_serialise,
-    ots::ots_prep_should_serialise, ots::ots_prep_free, 0, 0 },
+    ots::ots_prep_should_serialise, ots::ots_prep_free, false },
   { Tag("LTSH"), ots::ots_ltsh_parse, ots::ots_ltsh_serialise,
-    ots::ots_ltsh_should_serialise, ots::ots_ltsh_free, 0, 0 },
+    ots::ots_ltsh_should_serialise, ots::ots_ltsh_free, false },
   { Tag("VORG"), ots::ots_vorg_parse, ots::ots_vorg_serialise,
-    ots::ots_vorg_should_serialise, ots::ots_vorg_free, 0, 0 },
-  { 0, NULL, NULL, NULL, 0, 0, 0 },
+    ots::ots_vorg_should_serialise, ots::ots_vorg_free, false },
+  // TODO(yusukes): Support GDEF, GPOS, GSUB, kern, mort, base, and jstf tables.
+  { 0, NULL, NULL, NULL, NULL, false },
 };
 
 bool DoProcess(ots::OpenTypeFile *header,
@@ -169,7 +163,7 @@ bool DoProcess(ots::OpenTypeFile *header,
   const uint16_t expected_search_range = (1u << max_pow2) << 4;
 
   // Don't call ots_failure() here since ~25% of fonts (250+ fonts) in
-  // http://www.princexml.com/fonts/ have bad search_range value.
+  // http://www.princexml.com/fonts/ have unexpected search_range value.
   if (header->search_range != expected_search_range) {
     OTS_WARNING("bad search range");
     header->search_range = expected_search_range;  // Fix the value.
@@ -218,7 +212,7 @@ bool DoProcess(ots::OpenTypeFile *header,
       }
     }
 
-    // all tag names must be built from printing characters
+    // all tag names must be built from printable ASCII characters
     if (!CheckTag(tables[i].tag)) {
       return OTS_FAILURE();
     }
@@ -271,8 +265,6 @@ bool DoProcess(ots::OpenTypeFile *header,
     }
   }
 
-  std::vector<BypassTable> bypass_tables;
-
   for (unsigned i = 0; ; ++i) {
     if (table_parsers[i].parse == NULL) break;
 
@@ -284,14 +276,6 @@ bool DoProcess(ots::OpenTypeFile *header,
         return OTS_FAILURE();
       }
       continue;
-    }
-
-    if (table_parsers[i].bypass) {
-      BypassTable bypass;
-      bypass.offset = it->second.offset;
-      bypass.length = it->second.length;
-      bypass.tag = table_parsers[i].tag;
-      bypass_tables.push_back(bypass);
     }
 
     if (!table_parsers[i].parse(
@@ -323,16 +307,10 @@ bool DoProcess(ots::OpenTypeFile *header,
       break;
     }
 
-    if (table_parsers[i].bypass) {
-      continue;
-    }
-
     if (table_parsers[i].should_serialise(header)) {
       num_output_tables++;
     }
   }
-
-  num_output_tables += bypass_tables.size();
 
   max_pow2 = 0;
   while (1u << (max_pow2 + 1) <= num_output_tables) {
@@ -358,38 +336,9 @@ bool DoProcess(ots::OpenTypeFile *header,
   std::vector<OutputTable> out_tables;
 
   size_t head_table_offset = 0;
-  for (unsigned i = 0; i < bypass_tables.size(); ++i) {
-    const BypassTable &bypass = bypass_tables[i];
-
-    OutputTable out;
-    out.tag = bypass.tag;
-    out.offset = output->Tell();
-
-    output->ResetChecksum();
-    if (bypass.tag == Tag("head")) {
-      head_table_offset = out.offset;
-    }
-    if (!output->Write(data + bypass.offset, bypass.length)) {
-      return OTS_FAILURE();
-    }
-    const size_t end_offset = output->Tell();
-    out.length = end_offset - out.offset;
-
-    // align tables to four bytes
-    if (!output->Pad((4 - (end_offset & 3)) % 4)) {
-      return OTS_FAILURE();
-    }
-    out.chksum = output->chksum();
-    out_tables.push_back(out);
-  }
-
   for (unsigned i = 0; ; ++i) {
     if (table_parsers[i].parse == NULL) {
       break;
-    }
-
-    if (table_parsers[i].bypass) {
-      continue;
     }
 
     if (!table_parsers[i].should_serialise(header)) {
@@ -446,7 +395,9 @@ bool DoProcess(ots::OpenTypeFile *header,
   const uint32_t chksum_magic = static_cast<uint32_t>(0xb1b0afba) - file_chksum;
 
   // seek into the 'head' table and write in the checksum magic value
-  assert(head_table_offset != 0);
+  if (!head_table_offset) {
+    return OTS_FAILURE();  // not reached.
+  }
   if (!output->Seek(head_table_offset + 8)) {
     return OTS_FAILURE();
   }
