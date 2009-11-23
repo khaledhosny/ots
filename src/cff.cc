@@ -16,10 +16,11 @@ namespace {
 
 struct CFFIndex {
   CFFIndex()
-      : count(0), off_size(0) {}
+      : count(0), off_size(0), offset_to_next(0) {}
   uint16_t count;
   uint8_t off_size;
   std::vector<uint32_t> offsets;
+  uint32_t offset_to_next;
 };
 
 enum DICT_OPERAND_TYPE {
@@ -57,6 +58,8 @@ bool ParseIndex(ots::Buffer *table, CFFIndex *index) {
     return OTS_FAILURE();
   }
   if (index->count == 0) {
+    // An empty INDEX.
+    index->offset_to_next = table->offset() + sizeof(index->count);
     return true;
   }
 
@@ -108,6 +111,7 @@ bool ParseIndex(ots::Buffer *table, CFFIndex *index) {
     }
   }
 
+  index->offset_to_next = index->offsets.back();
   return true;
 }
 
@@ -839,7 +843,7 @@ bool ots_cff_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   }
 
   // parse "8. Top DICT INDEX"
-  table.set_offset(name_index.offsets[name_index.count]);
+  table.set_offset(name_index.offset_to_next);
   CFFIndex top_dict_index;
   if (!ParseIndex(&table, &top_dict_index)) {
     return OTS_FAILURE();
@@ -849,7 +853,7 @@ bool ots_cff_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   }
 
   // parse "10. String INDEX"
-  table.set_offset(top_dict_index.offsets[top_dict_index.count]);
+  table.set_offset(top_dict_index.offset_to_next);
   CFFIndex string_index;
   if (!ParseIndex(&table, &string_index)) {
     return OTS_FAILURE();
@@ -868,7 +872,7 @@ bool ots_cff_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   }
 
   // parse "16. Global Subrs INDEX"
-  table.set_offset(string_index.offsets[string_index.count]);
+  table.set_offset(string_index.offset_to_next);
   CFFIndex global_subrs_index;
   if (!ParseIndex(&table, &global_subrs_index)) {
     return OTS_FAILURE();
