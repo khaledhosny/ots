@@ -358,6 +358,11 @@ bool DoProcess(ots::OpenTypeFile *header,
     }
 
     const size_t end_offset = output->Tell();
+    if (end_offset <= out.offset) {
+      // paranoid check. |end_offset| is supposed to be greater than the offset,
+      // as long as the Tell() interface is implemented correctly.
+      return OTS_FAILURE();
+    }
     out.length = end_offset - out.offset;
 
     // align tables to four bytes

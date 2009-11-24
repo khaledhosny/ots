@@ -9,29 +9,39 @@
 
 namespace ots {
 
+// An OTSStream implementation for testing.
 class FILEStream : public OTSStream {
  public:
   explicit FILEStream(FILE *stream)
-      : file_(stream) {
+      : file_(stream), position_(0) {
   }
 
   ~FILEStream() {
   }
 
   bool WriteRaw(const void *data, size_t length) {
-    return fwrite(data, length, 1, file_) == 1;
+    if (::fwrite(data, length, 1, file_) == 1) {
+      position_ += length;
+      return true;
+    }
+    return false;
   }
 
   bool Seek(off_t position) {
-    return fseek(file_, position, SEEK_SET) == 0;
+    if (!::fseeko(file_, position, SEEK_SET)) {
+      position_ = position;
+      return true;
+    }
+    return false;
   }
 
   off_t Tell() const {
-    return ftell(file_);
+    return position_;
   }
 
  private:
   FILE * const file_;
+  off_t position_;
 };
 
 }  // namespace ots
