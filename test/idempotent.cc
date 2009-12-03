@@ -2,6 +2,21 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#if !defined(_MSC_VER)
+#ifdef __linux__
+// Linux
+#include <freetype/ftoutln.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#else
+// Mac OS X
+#include <ApplicationServices/ApplicationServices.h>  // g++ -framework Cocoa
+#endif  // __linux__
+#else
+// Windows
+// TODO(yusukes): Support Windows.
+#endif  // _MSC_VER
+
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -89,6 +104,60 @@ int main(int argc, char **argv) {
       return 1;
     }
   }
+
+  // Verify that the transcoded font can be opened by the font renderer for
+  // Linux (FreeType2), Mac OS X, or Windows.
+#if !defined(_MSC_VER)
+#ifdef __linux__
+  // Linux
+  FT_Library library;
+  FT_Error error = ::FT_Init_FreeType(&library);
+  if (error) {
+    std::fprintf(stderr, "Failed to initialize FreeType2!\n");
+    return 1;
+  }
+  FT_Face dummy;
+  error = ::FT_New_Memory_Face(library, result, result_len, 0, &dummy);
+  if (error) {
+    std::fprintf(stderr, "Failed to open the transcoded font\n");
+    return 1;
+  }
+#else
+  // Mac OS X
+  ATSFontContainerRef container_ref = 0;
+  ATSFontActivateFromMemory(result, result_len, 3, kATSFontFormatUnspecified,
+                            NULL, kATSOptionFlagsDefault, &container_ref);
+  if (!container_ref) {
+    std::fprintf(stderr, "Failed to open the transcoded font\n");
+    return 1;
+  }
+
+  ItemCount count;
+  ATSFontFindFromContainer(
+      container_ref, kATSOptionFlagsDefault, 0, NULL, &count);
+  if (!count) {
+    std::fprintf(stderr, "Failed to open the transcoded font\n");
+    return 1;
+  }
+
+  ATSFontRef ats_font_ref = 0;
+  ATSFontFindFromContainer(
+      container_ref, kATSOptionFlagsDefault, 1, &ats_font_ref, NULL);
+  if (!ats_font_ref) {
+    std::fprintf(stderr, "Failed to open the transcoded font\n");
+    return 1;
+  }
+
+  CGFontRef cg_font_ref = CGFontCreateWithPlatformFont(&ats_font_ref);
+  if (!CGFontGetNumberOfGlyphs(cg_font_ref)) {
+    std::fprintf(stderr, "Failed to open the transcoded font\n");
+    return 1;
+  }
+#endif  // __linux__
+#else
+  // Windows
+  // TODO(yusukes): Support Windows.
+#endif  // _MSC_VER
 
   return 0;
 }

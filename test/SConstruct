@@ -35,7 +35,7 @@ env.Library('../src/libots.a',
             ])
  
 env.Program('../test/ot-sanitise.cc', LIBS = ['ots'], LIBPATH='../src')
-env.Program('../test/idempotent.cc', LIBS = ['ots'], LIBPATH='../src')
+env.Program('../test/idempotent.cc', LIBS = ['ots', 'freetype', 'z', 'm'], LIBPATH='../src')
 env.Program('../test/perf.cc', LIBS = ['ots'], LIBPATH='../src')
 
 # TODO(yusukes): better to use pkg-config freetype2 --libs

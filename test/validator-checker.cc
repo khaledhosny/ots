@@ -2,9 +2,22 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <fcntl.h>
+#if !defined(_MSC_VER)
+#ifdef __linux__
+// Linux
+#include <freetype/ftoutln.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#else
+// Mac OS X
+#include <ApplicationServices/ApplicationServices.h>  // g++ -framework Cocoa
+#endif  // __linux__
+#else
+// Windows
+// TODO(yusukes): Support Windows.
+#endif  // _MSC_VER
+
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -18,6 +31,9 @@
 
 namespace {
 
+#if !defined(_MSC_VER)
+#ifdef __linux__
+// Linux
 void LoadChar(FT_Face face, int pt, FT_ULong c) {
   FT_Matrix matrix;
   matrix.xx = matrix.yy = 1 << 16;
@@ -28,11 +44,17 @@ void LoadChar(FT_Face face, int pt, FT_ULong c) {
   FT_Load_Char(face, c, FT_LOAD_RENDER);
 }
 
-int OpenAndLoadChars(FT_Library library, const char *file_name,
-                     uint8_t *trans_font, size_t trans_len) {
+int OpenAndLoadChars(
+    const char *file_name, uint8_t *trans_font, size_t trans_len) {
+  FT_Library library;
+  FT_Error error = FT_Init_FreeType(&library);
+  if (error) {
+    std::fprintf(stderr, "Failed to initialize FreeType2!\n");
+    return 1;
+  }
+
   FT_Face trans_face;
-  FT_Error error
-      = FT_New_Memory_Face(library, trans_font, trans_len, 0, &trans_face);
+  error = FT_New_Memory_Face(library, trans_font, trans_len, 0, &trans_face);
   if (error) {
     std::fprintf(stderr,
                  "OK: FreeType2 couldn't open the transcoded font: %s\n",
@@ -66,6 +88,57 @@ int OpenAndLoadChars(FT_Library library, const char *file_name,
   std::fprintf(stderr, "OK: FreeType2 didn't crash: %s\n", file_name);
   return 0;
 }
+#else
+// Mac OS X
+int OpenAndLoadChars(
+    const char *file_name, uint8_t *trans_font, size_t trans_len) {
+  ATSFontContainerRef container_ref = 0;
+  ATSFontActivateFromMemory(trans_font, trans_len, 3, kATSFontFormatUnspecified,
+                            NULL, kATSOptionFlagsDefault, &container_ref);
+  if (!container_ref) {
+    std::fprintf(stderr,
+                 "OK: font renderer couldn't open the transcoded font: %s\n",
+                 file_name);
+    return 0;
+  }
+
+  ItemCount count;
+  ATSFontFindFromContainer(
+      container_ref, kATSOptionFlagsDefault, 0, NULL, &count);
+  if (!count) {
+    std::fprintf(stderr,
+                 "OK: font renderer couldn't open the transcoded font: %s\n",
+                 file_name);
+    return 0;
+  }
+
+  ATSFontRef ats_font_ref = 0;
+  ATSFontFindFromContainer(
+    container_ref, kATSOptionFlagsDefault, 1, &ats_font_ref, NULL);
+  if (!ats_font_ref) {
+    std::fprintf(stderr,
+                 "OK: font renderer couldn't open the transcoded font: %s\n",
+                 file_name);
+    return 0;
+  }
+
+  CGFontRef cg_font_ref = CGFontCreateWithPlatformFont(&ats_font_ref);
+  if (!CGFontGetNumberOfGlyphs(cg_font_ref)) {
+    std::fprintf(stderr,
+                 "OK: font renderer couldn't open the transcoded font: %s\n",
+                 file_name);
+    return 0;
+  }
+
+  std::fprintf(stderr, "OK: font renderer didn't crash: %s\n", file_name);
+  // TODO(yusukes): would be better to perform LoadChar() like Linux.
+  return 0;
+}
+#endif  // __linux__
+#else
+// Windows
+// TODO(yusukes): Support Windows.
+#endif  // _MSC_VER
 
 }  // namespace
 
@@ -107,12 +180,5 @@ int main(int argc, char **argv) {
   }
   const size_t trans_len = output.Tell();
 
-  FT_Library library;
-  FT_Error error = FT_Init_FreeType(&library);
-  if (error) {
-    std::fprintf(stderr, "Failed to initialize FreeType2!\n");
-    return 1;
-  }
-
-  return OpenAndLoadChars(library, argv[1], trans_font, trans_len);
+  return OpenAndLoadChars(argv[1], trans_font, trans_len);
 }
