@@ -34,6 +34,8 @@
         'src/hhea.h',
         'src/hmtx.cc',
         'src/hmtx.h',
+        'src/kern.cc',
+        'src/kern.h',
         'src/loca.cc',
         'src/loca.h',
         'src/ltsh.cc',

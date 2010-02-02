@@ -155,6 +155,7 @@ class Buffer {
   F(head, HEAD) \
   F(hhea, HHEA) \
   F(hmtx, HMTX) \
+  F(kern, KERN) \
   F(loca, LOCA) \
   F(ltsh, LTSH) \
   F(maxp, MAXP) \
