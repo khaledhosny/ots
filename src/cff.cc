@@ -81,7 +81,7 @@ bool ParseIndex(ots::Buffer *table, CFFIndex *index) {
   }
 
   for (unsigned i = 0; i <= index->count; ++i) {  // '<=' is not a typo.
-    uint32_t rel_offset;
+    uint32_t rel_offset = 0;
     if (!ReadOffset(table, index->off_size, &rel_offset)) {
       return OTS_FAILURE();
     }
@@ -659,7 +659,7 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
               last_gid = first;
               // TODO(yusukes): check fd & GID values?
             }
-            uint16_t sentinel;
+            uint16_t sentinel = 0;
             if (!table.ReadU16(&sentinel)) {
               return OTS_FAILURE();
             }
