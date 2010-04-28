@@ -40,8 +40,63 @@ class MemoryStream : public OTSStream {
   }
 
  private:
-  void * const ptr_;
+  void* const ptr_;
   size_t length_;
+  off_t off_;
+};
+
+class ExpandingMemoryStream : public OTSStream {
+ public:
+  ExpandingMemoryStream(size_t initial, size_t limit)
+      : length_(initial), limit_(limit), off_(0) {
+    ptr_ = new uint8_t[length_];
+  }
+
+  ~ExpandingMemoryStream() {
+    delete[] static_cast<uint8_t*>(ptr_);
+  }
+
+  void* get() const {
+    return ptr_;
+  }
+
+  bool WriteRaw(const void *data, size_t length) {
+    if ((off_ + length > length_) ||
+        (length > std::numeric_limits<size_t>::max() - off_)) {
+      if (length_ == limit_)
+        return false;
+      size_t new_length = (length_ + 1) * 2;
+      if (new_length < length_)
+        return false;
+      if (new_length > limit_)
+        new_length = limit_;
+      uint8_t* new_buf = new uint8_t[new_length];
+      memcpy(new_buf, ptr_, length_);
+      length_ = new_length;
+      delete[] static_cast<uint8_t*>(ptr_);
+      ptr_ = new_buf;
+      return WriteRaw(data, length);
+    }
+    std::memcpy(static_cast<char*>(ptr_) + off_, data, length);
+    off_ += length;
+    return true;
+  }
+
+  bool Seek(off_t position) {
+    if (position < 0) return false;
+    if (static_cast<size_t>(position) > length_) return false;
+    off_ = position;
+    return true;
+  }
+
+  off_t Tell() const {
+    return off_;
+  }
+
+ private:
+  void* ptr_;
+  size_t length_;
+  const size_t limit_;
   off_t off_;
 };
 

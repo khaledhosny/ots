@@ -5,6 +5,7 @@
 #include "ots.h"
 
 #include <sys/types.h>
+#include <zlib.h>
 
 #include <algorithm>
 #include <cstdlib>
@@ -35,6 +36,7 @@ struct OpenTypeTable {
   uint32_t chksum;
   uint32_t offset;
   uint32_t length;
+  uint32_t uncompressed_length;
 };
 
 // Round a value up to the nearest multiple of 4. Note that this can overflow
@@ -71,6 +73,25 @@ struct OutputTable {
     const uint32_t btag = ntohl(b.tag);
     return atag < btag;
   }
+};
+
+struct Arena {
+ public:
+  ~Arena() {
+    for (std::vector<uint8_t*>::iterator
+         i = hunks_.begin(); i != hunks_.end(); ++i) {
+      delete[] *i;
+    }
+  }
+
+  uint8_t* Allocate(size_t length) {
+    uint8_t* p = new uint8_t[length];
+    hunks_.push_back(p);
+    return p;
+  }
+
+ private:
+  std::vector<uint8_t*> hunks_;
 };
 
 const struct {
@@ -125,8 +146,22 @@ const struct {
   { 0, NULL, NULL, NULL, NULL, false },
 };
 
-bool DoProcess(ots::OpenTypeFile *header,
-               ots::OTSStream *output, const uint8_t *data, size_t length) {
+bool IsValidVersionTag(uint32_t tag) {
+  return tag == Tag("\x00\x01\x00\x00") ||
+         // OpenType fonts with CFF data have 'OTTO' tag.
+         tag == Tag("OTTO") ||
+         // Older Mac fonts might have 'true' or 'typ1' tag.
+         tag == Tag("true") ||
+         tag == Tag("typ1");
+}
+
+bool ProcessGeneric(ots::OpenTypeFile *header, ots::OTSStream *output,
+                    const uint8_t *data, size_t length,
+                    const std::vector<OpenTypeTable>& tables,
+                    ots::Buffer& file);
+
+bool ProcessTTF(ots::OpenTypeFile *header,
+                ots::OTSStream *output, const uint8_t *data, size_t length) {
   ots::Buffer file(data, length);
 
   // we disallow all files > 1GB in size for sanity.
@@ -137,12 +172,8 @@ bool DoProcess(ots::OpenTypeFile *header,
   if (!file.ReadTag(&header->version)) {
     return OTS_FAILURE();
   }
-  if ((header->version != Tag("\x00\x01\x00\x00")) &&
-      // OpenType fonts with CFF data have 'OTTO' tag.
-      (header->version != Tag("OTTO")) &&
-      // Older Mac fonts might have 'true' or 'typ1' tag.
-      (header->version != Tag("true")) && (header->version != Tag("typ1"))) {
-    return OTS_FAILURE();
+  if (!IsValidVersionTag(header->version)) {
+      return OTS_FAILURE();
   }
 
   if (!file.ReadU16(&header->num_tables) ||
@@ -198,10 +229,91 @@ bool DoProcess(ots::OpenTypeFile *header,
       return OTS_FAILURE();
     }
 
+    table.uncompressed_length = table.length;
     tables.push_back(table);
   }
 
+  return ProcessGeneric(header, output, data, length, tables, file);
+}
+
+bool ProcessWOFF(ots::OpenTypeFile *header,
+                 ots::OTSStream *output, const uint8_t *data, size_t length) {
+  ots::Buffer file(data, length);
+
+  // we disallow all files > 1GB in size for sanity.
+  if (length > 1024 * 1024 * 1024) {
+    return OTS_FAILURE();
+  }
+
+  uint32_t woff_tag;
+  if (!file.ReadTag(&woff_tag)) {
+    return OTS_FAILURE();
+  }
+
+  if (woff_tag != Tag("wOFF")) {
+    return OTS_FAILURE();
+  }
+
+  if (!file.ReadTag(&header->version)) {
+    return OTS_FAILURE();
+  }
+  if (!IsValidVersionTag(header->version)) {
+      return OTS_FAILURE();
+  }
+
+  header->search_range = 0;
+  header->entry_selector = 0;
+  header->range_shift = 0;
+
+  uint32_t reported_length;
+  if (!file.ReadU32(&reported_length) || length != reported_length) {
+    return OTS_FAILURE();
+  }
+
+  if (!file.ReadU16(&header->num_tables)) {
+    return OTS_FAILURE();
+  }
+
+  uint16_t reserved_value;
+  if (!file.ReadU16(&reserved_value) || reserved_value) {
+    return OTS_FAILURE();
+  }
+
+  // We don't care about these fields of the header:
+  //   uint32_t uncompressed_size;
+  //   uint16_t major_version, minor_version
+  //   uint32_t meta_offset, meta_length, meta_length_orig
+  //   uint32_t priv_offset, priv_length
+  if (!file.Skip(6 * 4 + 2 * 2)) {
+    return OTS_FAILURE();
+  }
+
+  // Next up is the list of tables.
+  std::vector<OpenTypeTable> tables;
+
+  for (unsigned i = 0; i < header->num_tables; ++i) {
+    OpenTypeTable table;
+    if (!file.ReadTag(&table.tag) ||
+        !file.ReadU32(&table.offset) ||
+        !file.ReadU32(&table.length) ||
+        !file.ReadU32(&table.uncompressed_length) ||
+        !file.ReadU32(&table.chksum)) {
+      return OTS_FAILURE();
+    }
+
+    tables.push_back(table);
+  }
+
+  return ProcessGeneric(header, output, data, length, tables, file);
+}
+
+bool ProcessGeneric(ots::OpenTypeFile *header, ots::OTSStream *output,
+                    const uint8_t *data, size_t length,
+                    const std::vector<OpenTypeTable>& tables,
+                    ots::Buffer& file) {
   const size_t data_offset = file.offset();
+
+  uint32_t uncompressed_sum = 0;
 
   for (unsigned i = 0; i < header->num_tables; ++i) {
     // the tables must be sorted by tag (when taken as big-endian numbers).
@@ -237,12 +349,34 @@ bool DoProcess(ots::OpenTypeFile *header,
     if (tables[i].length > 1024 * 1024 * 1024) {
       return OTS_FAILURE();
     }
+    // disallow tables where the uncompressed size is < the compressed size.
+    if (tables[i].uncompressed_length < tables[i].length) {
+      return OTS_FAILURE();
+    }
+    if (tables[i].uncompressed_length > tables[i].length) {
+      // We'll probably be decompressing this table.
+
+      // disallow all tables which uncompress to > 30 MB
+      if (tables[i].uncompressed_length > 30 * 1024 * 1024) {
+        return OTS_FAILURE();
+      }
+      if (uncompressed_sum + tables[i].uncompressed_length < uncompressed_sum) {
+        return OTS_FAILURE();
+      }
+
+      uncompressed_sum += tables[i].uncompressed_length;
+    }
     // since we required that the file be < 1GB in length, and that the table
     // length is < 1GB, the following addtion doesn't overflow
     const uint32_t end_byte = Round4(tables[i].offset + tables[i].length);
     if (!end_byte || end_byte > length) {
       return OTS_FAILURE();
     }
+  }
+
+  // All decompressed tables uncompressed must be <= 30MB.
+  if (uncompressed_sum > 30 * 1024 * 1024) {
+    return OTS_FAILURE();
   }
 
   std::map<uint32_t, OpenTypeTable> table_map;
@@ -267,6 +401,8 @@ bool DoProcess(ots::OpenTypeFile *header,
     }
   }
 
+  Arena arena;
+
   for (unsigned i = 0; ; ++i) {
     if (table_parsers[i].parse == NULL) break;
 
@@ -280,8 +416,26 @@ bool DoProcess(ots::OpenTypeFile *header,
       continue;
     }
 
-    if (!table_parsers[i].parse(
-        header, data + it->second.offset, it->second.length)) {
+    const uint8_t* table_data;
+    size_t table_length;
+
+    if (it->second.uncompressed_length != it->second.length) {
+      // compressed table. Need to uncompress into memory first.
+      table_length = it->second.uncompressed_length;
+      table_data = arena.Allocate(table_length);
+      uLongf dest_len = table_length;
+      int r = uncompress((Bytef*) table_data, &dest_len,
+                         data + it->second.offset, it->second.length);
+      if (r != Z_OK || dest_len != table_length) {
+        return OTS_FAILURE();
+      }
+    } else {
+      // uncompressed table. We can process directly from memory.
+      table_data = data + it->second.offset;
+      table_length = it->second.length;
+    }
+
+    if (!table_parsers[i].parse(header, table_data, table_length)) {
       return OTS_FAILURE();
     }
   }
@@ -292,7 +446,7 @@ bool DoProcess(ots::OpenTypeFile *header,
       return OTS_FAILURE();
     }
     if (header->glyf || header->loca) {
-      // mixing outline formats are not recommended
+      // mixing outline formats is not recommended
       return OTS_FAILURE();
     }
   } else {
@@ -314,7 +468,7 @@ bool DoProcess(ots::OpenTypeFile *header,
     }
   }
 
-  max_pow2 = 0;
+  unsigned max_pow2 = 0;
   while (1u << (max_pow2 + 1) <= num_output_tables) {
     max_pow2++;
   }
@@ -429,7 +583,16 @@ void DisableDebugOutput() {
 
 bool Process(OTSStream *output, const uint8_t *data, size_t length) {
   OpenTypeFile header;
-  const bool result = DoProcess(&header, output, data, length);
+  if (length < 4) {
+    return OTS_FAILURE();
+  }
+
+  bool result;
+  if (data[0] == 'w' && data[1] == 'O' && data[2] == 'F' && data[3] == 'F') {
+    result = ProcessWOFF(&header, output, data, length);
+  } else {
+    result = ProcessTTF(&header, output, data, length);
+  }
 
   for (unsigned i = 0; ; ++i) {
     if (table_parsers[i].parse == NULL) break;

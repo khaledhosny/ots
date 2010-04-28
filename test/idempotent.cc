@@ -60,9 +60,11 @@ int main(int argc, char **argv) {
   // A transcoded font is usually smaller than an original font.
   // However, it can be slightly bigger than the original one due to
   // name table replacement and/or padding for glyf table.
-  static const size_t kPadLen = 20 * 1024;
-  uint8_t *result = new uint8_t[st.st_size + kPadLen];
-  ots::MemoryStream output(result, st.st_size + kPadLen);
+  //
+  // However, a WOFF font gets decompressed and so can be *much* larger than
+  // the original.
+  uint8_t *result = new uint8_t[st.st_size * 8];
+  ots::MemoryStream output(result, st.st_size * 8);
 
   bool r = ots::Process(&output, data, st.st_size);
   if (!r) {
