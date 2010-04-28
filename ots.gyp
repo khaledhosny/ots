@@ -64,6 +64,9 @@
           'include',
         ],
       },
+      'dependencies': [
+        '../zlib/zlib.gyp:zlib',
+      ],
     },
   ],
 }
