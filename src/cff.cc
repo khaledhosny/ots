@@ -822,6 +822,9 @@ bool ots_cff_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   if (!table.ReadU8(&off_size)) {
     return OTS_FAILURE();
   }
+  if ((off_size == 0) || (off_size > 4)) {
+    return OTS_FAILURE();
+  }
 
   if ((major != 1) ||
       (minor != 0) ||
