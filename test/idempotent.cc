@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
     return 1;
   }
   const size_t result_len = output.Tell();
-  free(data);
+  delete[] data;
 
   uint8_t *result2 = new uint8_t[result_len];
   ots::MemoryStream output2(result2, result_len);
