@@ -8,6 +8,7 @@
 #include "ots.h"
 
 #include <string>
+#include <vector>
 
 namespace ots {
 
@@ -16,6 +17,9 @@ struct OpenTypeCFF {
   size_t length;
   // Name INDEX. This name is used in name.cc as a postscript font name.
   std::string name;
+
+  size_t font_dict_length;
+  std::vector<size_t> font_indices_in_fdselect;
 };
 
 }  // namespace ots

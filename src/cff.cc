@@ -426,7 +426,8 @@ bool ParsePrivateDictData(
 }
 
 bool ParseDictData(const uint8_t *data, size_t table_length,
-                   const CFFIndex &index, size_t sid_max, bool toplevel) {
+                   const CFFIndex &index, size_t sid_max, bool toplevel,
+                   ots::OpenTypeCFF *out_cff) {
   for (unsigned i = 1; i < index.offsets.size(); ++i) {
     size_t dict_length = index.offsets[i] - index.offsets[i - 1];
     ots::Buffer table(data + index.offsets[i - 1], dict_length);
@@ -602,9 +603,14 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
             return OTS_FAILURE();
           }
           if (!ParseDictData(data, table_length,
-                             sub_dict_index, sid_max, false /* toplevel */)) {
+                             sub_dict_index, sid_max, false /* toplevel */,
+                             out_cff)) {
             return OTS_FAILURE();
           }
+          if (out_cff->font_dict_length != 0) {
+            return OTS_FAILURE();  // two or more FDArray found.
+          }
+          out_cff->font_dict_length = sub_dict_index.count;
           break;
         }
 
@@ -627,10 +633,13 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
             return OTS_FAILURE();
           }
           if (format == 0) {
-            if (!table.Skip(glyphs)) {
-              return OTS_FAILURE();
+            for (size_t j = 0; j < glyphs; ++j) {
+              uint8_t fd_index = 0;
+              if (!table.ReadU8(&fd_index)) {
+                return OTS_FAILURE();
+              }
+              out_cff->font_indices_in_fdselect.push_back(fd_index);
             }
-            // TODO(yusukes): check fd value?
           } else if (format == 3) {
             uint16_t n_ranges = 0;
             if (!table.ReadU16(&n_ranges)) {
@@ -646,10 +655,11 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
               if (!table.ReadU16(&first)) {
                 return OTS_FAILURE();
               }
-              uint8_t fd = 0;
-              if (!table.ReadU8(&fd)) {
+              uint8_t fd_index = 0;
+              if (!table.ReadU8(&fd_index)) {
                 return OTS_FAILURE();
               }
+              out_cff->font_indices_in_fdselect.push_back(fd_index);
               if ((j == 0) && (first != 0)) {
                 return OTS_FAILURE();
               }
@@ -657,7 +667,7 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
                 return OTS_FAILURE();  // not increasing order.
               }
               last_gid = first;
-              // TODO(yusukes): check fd & GID values?
+              // TODO(yusukes): check GID?
             }
             uint16_t sentinel = 0;
             if (!table.ReadU16(&sentinel)) {
@@ -804,6 +814,7 @@ bool ots_cff_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   file->cff = new OpenTypeCFF;
   file->cff->data = data;
   file->cff->length = length;
+  file->cff->font_dict_length = 0;
 
   // parse "6. Header" in the Adobe Compact Font Format Specification
   uint8_t major = 0;
@@ -870,7 +881,7 @@ bool ots_cff_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 
   // parse "9. Top DICT Data"
   if (!ParseDictData(data, length, top_dict_index,
-                     sid_max, true /* toplevel */)) {
+                     sid_max, true /* toplevel */, file->cff)) {
     return OTS_FAILURE();
   }
 
@@ -879,6 +890,14 @@ bool ots_cff_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   CFFIndex global_subrs_index;
   if (!ParseIndex(&table, &global_subrs_index)) {
     return OTS_FAILURE();
+  }
+
+  // Check if all fd_index in FDSelect are valid.
+  const std::vector<size_t>& indices = file->cff->font_indices_in_fdselect;
+  for (size_t i = 0; i < indices.size(); ++i) {
+    if (indices.at(i) >= file->cff->font_dict_length) {
+      return OTS_FAILURE();
+    }
   }
 
   return true;
