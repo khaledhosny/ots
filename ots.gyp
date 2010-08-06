@@ -16,6 +16,8 @@
         'include/opentype-sanitiser.h',
         'src/cff.cc',
         'src/cff.h',
+	'src/cff_type2_charstring.cc',
+	'src/cff_type2_charstring.h',
         'src/cmap.cc',  
         'src/cmap.h',
         'src/cvt.cc',

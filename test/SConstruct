@@ -13,6 +13,7 @@ env = Environment(CCFLAGS = ['-O2', '-I../include', '-I/usr/include/freetype2', 
  
 env.Library('../src/libots.a',
             ['../src/cff.cc',
+	    '../src/cff_type2_charstring.cc',
 	    '../src/cmap.cc',
 	    '../src/cvt.cc',
 	    '../src/fpgm.cc',
