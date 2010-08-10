@@ -7,72 +7,26 @@
 
 #include "cff_type2_charstring.h"
 
+#include <climits>
 #include <cstdio>
 #include <cstring>
-#include <limits>
 #include <stack>
 #include <string>
 #include <utility>
 
 namespace {
 
-// The list of Operators. See Appendix. A in Adobe Technical Note #5177.
-enum Type2CharStringOperator {
-  kHStem = 1,
-  kVStem = 3,
-  kVMoveTo = 4,
-  kRLineTo = 5,
-  kHLineTo = 6,
-  kVLineTo = 7,
-  kRRCurveTo = 8,
-  kCallSubr = 10,
-  kReturn = 11,
-  kEndChar = 14,
-  kHStemHm = 18,
-  kHintMask = 19,
-  kCntrMask = 20,
-  kRMoveTo = 21,
-  kHMoveTo = 22,
-  kVStemHm = 23,
-  kRCurveLine = 24,
-  kRLineCurve = 25,
-  kVVCurveTo = 26,
-  kHHCurveTo = 27,
-  kCallGSubr = 29,
-  kVHCurveTo = 30,
-  kHVCurveTo = 31,
-  kAnd = (12 << 8) + 3,
-  kOr = (12 << 8) + 4,
-  kNot = (12 << 8) + 5,
-  kAbs = (12 << 8) + 9,
-  kAdd = (12 << 8) + 10,
-  kSub = (12 << 8) + 11,
-  kDiv = (12 << 8) + 12,
-  kNeg = (12 << 8) + 14,
-  kEq = (12 << 8) + 15,
-  kDrop = (12 << 8) + 18,
-  kPut = (12 << 8) + 20,
-  kGet = (12 << 8) + 21,
-  kIfElse = (12 << 8) + 22,
-  kRandom = (12 << 8) + 23,
-  kMul = (12 << 8) + 24,
-  kSqrt = (12 << 8) + 26,
-  kDup = (12 << 8) + 27,
-  kExch = (12 << 8) + 28,
-  kIndex = (12 << 8) + 29,
-  kRoll = (12 << 8) + 30,
-  kHFlex = (12 << 8) + 34,
-  kFlex = (12 << 8) + 35,
-  kHFlex1 = (12 << 8) + 36,
-  kFlex1 = (12 << 8) + 37,
-};
-
 // Type 2 Charstring Implementation Limits. See Appendix. B in Adobe Technical
 // Note #5177.
+const int32_t kMaxSubrsCount = 65536;
 const size_t kMaxCharStringLength = 65535;
 const size_t kMaxArgumentStack = 48;
 const size_t kMaxNumberOfStemHints = 96;
 const size_t kMaxSubrNesting = 10;
+
+// |dummy_result| should be a huge positive integer so callsubr and callgsubr
+// will fail with the dummy value.
+const int32_t dummy_result = INT_MAX;
 
 bool ExecuteType2CharString(size_t call_depth,
                             const ots::CFFIndex& global_subrs_index,
@@ -85,101 +39,101 @@ bool ExecuteType2CharString(size_t call_depth,
                             size_t *in_out_num_stems);
 
 // Converts |op| to a string and returns it.
-const char *Type2CharStringOperatorToString(Type2CharStringOperator op) {
+const char *Type2CharStringOperatorToString(ots::Type2CharStringOperator op) {
   switch (op) {
-  case kHStem:
+  case ots::kHStem:
     return "HStem";
-  case kVStem:
+  case ots::kVStem:
     return "VStem";
-  case kVMoveTo:
+  case ots::kVMoveTo:
     return "VMoveTo";
-  case kRLineTo:
+  case ots::kRLineTo:
     return "RLineTo";
-  case kHLineTo:
+  case ots::kHLineTo:
     return "HLineTo";
-  case kVLineTo:
+  case ots::kVLineTo:
     return "VLineTo";
-  case kRRCurveTo:
+  case ots::kRRCurveTo:
     return "RRCurveTo";
-  case kCallSubr:
+  case ots::kCallSubr:
     return "CallSubr";
-  case kReturn:
+  case ots::kReturn:
     return "Return";
-  case kEndChar:
+  case ots::kEndChar:
     return "EndChar";
-  case kHStemHm:
+  case ots::kHStemHm:
     return "HStemHm";
-  case kHintMask:
+  case ots::kHintMask:
     return "HintMask";
-  case kCntrMask:
+  case ots::kCntrMask:
     return "CntrMask";
-  case kRMoveTo:
+  case ots::kRMoveTo:
     return "RMoveTo";
-  case kHMoveTo:
+  case ots::kHMoveTo:
     return "HMoveTo";
-  case kVStemHm:
+  case ots::kVStemHm:
     return "VStemHm";
-  case kRCurveLine:
+  case ots::kRCurveLine:
     return "RCurveLine";
-  case kRLineCurve:
+  case ots::kRLineCurve:
     return "RLineCurve";
-  case kVVCurveTo:
+  case ots::kVVCurveTo:
     return "VVCurveTo";
-  case kHHCurveTo:
+  case ots::kHHCurveTo:
     return "HHCurveTo";
-  case kCallGSubr:
+  case ots::kCallGSubr:
     return "CallGSubr";
-  case kVHCurveTo:
+  case ots::kVHCurveTo:
     return "VHCurveTo";
-  case kHVCurveTo:
+  case ots::kHVCurveTo:
     return "HVCurveTo";
-  case kAnd:
+  case ots::kAnd:
     return "And";
-  case kOr:
+  case ots::kOr:
     return "Or";
-  case kNot:
+  case ots::kNot:
     return "Not";
-  case kAbs:
+  case ots::kAbs:
     return "Abs";
-  case kAdd:
+  case ots::kAdd:
     return "Add";
-  case kSub:
+  case ots::kSub:
     return "Sub";
-  case kDiv:
+  case ots::kDiv:
     return "Div";
-  case kNeg:
+  case ots::kNeg:
     return "Neg";
-  case kEq:
+  case ots::kEq:
     return "Eq";
-  case kDrop:
+  case ots::kDrop:
     return "Drop";
-  case kPut:
+  case ots::kPut:
     return "Put";
-  case kGet:
+  case ots::kGet:
     return "Get";
-  case kIfElse:
+  case ots::kIfElse:
     return "IfElse";
-  case kRandom:
+  case ots::kRandom:
     return "Random";
-  case kMul:
+  case ots::kMul:
     return "Mul";
-  case kSqrt:
+  case ots::kSqrt:
     return "Sqrt";
-  case kDup:
+  case ots::kDup:
     return "Dup";
-  case kExch:
+  case ots::kExch:
     return "Exch";
-  case kIndex:
+  case ots::kIndex:
     return "Index";
-  case kRoll:
+  case ots::kRoll:
     return "Roll";
-  case kHFlex:
+  case ots::kHFlex:
     return "HFlex";
-  case kFlex:
+  case ots::kFlex:
     return "Flex";
-  case kHFlex1:
+  case ots::kHFlex1:
     return "HFlex1";
-  case kFlex1:
+  case ots::kFlex1:
     return "Flex1";
   }
 
@@ -246,16 +200,13 @@ bool ReadNextNumberFromType2CharString(ots::Buffer *char_string,
     *out_number = -((static_cast<int32_t>(v) - 251) * 256) -
         static_cast<int32_t>(w) - 108;
   } else if (v == 255) {
-    uint32_t result = 0;
-    for (size_t i = 0; i < 4; ++i) {
-      if (!char_string->ReadU8(&v)) {
-        return OTS_FAILURE();
-      }
-      result = (result << 8) + v;
-    }
-    // TODO(yusukes): |result| should be treated as 16.16 fixed-point number
+    // TODO(yusukes): We should not skip the 4 bytes. Note that when v is 255,
+    // we should treat the following 4-bytes as a 16.16 fixed-point number
     // rather than 32bit signed int.
-    *out_number = static_cast<int32_t>(result);
+    if (!char_string->Skip(4)) {
+      return OTS_FAILURE();
+    }
+    *out_number = dummy_result;
   } else {
     return OTS_FAILURE();
   }
@@ -277,16 +228,13 @@ bool ExecuteType2CharStringOperator(int32_t op,
                                     bool *out_found_endchar,
                                     bool *in_out_found_width,
                                     size_t *in_out_num_stems) {
-  // |dummy_result| should be a huge positive integer so callsubr and callgsubr
-  // will fail with the dummy value.
-  const int32_t dummy_result = std::numeric_limits<int>::max();
   const size_t stack_size = argument_stack->size();
 
   switch (op) {
-  case kCallSubr:
-  case kCallGSubr: {
+  case ots::kCallSubr:
+  case ots::kCallGSubr: {
     const ots::CFFIndex& subrs_index =
-      (op == kCallSubr ? local_subrs_index : global_subrs_index);
+        (op == ots::kCallSubr ? local_subrs_index : global_subrs_index);
 
     if (stack_size < 1) {
       return OTS_FAILURE();
@@ -314,7 +262,10 @@ bool ExecuteType2CharStringOperator(int32_t op,
     if (subr_number < 0) {
       return OTS_FAILURE();
     }
-    if (subrs_index.offsets.size() <= static_cast<size_t>(subr_number)) {
+    if (subr_number >= kMaxSubrsCount) {
+      return OTS_FAILURE();
+    }
+    if (subrs_index.offsets.size() <= static_cast<size_t>(subr_number + 1)) {
       return OTS_FAILURE();  // The number is out-of-bounds.
     }
 
@@ -342,18 +293,18 @@ bool ExecuteType2CharStringOperator(int32_t op,
                                   in_out_num_stems);
   }
 
-  case kReturn:
+  case ots::kReturn:
     return true;
 
-  case kEndChar:
+  case ots::kEndChar:
     *out_found_endchar = true;
     *in_out_found_width = true;  // just in case.
     return true;
 
-  case kHStem:
-  case kVStem:
-  case kHStemHm:
-  case kVStemHm: {
+  case ots::kHStem:
+  case ots::kVStem:
+  case ots::kHStemHm:
+  case ots::kVStemHm: {
     bool successful = false;
     if (stack_size < 2) {
       return OTS_FAILURE();
@@ -375,7 +326,7 @@ bool ExecuteType2CharStringOperator(int32_t op,
     return successful ? true : OTS_FAILURE();
   }
 
-  case kRMoveTo: {
+  case ots::kRMoveTo: {
     bool successful = false;
     if (stack_size == 2) {
       successful = true;
@@ -388,8 +339,8 @@ bool ExecuteType2CharStringOperator(int32_t op,
     return successful ? true : OTS_FAILURE();
   }
 
-  case kVMoveTo:
-  case kHMoveTo: {
+  case ots::kVMoveTo:
+  case ots::kHMoveTo: {
     bool successful = false;
     if (stack_size == 1) {
       successful = true;
@@ -402,8 +353,8 @@ bool ExecuteType2CharStringOperator(int32_t op,
     return successful ? true : OTS_FAILURE();
   }
 
-  case kHintMask:
-  case kCntrMask: {
+  case ots::kHintMask:
+  case ots::kCntrMask: {
     bool successful = false;
     if (stack_size == 0) {
       successful = true;
@@ -437,7 +388,7 @@ bool ExecuteType2CharStringOperator(int32_t op,
     return true;
   }
 
-  case kRLineTo:
+  case ots::kRLineTo:
     if (!(*in_out_found_width)) {
       // The first stack-clearing operator should be one of hstem, hstemhm,
       // vstem, vstemhm, cntrmask, hintmask, hmoveto, vmoveto, rmoveto, or
@@ -454,8 +405,8 @@ bool ExecuteType2CharStringOperator(int32_t op,
       argument_stack->pop();
     return true;
 
-  case kHLineTo:
-  case kVLineTo:
+  case ots::kHLineTo:
+  case ots::kVLineTo:
     if (!(*in_out_found_width)) {
       return OTS_FAILURE();
     }
@@ -466,7 +417,7 @@ bool ExecuteType2CharStringOperator(int32_t op,
       argument_stack->pop();
     return true;
 
-  case kRRCurveTo:
+  case ots::kRRCurveTo:
     if (!(*in_out_found_width)) {
       return OTS_FAILURE();
     }
@@ -480,7 +431,7 @@ bool ExecuteType2CharStringOperator(int32_t op,
       argument_stack->pop();
     return true;
 
-  case kRCurveLine:
+  case ots::kRCurveLine:
     if (!(*in_out_found_width)) {
       return OTS_FAILURE();
     }
@@ -494,7 +445,7 @@ bool ExecuteType2CharStringOperator(int32_t op,
       argument_stack->pop();
     return true;
 
-  case kRLineCurve:
+  case ots::kRLineCurve:
     if (!(*in_out_found_width)) {
       return OTS_FAILURE();
     }
@@ -508,7 +459,7 @@ bool ExecuteType2CharStringOperator(int32_t op,
       argument_stack->pop();
     return true;
 
-  case kVVCurveTo:
+  case ots::kVVCurveTo:
     if (!(*in_out_found_width)) {
       return OTS_FAILURE();
     }
@@ -523,7 +474,7 @@ bool ExecuteType2CharStringOperator(int32_t op,
       argument_stack->pop();
     return true;
 
-  case kHHCurveTo: {
+  case ots::kHHCurveTo: {
     bool successful = false;
     if (!(*in_out_found_width)) {
       return OTS_FAILURE();
@@ -543,8 +494,8 @@ bool ExecuteType2CharStringOperator(int32_t op,
     return successful ? true : OTS_FAILURE();
   }
 
-  case kVHCurveTo:
-  case kHVCurveTo: {
+  case ots::kVHCurveTo:
+  case ots::kHVCurveTo: {
     bool successful = false;
     if (!(*in_out_found_width)) {
       return OTS_FAILURE();
@@ -573,11 +524,11 @@ bool ExecuteType2CharStringOperator(int32_t op,
     return successful ? true : OTS_FAILURE();
   }
 
-  case kAnd:
-  case kOr:
-  case kEq:
-  case kAdd:
-  case kSub:
+  case ots::kAnd:
+  case ots::kOr:
+  case ots::kEq:
+  case ots::kAdd:
+  case ots::kSub:
     if (stack_size < 2) {
       return OTS_FAILURE();
     }
@@ -588,9 +539,9 @@ bool ExecuteType2CharStringOperator(int32_t op,
     // arithmetic and conditional operations.
     return true;
 
-  case kNot:
-  case kAbs:
-  case kNeg:
+  case ots::kNot:
+  case ots::kAbs:
+  case ots::kNeg:
     if (stack_size < 1) {
       return OTS_FAILURE();
     }
@@ -600,45 +551,46 @@ bool ExecuteType2CharStringOperator(int32_t op,
     // arithmetic and conditional operations.
     return true;
 
-  case kDiv:
+  case ots::kDiv:
     // TODO(yusukes): Should detect div-by-zero errors.
-    if (stack_size < 1) {
+    if (stack_size < 2) {
       return OTS_FAILURE();
     }
+    argument_stack->pop();
     argument_stack->pop();
     argument_stack->push(dummy_result);
     // TODO(yusukes): Implement this. We should push a real value for all
     // arithmetic and conditional operations.
     return true;
 
-  case kDrop:
+  case ots::kDrop:
     if (stack_size < 1) {
       return OTS_FAILURE();
     }
     argument_stack->pop();
     return true;
 
-  case kPut:
-  case kGet:
-  case kIndex:
+  case ots::kPut:
+  case ots::kGet:
+  case ots::kIndex:
     // For now, just call OTS_FAILURE since there is no way to check whether the
     // index argument, |i|, is out-of-bounds or not. Fortunately, no OpenType
     // fonts I have (except malicious ones!) use the operators.
     // TODO(yusukes): Implement them in a secure way.
     return OTS_FAILURE();
 
-  case kRoll:
+  case ots::kRoll:
     // Likewise, just call OTS_FAILURE for kRoll since there is no way to check
     // whether |N| is smaller than the current stack depth or not.
     // TODO(yusukes): Implement them in a secure way.
     return OTS_FAILURE();
 
-  case kRandom:
+  case ots::kRandom:
     // For now, we don't handle the 'random' operator since the operator makes
     // it hard to analyze hinting code statically.
     return OTS_FAILURE();
 
-  case kIfElse:
+  case ots::kIfElse:
     if (stack_size < 4) {
       return OTS_FAILURE();
     }
@@ -651,7 +603,7 @@ bool ExecuteType2CharStringOperator(int32_t op,
     // arithmetic and conditional operations.
     return true;
 
-  case kMul:
+  case ots::kMul:
     // TODO(yusukes): Should detect overflows.
     if (stack_size < 2) {
       return OTS_FAILURE();
@@ -663,7 +615,7 @@ bool ExecuteType2CharStringOperator(int32_t op,
     // arithmetic and conditional operations.
     return true;
 
-  case kSqrt:
+  case ots::kSqrt:
     // TODO(yusukes): Should check if the argument is negative.
     if (stack_size < 1) {
       return OTS_FAILURE();
@@ -674,7 +626,7 @@ bool ExecuteType2CharStringOperator(int32_t op,
     // arithmetic and conditional operations.
     return true;
 
-  case kDup:
+  case ots::kDup:
     if (stack_size < 1) {
       return OTS_FAILURE();
     }
@@ -688,7 +640,7 @@ bool ExecuteType2CharStringOperator(int32_t op,
     // arithmetic and conditional operations.
     return true;
 
-  case kExch:
+  case ots::kExch:
     if (stack_size < 2) {
       return OTS_FAILURE();
     }
@@ -700,7 +652,7 @@ bool ExecuteType2CharStringOperator(int32_t op,
     // arithmetic and conditional operations.
     return true;
 
-  case kHFlex:
+  case ots::kHFlex:
     if (!(*in_out_found_width)) {
       return OTS_FAILURE();
     }
@@ -711,7 +663,7 @@ bool ExecuteType2CharStringOperator(int32_t op,
       argument_stack->pop();
     return true;
 
-  case kFlex:
+  case ots::kFlex:
     if (!(*in_out_found_width)) {
       return OTS_FAILURE();
     }
@@ -722,7 +674,7 @@ bool ExecuteType2CharStringOperator(int32_t op,
       argument_stack->pop();
     return true;
 
-  case kHFlex1:
+  case ots::kHFlex1:
     if (!(*in_out_found_width)) {
       return OTS_FAILURE();
     }
@@ -733,7 +685,7 @@ bool ExecuteType2CharStringOperator(int32_t op,
       argument_stack->pop();
     return true;
 
-  case kFlex1:
+  case ots::kFlex1:
     if (!(*in_out_found_width)) {
       return OTS_FAILURE();
     }
@@ -824,7 +776,7 @@ bool ExecuteType2CharString(size_t call_depth,
     if (*out_found_endchar) {
       return true;
     }
-    if (operator_or_operand == kReturn) {
+    if (operator_or_operand == ots::kReturn) {
       return true;
     }
   }
@@ -925,6 +877,9 @@ bool ValidateType2CharStringIndex(
                                 global_subrs_index, *local_subrs_to_use,
                                 cff_table, &char_string, &argument_stack,
                                 &found_endchar, &found_width, &num_stems)) {
+      return OTS_FAILURE();
+    }
+    if (!found_endchar) {
       return OTS_FAILURE();
     }
   }
