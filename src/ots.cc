@@ -14,7 +14,7 @@
 #include <vector>
 
 // The OpenType Font File
-// http://www.microsoft.com/opentype/otspec/otff.htm
+// http://www.microsoft.com/typography/otspec/cmap.htm
 
 #define F(name, capname) \
   namespace ots { \

@@ -101,6 +101,17 @@ class Buffer {
     return ReadU16(reinterpret_cast<uint16_t*>(value));
   }
 
+  bool ReadU24(uint32_t *value) {
+    if (offset_ + 3 > length_) {
+      return OTS_FAILURE();
+    }
+    *value = static_cast<uint32_t>(buffer_[offset_]) << 16 |
+        static_cast<uint32_t>(buffer_[offset_ + 1]) << 8 |
+        static_cast<uint32_t>(buffer_[offset_ + 2]);
+    offset_ += 3;
+    return true;
+  }
+
   bool ReadU32(uint32_t *value) {
     if (offset_ + 4 > length_) {
       return OTS_FAILURE();

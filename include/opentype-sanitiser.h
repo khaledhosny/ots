@@ -96,6 +96,10 @@ class OTSStream {
     return true;
   }
 
+  bool WriteU8(uint8_t v) {
+    return Write(&v, sizeof(v));
+  }
+
   bool WriteU16(uint16_t v) {
     v = htons(v);
     return Write(&v, sizeof(v));
@@ -104,6 +108,11 @@ class OTSStream {
   bool WriteS16(int16_t v) {
     v = htons(v);
     return Write(&v, sizeof(v));
+  }
+
+  bool WriteU24(uint32_t v) {
+    v = htonl(v);
+    return Write(reinterpret_cast<uint8_t*>(&v)+1, 3);
   }
 
   bool WriteU32(uint32_t v) {
