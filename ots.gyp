@@ -3,9 +3,9 @@
 # found in the LICENSE file.
 
 {
-  'includes': [
-    '../../build/common.gypi',
-  ],
+  'variables': {
+    'chromium_code': 1,
+  },
   'targets': [
     {
       'target_name': 'ots',
