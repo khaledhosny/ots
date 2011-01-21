@@ -78,7 +78,7 @@ bool ots_gasp_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 }
 
 bool ots_gasp_should_serialise(OpenTypeFile *file) {
-  return file->gasp;
+  return file->gasp != NULL;
 }
 
 bool ots_gasp_serialise(OTSStream *out, OpenTypeFile *file) {

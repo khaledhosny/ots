@@ -87,7 +87,7 @@ bool ots_hhea_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 }
 
 bool ots_hhea_should_serialise(OpenTypeFile *file) {
-  return file->hhea;
+  return file->hhea != NULL;
 }
 
 bool ots_hhea_serialise(OTSStream *out, OpenTypeFile *file) {

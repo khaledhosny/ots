@@ -823,19 +823,19 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 }
 
 bool ots_cmap_should_serialise(OpenTypeFile *file) {
-  return file->cmap;
+  return file->cmap != NULL;
 }
 
 bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
-  const bool have_034 = file->cmap->subtable_0_3_4_data;
-  const bool have_0514 = file->cmap->subtable_0_5_14.size();
-  const bool have_100 = file->cmap->subtable_1_0_0.size();
-  const bool have_304 = file->cmap->subtable_3_0_4_data;
+  const bool have_034 = file->cmap->subtable_0_3_4_data != NULL;
+  const bool have_0514 = file->cmap->subtable_0_5_14.size() != 0;
+  const bool have_100 = file->cmap->subtable_1_0_0.size() != 0;
+  const bool have_304 = file->cmap->subtable_3_0_4_data != NULL;
   // MS Symbol and MS Unicode tables should not co-exist.
   // See the comment above in 0-0-4 parser.
   const bool have_314 = (!have_304) && file->cmap->subtable_3_1_4_data;
-  const bool have_31012 = file->cmap->subtable_3_10_12.size();
-  const bool have_31013 = file->cmap->subtable_3_10_13.size();
+  const bool have_31012 = file->cmap->subtable_3_10_12.size() != 0;
+  const bool have_31013 = file->cmap->subtable_3_10_13.size() != 0;
   const unsigned num_subtables = static_cast<unsigned>(have_034) +
                                  static_cast<unsigned>(have_0514) +
                                  static_cast<unsigned>(have_100) +

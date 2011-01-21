@@ -78,7 +78,7 @@ bool ots_hmtx_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 }
 
 bool ots_hmtx_should_serialise(OpenTypeFile *file) {
-  return file->hmtx;
+  return file->hmtx != NULL;
 }
 
 bool ots_hmtx_serialise(OTSStream *out, OpenTypeFile *file) {

@@ -975,7 +975,7 @@ bool ots_cff_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 }
 
 bool ots_cff_should_serialise(OpenTypeFile *file) {
-  return file->cff;
+  return file->cff != NULL;
 }
 
 bool ots_cff_serialise(OTSStream *out, OpenTypeFile *file) {
