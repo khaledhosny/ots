@@ -162,6 +162,7 @@ class Buffer {
   F(cvt, CVT) \
   F(fpgm, FPGM) \
   F(gasp, GASP) \
+  F(gdef, GDEF) \
   F(glyf, GLYF) \
   F(hdmx, HDMX) \
   F(head, HEAD) \

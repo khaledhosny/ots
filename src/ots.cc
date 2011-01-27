@@ -142,7 +142,9 @@ const struct {
     ots::ots_vorg_should_serialise, ots::ots_vorg_free, false },
   { Tag("kern"), ots::ots_kern_parse, ots::ots_kern_serialise,
     ots::ots_kern_should_serialise, ots::ots_kern_free, false },
-  // TODO(yusukes): Support GDEF, GPOS, GSUB, mort, base, and jstf tables.
+  { Tag("GDEF"), ots::ots_gdef_parse, ots::ots_gdef_serialise,
+    ots::ots_gdef_should_serialise, ots::ots_gdef_free, false },
+  // TODO(bashi): Support GPOS, GSUB, mort, base, and jstf tables.
   { 0, NULL, NULL, NULL, NULL, false },
 };
 
