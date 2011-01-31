@@ -350,7 +350,7 @@ bool ots_gdef_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 }
 
 bool ots_gdef_should_serialise(OpenTypeFile *file) {
-  return file->gdef;
+  return file->gdef != NULL;
 }
 
 bool ots_gdef_serialise(OTSStream *out, OpenTypeFile *file) {
