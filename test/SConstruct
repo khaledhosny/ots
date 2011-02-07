@@ -39,6 +39,7 @@ env.Library('../src/libots.a',
             ])
 
 env.Program('../test/cff_type2_charstring_test.cc', LIBS = ['ots', 'gtest_main'], LIBPATH = '../src')
+env.Program('../test/layout_common_table_test.cc', LIBS = ['ots', 'gtest_main'], LIBPATH = '../src')
 env.Program('../test/ot-sanitise.cc', LIBS = ['ots'], LIBPATH='../src')
 env.Program('../test/idempotent.cc', LIBS = ['ots', 'freetype', 'z', 'm'], LIBPATH='../src')
 env.Program('../test/perf.cc', LIBS = ['ots'], LIBPATH='../src')

@@ -12,12 +12,32 @@
 
 namespace ots {
 
+struct LookupTypeParser {
+  uint16_t type;
+  bool (*parse)(const OpenTypeFile *file, const uint8_t *data,
+                const size_t length);
+};
+
+bool ParseScriptListTable(const uint8_t *data, const size_t length,
+                          const uint16_t num_features);
+
+bool ParseFeatureListTable(const uint8_t *data, const size_t length,
+                           const uint16_t num_lookups,
+                           uint16_t* num_features);
+
+bool ParseLookupListTable(OpenTypeFile *file, const uint8_t *data,
+                          const size_t length, const size_t num_types,
+                          const LookupTypeParser* parsers,
+                          uint16_t *num_lookups);
+
 bool ParseClassDefTable(const uint8_t *data, size_t length,
                         const uint16_t num_glyphs,
                         const uint16_t num_classes);
 
 bool ParseCoverageTable(const uint8_t *data, size_t length,
                         const uint16_t num_glyphs);
+
+bool ParseDeviceTable(const uint8_t *data, size_t length);
 
 }  // namespace ots
 

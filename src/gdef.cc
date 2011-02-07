@@ -4,6 +4,7 @@
 
 #include "gdef.h"
 
+#include <limits>
 #include <vector>
 
 #include "layout.h"
@@ -40,6 +41,9 @@ bool ParseAttachListTable(ots::OpenTypeFile *file, const uint8_t *data,
     return OTS_FAILURE();
   }
   const unsigned attach_points_end = static_cast<unsigned>(4) + 2*glyph_count;
+  if (attach_points_end > std::numeric_limits<uint16_t>::max()) {
+    return OTS_FAILURE();
+  }
   if (offset_coverage == 0 || offset_coverage >= length ||
       offset_coverage < attach_points_end) {
     return OTS_FAILURE();
@@ -105,6 +109,9 @@ bool ParseLigCaretListTable(ots::OpenTypeFile *file, const uint8_t *data,
     return OTS_FAILURE();
   }
   const unsigned lig_glyphs_end = static_cast<unsigned>(4) + 2*lig_glyph_count;
+  if (lig_glyphs_end > std::numeric_limits<uint16_t>::max()) {
+    return OTS_FAILURE();
+  }
   if (offset_coverage == 0 || offset_coverage >= length ||
       offset_coverage < lig_glyphs_end) {
     return OTS_FAILURE();
@@ -207,6 +214,9 @@ bool ParseMarkGlyphSetsDefTable(ots::OpenTypeFile *file, const uint8_t *data,
   }
 
   const unsigned mark_sets_end = static_cast<unsigned>(4) + 2*mark_set_count;
+  if (mark_sets_end > std::numeric_limits<uint16_t>::max()) {
+    return OTS_FAILURE();
+  }
   for (unsigned i = 0; i < mark_set_count; ++i) {
     uint32_t offset_coverage = 0;
     if (!subtable.ReadU32(&offset_coverage)) {
@@ -221,6 +231,7 @@ bool ParseMarkGlyphSetsDefTable(ots::OpenTypeFile *file, const uint8_t *data,
       return OTS_FAILURE();
     }
   }
+  file->gdef->num_mark_glyph_sets = mark_set_count;
   return true;
 }
 
@@ -277,6 +288,10 @@ bool ots_gdef_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 
   const unsigned gdef_header_end = static_cast<unsigned>(8) +
       gdef->version_2 ? static_cast<unsigned>(2) : static_cast<unsigned>(0);
+  if (gdef_header_end > std::numeric_limits<uint16_t>::max()) {
+    return OTS_FAILURE();
+  }
+
   // Parse subtables
   if (offset_glyph_class_def) {
     if (offset_glyph_class_def >= length ||
@@ -329,6 +344,7 @@ bool ots_gdef_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
       DROP_THIS_TABLE;
       return true;
     }
+    gdef->has_mark_attachment_class_def = true;
   }
 
   if (offset_mark_glyph_sets_def) {
@@ -343,6 +359,7 @@ bool ots_gdef_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
       DROP_THIS_TABLE;
       return true;
     }
+    gdef->has_mark_glyph_sets_def = true;
   }
   gdef->data = data;
   gdef->length = length;

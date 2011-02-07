@@ -12,11 +12,18 @@ namespace ots {
 struct OpenTypeGDEF {
   OpenTypeGDEF()
       : version_2(false),
+        has_mark_attachment_class_def(false),
+        has_mark_glyph_sets_def(false),
+        num_mark_glyph_sets(0),
         data(NULL),
         length(0) {
   }
 
   bool version_2;
+  bool has_mark_attachment_class_def;
+  bool has_mark_glyph_sets_def;
+  uint16_t num_mark_glyph_sets;
+
   const uint8_t *data;
   size_t length;
 };
