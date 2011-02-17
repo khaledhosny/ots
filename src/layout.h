@@ -12,10 +12,19 @@
 
 namespace ots {
 
-struct LookupTypeParser {
-  uint16_t type;
-  bool (*parse)(const OpenTypeFile *file, const uint8_t *data,
-                const size_t length);
+
+struct LookupSubtableParser {
+  struct TypeParser {
+    uint16_t type;
+    bool (*parse)(const OpenTypeFile *file, const uint8_t *data,
+                  const size_t length);
+  };
+  size_t num_types;
+  uint16_t extension_type;
+  const TypeParser *parsers;
+
+  bool Parse(const OpenTypeFile *file, const uint8_t *data,
+             const size_t length, const uint16_t lookup_type) const;
 };
 
 bool ParseScriptListTable(const uint8_t *data, const size_t length,
@@ -26,9 +35,9 @@ bool ParseFeatureListTable(const uint8_t *data, const size_t length,
                            uint16_t* num_features);
 
 bool ParseLookupListTable(OpenTypeFile *file, const uint8_t *data,
-                          const size_t length, const size_t num_types,
-                          const LookupTypeParser* parsers,
-                          uint16_t *num_lookups);
+                          const size_t length,
+                          const LookupSubtableParser* parser,
+                          uint16_t* num_lookups);
 
 bool ParseClassDefTable(const uint8_t *data, size_t length,
                         const uint16_t num_glyphs,
@@ -38,6 +47,20 @@ bool ParseCoverageTable(const uint8_t *data, size_t length,
                         const uint16_t num_glyphs);
 
 bool ParseDeviceTable(const uint8_t *data, size_t length);
+
+// Parser for 'Contextual' subtable shared by GSUB/GPOS tables.
+bool ParseContextSubtable(const uint8_t *data, const size_t length,
+                          const uint16_t num_glyphs,
+                          const uint16_t num_lookups);
+
+// Parser for 'Chaining Contextual' subtable shared by GSUB/GPOS tables.
+bool ParseChainingContextSubtable(const uint8_t *data, const size_t length,
+                                  const uint16_t num_glyphs,
+                                  const uint16_t num_lookups);
+
+bool ParseExtensionSubtable(const OpenTypeFile *file,
+                            const uint8_t *data, const size_t length,
+                            const LookupSubtableParser* parser);
 
 }  // namespace ots
 

@@ -269,17 +269,36 @@ class FeatureListTableTest : public ::testing::Test {
   uint16_t num_features;
 };
 
-bool fakeLookupParser(const ots::OpenTypeFile*, const uint8_t *, const size_t) {
+bool fakeTypeParserReturnsTrue(const ots::OpenTypeFile*, const uint8_t *,
+                               const size_t) {
   return true;
 }
 
-// Lookup Type parsers doesn't check anything.
-const ots::LookupTypeParser FakeLookupParsers[] = {
-  {1, fakeLookupParser},
-  {2, fakeLookupParser},
-  {3, fakeLookupParser},
-  {4, fakeLookupParser},
-  {5, fakeLookupParser}
+bool fakeTypeParserReturnsFalse(const ots::OpenTypeFile*, const uint8_t *,
+                                const size_t) {
+  return false;
+}
+
+const ots::LookupSubtableParser::TypeParser TypeParsersReturnTrue[] = {
+  {1, fakeTypeParserReturnsTrue},
+  {2, fakeTypeParserReturnsTrue},
+  {3, fakeTypeParserReturnsTrue},
+  {4, fakeTypeParserReturnsTrue},
+  {5, fakeTypeParserReturnsTrue}
+};
+
+// Fake lookup subtable parser which always returns true.
+const ots::LookupSubtableParser FakeLookupParserReturnsTrue = {
+  5, 5, TypeParsersReturnTrue,
+};
+
+const ots::LookupSubtableParser::TypeParser TypeParsersReturnFalse[] = {
+  {1, fakeTypeParserReturnsFalse}
+};
+
+// Fake lookup subtable parser which always returns false.
+const ots::LookupSubtableParser FakeLookupParserReturnsFalse = {
+  1, 1, TypeParsersReturnFalse
 };
 
 class LookupListTableTest : public ::testing::Test {
@@ -290,8 +309,9 @@ class LookupListTableTest : public ::testing::Test {
   }
 
   bool Parse() {
-    return ots::ParseLookupListTable(&file, out.data(), out.size(), 5,
-                                     FakeLookupParsers, &num_lookups);
+    return ots::ParseLookupListTable(&file, out.data(), out.size(),
+                                     &FakeLookupParserReturnsTrue,
+                                     &num_lookups);
   }
 
   TestStream out;
@@ -730,3 +750,31 @@ TEST(DeviceTableTest, TestDeltaFormat3Fail) {
   }
 }
 
+TEST(LookupSubtableParserTest, TestSuccess) {
+  {
+    ots::OpenTypeFile file;
+    EXPECT_TRUE(FakeLookupParserReturnsTrue.Parse(&file, 0, 0, 1));
+  }
+  {
+    ots::OpenTypeFile file;
+    EXPECT_TRUE(FakeLookupParserReturnsTrue.Parse(&file, 0, 0, 5));
+  }
+}
+
+TEST(LookupSubtableParserTest, TestFail) {
+  {
+    ots::OpenTypeFile file;
+    // Pass bad lookup type which less than the smallest type.
+    EXPECT_FALSE(FakeLookupParserReturnsTrue.Parse(&file, 0, 0, 0));
+  }
+  {
+    ots::OpenTypeFile file;
+    // Pass bad lookup type which greater than the maximum type.
+    EXPECT_FALSE(FakeLookupParserReturnsTrue.Parse(&file, 0, 0, 6));
+  }
+  {
+    ots::OpenTypeFile file;
+    // Check the type parser failure.
+    EXPECT_FALSE(FakeLookupParserReturnsFalse.Parse(&file, 0, 0, 1));
+  }
+}

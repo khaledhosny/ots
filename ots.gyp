@@ -30,6 +30,8 @@
         'src/gdef.h',
         'src/glyf.cc',
         'src/glyf.h',
+        'src/gpos.cc',
+        'src/gpos.h',
         'src/hdmx.cc',
         'src/hdmx.h',
         'src/head.cc',

@@ -24,6 +24,8 @@ const uint16_t kUseMarkFilteringSetBit = 0x0010;
 const uint16_t kMarkAttachmentTypeMask = 0xFF00;
 // The maximum type number of format for device tables.
 const uint16_t kMaxDeltaFormatType = 3;
+// The maximum number of class value.
+const uint16_t kMaxClassDefValue = 0xFFFF;
 
 struct ScriptRecord {
   uint32_t tag;
@@ -165,14 +167,9 @@ bool ParseFeatureTable(const uint8_t *data, const size_t length,
   return true;
 }
 
-bool LookupTypeParserLess(const ots::LookupTypeParser& parser,
-                          const uint16_t type) {
-  return parser.type < type;
-}
-
 bool ParseLookupTable(ots::OpenTypeFile *file, const uint8_t *data,
-                      const size_t length, const size_t num_types,
-                      const ots::LookupTypeParser* parsers) {
+                      const size_t length,
+                      const ots::LookupSubtableParser* parser) {
   ots::Buffer subtable(data, length);
 
   uint16_t lookup_type = 0;
@@ -184,7 +181,7 @@ bool ParseLookupTable(ots::OpenTypeFile *file, const uint8_t *data,
     return OTS_FAILURE();
   }
 
-  if (lookup_type == 0 || lookup_type > num_types) {
+  if (lookup_type == 0 || lookup_type > parser->num_types) {
     return OTS_FAILURE();
   }
 
@@ -233,14 +230,8 @@ bool ParseLookupTable(ots::OpenTypeFile *file, const uint8_t *data,
 
   // Parse lookup subtables for this lookup type.
   for (unsigned i = 0; i < subtable_count; ++i) {
-    const ots::LookupTypeParser *parser =
-        std::lower_bound(parsers, parsers + num_types, lookup_type,
-                         LookupTypeParserLess);
-    if (parser == parsers + num_types || parser->type != lookup_type ||
-        !parser->parse) {
-      return OTS_FAILURE();
-    }
-    if (!parser->parse(file, data + subtables[i], length - subtables[i])) {
+    if (!parser->Parse(file, data + subtables[i], length - subtables[i],
+                       lookup_type)) {
       return OTS_FAILURE();
     }
   }
@@ -279,7 +270,7 @@ bool ParseClassDefFormat1(const uint8_t *data, size_t length,
     if (!subtable.ReadU16(&class_value)) {
       return OTS_FAILURE();
     }
-    if (class_value == 0 || class_value > num_classes) {
+    if (class_value > num_classes) {
       OTS_WARNING("bad class value: %u", class_value);
       return OTS_FAILURE();
     }
@@ -321,7 +312,7 @@ bool ParseClassDefFormat2(const uint8_t *data, size_t length,
       OTS_WARNING("glyph range is overlapping.");
       return OTS_FAILURE();
     }
-    if (class_value == 0 || class_value > num_classes) {
+    if (class_value > num_classes) {
       OTS_WARNING("bad class value: %u", class_value);
       return OTS_FAILURE();
     }
@@ -405,9 +396,744 @@ bool ParseCoverageFormat2(const uint8_t *data, size_t length,
   return true;
 }
 
+// Parsers for Contextual subtables in GSUB/GPOS tables.
+
+bool ParseLookupRecord(ots::Buffer *subtable, const uint16_t num_glyphs,
+                       const uint16_t num_lookups) {
+  uint16_t sequence_index = 0;
+  uint16_t lookup_list_index = 0;
+  if (!subtable->ReadU16(&sequence_index) ||
+      !subtable->ReadU16(&lookup_list_index)) {
+    return OTS_FAILURE();
+  }
+  if (sequence_index >= num_glyphs) {
+    return OTS_FAILURE();
+  }
+  if (lookup_list_index >= num_lookups) {
+    return OTS_FAILURE();
+  }
+  return true;
+}
+
+bool ParseRuleSubtable(const uint8_t *data, const size_t length,
+                       const uint16_t num_glyphs,
+                       const uint16_t num_lookups) {
+  ots::Buffer subtable(data, length);
+
+  uint16_t glyph_count = 0;
+  uint16_t lookup_count = 0;
+  if (!subtable.ReadU16(&glyph_count) ||
+      !subtable.ReadU16(&lookup_count)) {
+    return OTS_FAILURE();
+  }
+
+  if (glyph_count == 0 || glyph_count >= num_glyphs) {
+    return OTS_FAILURE();
+  }
+  for (unsigned i = 0; i < glyph_count - static_cast<unsigned>(1); ++i) {
+    uint16_t glyph_id = 0;
+    if (!subtable.ReadU16(&glyph_id)) {
+      return OTS_FAILURE();
+    }
+    if (glyph_id > num_glyphs) {
+      return OTS_FAILURE();
+    }
+  }
+
+  for (unsigned i = 0; i < lookup_count; ++i) {
+    if (!ParseLookupRecord(&subtable, num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  }
+  return true;
+}
+
+bool ParseRuleSetTable(const uint8_t *data, const size_t length,
+                       const uint16_t num_glyphs,
+                       const uint16_t num_lookups) {
+  ots::Buffer subtable(data, length);
+
+  uint16_t rule_count = 0;
+  if (!subtable.ReadU16(&rule_count)) {
+    return OTS_FAILURE();
+  }
+  const unsigned rule_end = static_cast<unsigned>(2) +
+      rule_count * 2;
+  if (rule_end > std::numeric_limits<uint16_t>::max()) {
+    return OTS_FAILURE();
+  }
+
+  for (unsigned i = 0; i < rule_count; ++i) {
+    uint16_t offset_rule = 0;
+    if (!subtable.ReadU16(&offset_rule)) {
+      return OTS_FAILURE();
+    }
+    if (offset_rule < rule_end || offset_rule >= length) {
+      return OTS_FAILURE();
+    }
+    if (!ParseRuleSubtable(data + offset_rule, length - offset_rule,
+                           num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  }
+
+  return true;
+}
+
+bool ParseContextFormat1(const uint8_t *data, const size_t length,
+                         const uint16_t num_glyphs,
+                         const uint16_t num_lookups) {
+  ots::Buffer subtable(data, length);
+
+  uint16_t offset_coverage = 0;
+  uint16_t rule_set_count = 0;
+  // Skip format field.
+  if (!subtable.Skip(2) ||
+      !subtable.ReadU16(&offset_coverage) ||
+      !subtable.ReadU16(&rule_set_count)) {
+    return OTS_FAILURE();
+  }
+
+  const unsigned rule_set_end = static_cast<unsigned>(6) +
+      rule_set_count * 2;
+  if (rule_set_end > std::numeric_limits<uint16_t>::max()) {
+    return OTS_FAILURE();
+  }
+  if (offset_coverage < rule_set_end || offset_coverage >= length) {
+    return OTS_FAILURE();
+  }
+  if (!ots::ParseCoverageTable(data + offset_coverage,
+                               length - offset_coverage, num_glyphs)) {
+    return OTS_FAILURE();
+  }
+
+  for (unsigned i = 0; i < rule_set_count; ++i) {
+    uint16_t offset_rule = 0;
+    if (!subtable.ReadU16(&offset_rule)) {
+      return OTS_FAILURE();
+    }
+    if (offset_rule < rule_set_end || offset_rule >= length) {
+      return OTS_FAILURE();
+    }
+    if (!ParseRuleSetTable(data + offset_rule, length - offset_rule,
+                           num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  }
+
+  return true;
+}
+
+bool ParseClassRuleTable(const uint8_t *data, const size_t length,
+                         const uint16_t num_glyphs,
+                         const uint16_t num_lookups) {
+  ots::Buffer subtable(data, length);
+
+  uint16_t glyph_count = 0;
+  uint16_t lookup_count = 0;
+  if (!subtable.ReadU16(&glyph_count) ||
+      !subtable.ReadU16(&lookup_count)) {
+    return OTS_FAILURE();
+  }
+
+  if (glyph_count == 0 || glyph_count >= num_glyphs) {
+    return OTS_FAILURE();
+  }
+
+  // ClassRule table contains an array of classes. Each value of classes
+  // could take arbitrary values including zero so we don't check these value.
+  const unsigned num_classes = glyph_count - static_cast<unsigned>(1);
+  if (!subtable.Skip(2 * num_classes)) {
+    return OTS_FAILURE();
+  }
+
+  for (unsigned i = 0; i < lookup_count; ++i) {
+    if (!ParseLookupRecord(&subtable, num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  }
+  return true;
+}
+
+bool ParseClassSetTable(const uint8_t *data, const size_t length,
+                        const uint16_t num_glyphs,
+                        const uint16_t num_lookups) {
+  ots::Buffer subtable(data, length);
+
+  uint16_t class_rule_count = 0;
+  if (!subtable.ReadU16(&class_rule_count)) {
+    return OTS_FAILURE();
+  }
+  const unsigned class_rule_end = static_cast<unsigned>(2) +
+      class_rule_count * 2;
+  if (class_rule_end > std::numeric_limits<uint16_t>::max()) {
+    return OTS_FAILURE();
+  }
+  for (unsigned i = 0; i < class_rule_count; ++i) {
+    uint16_t offset_class_rule = 0;
+    if (!subtable.ReadU16(&offset_class_rule)) {
+      return OTS_FAILURE();
+    }
+    if (offset_class_rule < class_rule_end || offset_class_rule >= length) {
+      return OTS_FAILURE();
+    }
+    if (!ParseClassRuleTable(data + offset_class_rule,
+                             length - offset_class_rule, num_glyphs,
+                             num_lookups)) {
+      return OTS_FAILURE();
+    }
+  }
+
+  return true;
+}
+
+bool ParseContextFormat2(const uint8_t *data, const size_t length,
+                            const uint16_t num_glyphs,
+                            const uint16_t num_lookups) {
+  ots::Buffer subtable(data, length);
+
+  uint16_t offset_coverage = 0;
+  uint16_t offset_class_def = 0;
+  uint16_t class_set_cnt = 0;
+  // Skip format field.
+  if (!subtable.Skip(2) ||
+      !subtable.ReadU16(&offset_coverage) ||
+      !subtable.ReadU16(&offset_class_def) ||
+      !subtable.ReadU16(&class_set_cnt)) {
+    return OTS_FAILURE();
+  }
+
+  const unsigned class_set_end = static_cast<unsigned>(8) +
+      class_set_cnt * 2;
+  if (class_set_end > std::numeric_limits<uint16_t>::max()) {
+    return OTS_FAILURE();
+  }
+  if (offset_coverage < class_set_end || offset_coverage >= length) {
+    return OTS_FAILURE();
+  }
+  if (!ots::ParseCoverageTable(data + offset_coverage,
+                               length - offset_coverage, num_glyphs)) {
+    return OTS_FAILURE();
+  }
+
+  if (offset_class_def < class_set_end || offset_class_def >= length) {
+    return OTS_FAILURE();
+  }
+  if (!ots::ParseClassDefTable(data + offset_class_def,
+                               length - offset_class_def,
+                               num_glyphs, kMaxClassDefValue)) {
+    return OTS_FAILURE();
+  }
+
+  for (unsigned i = 0; i < class_set_cnt; ++i) {
+    uint16_t offset_class_rule = 0;
+    if (!subtable.ReadU16(&offset_class_rule)) {
+      return OTS_FAILURE();
+    }
+    if (offset_class_rule) {
+      if (offset_class_rule < class_set_end || offset_class_rule >= length) {
+        return OTS_FAILURE();
+      }
+      if (!ParseClassSetTable(data + offset_class_rule,
+                              length - offset_class_rule, num_glyphs,
+                              num_lookups)) {
+        return OTS_FAILURE();
+      }
+    }
+  }
+
+  return true;
+}
+
+bool ParseContextFormat3(const uint8_t *data, const size_t length,
+                         const uint16_t num_glyphs,
+                         const uint16_t num_lookups) {
+  ots::Buffer subtable(data, length);
+
+  uint16_t glyph_count = 0;
+  uint16_t lookup_count = 0;
+  // Skip format field.
+  if (!subtable.Skip(2) ||
+      !subtable.ReadU16(&glyph_count) ||
+      !subtable.ReadU16(&lookup_count)) {
+    return OTS_FAILURE();
+  }
+
+  if (glyph_count >= num_glyphs) {
+    return OTS_FAILURE();
+  }
+  const unsigned lookup_record_end = static_cast<unsigned>(6) +
+      glyph_count * 2 + lookup_count * 4;
+  if (lookup_record_end > std::numeric_limits<uint16_t>::max()) {
+    return OTS_FAILURE();
+  }
+  for (unsigned i = 0; i < glyph_count; ++i) {
+    uint16_t offset_coverage = 0;
+    if (!subtable.ReadU16(&offset_coverage)) {
+      return OTS_FAILURE();
+    }
+    if (offset_coverage < lookup_record_end || offset_coverage >= length) {
+      return OTS_FAILURE();
+    }
+    if (!ots::ParseCoverageTable(data + offset_coverage,
+                                 length - offset_coverage, num_glyphs)) {
+      return OTS_FAILURE();
+    }
+  }
+
+  for (unsigned i = 0; i < lookup_count; ++i) {
+    if (!ParseLookupRecord(&subtable, num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  }
+
+  return true;
+}
+
+// Parsers for Chaning Contextual subtables in GSUB/GPOS tables.
+
+bool ParseChainRuleSubtable(const uint8_t *data, const size_t length,
+                            const uint16_t num_glyphs,
+                            const uint16_t num_lookups) {
+  ots::Buffer subtable(data, length);
+
+  uint16_t backtrack_count = 0;
+  if (!subtable.ReadU16(&backtrack_count)) {
+    return OTS_FAILURE();
+  }
+  if (backtrack_count >= num_glyphs) {
+    return OTS_FAILURE();
+  }
+  for (unsigned i = 0; i < backtrack_count; ++i) {
+    uint16_t glyph_id = 0;
+    if (!subtable.ReadU16(&glyph_id)) {
+      return OTS_FAILURE();
+    }
+    if (glyph_id > num_glyphs) {
+      return OTS_FAILURE();
+    }
+  }
+
+  uint16_t input_count = 0;
+  if (!subtable.ReadU16(&input_count)) {
+    return OTS_FAILURE();
+  }
+  if (input_count == 0 || input_count >= num_glyphs) {
+    return OTS_FAILURE();
+  }
+  for (unsigned i = 0; i < input_count - static_cast<unsigned>(1); ++i) {
+    uint16_t glyph_id = 0;
+    if (!subtable.ReadU16(&glyph_id)) {
+      return OTS_FAILURE();
+    }
+    if (glyph_id > num_glyphs) {
+      return OTS_FAILURE();
+    }
+  }
+
+  uint16_t lookahead_count = 0;
+  if (!subtable.ReadU16(&lookahead_count)) {
+    return OTS_FAILURE();
+  }
+  if (lookahead_count >= num_glyphs) {
+    return OTS_FAILURE();
+  }
+  for (unsigned i = 0; i < lookahead_count; ++i) {
+    uint16_t glyph_id = 0;
+    if (!subtable.ReadU16(&glyph_id)) {
+      return OTS_FAILURE();
+    }
+    if (glyph_id > num_glyphs) {
+      return OTS_FAILURE();
+    }
+  }
+
+  uint16_t lookup_count = 0;
+  if (!subtable.ReadU16(&lookup_count)) {
+    return OTS_FAILURE();
+  }
+  for (unsigned i = 0; i < lookup_count; ++i) {
+    if (!ParseLookupRecord(&subtable, num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  }
+
+  return true;
+}
+
+bool ParseChainRuleSetTable(const uint8_t *data, const size_t length,
+                            const uint16_t num_glyphs,
+                            const uint16_t num_lookups) {
+  ots::Buffer subtable(data, length);
+
+  uint16_t chain_rule_count = 0;
+  if (!subtable.ReadU16(&chain_rule_count)) {
+    return OTS_FAILURE();
+  }
+  const unsigned chain_rule_end = static_cast<unsigned>(2) +
+      chain_rule_count * 2;
+  if (chain_rule_end > std::numeric_limits<uint16_t>::max()) {
+    return OTS_FAILURE();
+  }
+  for (unsigned i = 0; i < chain_rule_count; ++i) {
+    uint16_t offset_chain_rule = 0;
+    if (!subtable.ReadU16(&offset_chain_rule)) {
+      return OTS_FAILURE();
+    }
+    if (offset_chain_rule < chain_rule_end || offset_chain_rule >= length) {
+      return OTS_FAILURE();
+    }
+    if (!ParseChainRuleSubtable(data + offset_chain_rule,
+                                length - offset_chain_rule,
+                                num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  }
+
+  return true;
+}
+
+bool ParseChainContextFormat1(const uint8_t *data, const size_t length,
+                              const uint16_t num_glyphs,
+                              const uint16_t num_lookups) {
+  ots::Buffer subtable(data, length);
+
+  uint16_t offset_coverage = 0;
+  uint16_t chain_rule_set_count = 0;
+  // Skip format field.
+  if (!subtable.Skip(2) ||
+      !subtable.ReadU16(&offset_coverage) ||
+      !subtable.ReadU16(&chain_rule_set_count)) {
+    return OTS_FAILURE();
+  }
+
+  const unsigned chain_rule_set_end = static_cast<unsigned>(6) +
+      chain_rule_set_count * 2;
+  if (chain_rule_set_end > std::numeric_limits<uint16_t>::max()) {
+    return OTS_FAILURE();
+  }
+  if (offset_coverage < chain_rule_set_end || offset_coverage >= length) {
+    return OTS_FAILURE();
+  }
+  if (!ots::ParseCoverageTable(data + offset_coverage,
+                               length - offset_coverage, num_glyphs)) {
+    return OTS_FAILURE();
+  }
+
+  for (unsigned i = 0; i < chain_rule_set_count; ++i) {
+    uint16_t offset_chain_rule_set = 0;
+    if (!subtable.ReadU16(&offset_chain_rule_set)) {
+      return OTS_FAILURE();
+    }
+    if (offset_chain_rule_set < chain_rule_set_end ||
+        offset_chain_rule_set >= length) {
+      return OTS_FAILURE();
+    }
+    if (!ParseChainRuleSetTable(data + offset_chain_rule_set,
+                                   length - offset_chain_rule_set,
+                                   num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  }
+
+  return true;
+}
+
+bool ParseChainClassRuleSubtable(const uint8_t *data, const size_t length,
+                                 const uint16_t num_glyphs,
+                                 const uint16_t num_lookups) {
+  ots::Buffer subtable(data, length);
+
+  // In this subtable, we don't check the value of classes for now since
+  // these could take arbitrary values.
+
+  uint16_t backtrack_count = 0;
+  if (!subtable.ReadU16(&backtrack_count)) {
+    return OTS_FAILURE();
+  }
+  if (backtrack_count >= num_glyphs) {
+    return OTS_FAILURE();
+  }
+  if (!subtable.Skip(2 * backtrack_count)) {
+    return OTS_FAILURE();
+  }
+
+  uint16_t input_count = 0;
+  if (!subtable.ReadU16(&input_count)) {
+    return OTS_FAILURE();
+  }
+  if (input_count == 0 || input_count >= num_glyphs) {
+    return OTS_FAILURE();
+  }
+  if (!subtable.Skip(2 * (input_count - 1))) {
+    return OTS_FAILURE();
+  }
+
+  uint16_t lookahead_count = 0;
+  if (!subtable.ReadU16(&lookahead_count)) {
+    return OTS_FAILURE();
+  }
+  if (lookahead_count >= num_glyphs) {
+    return OTS_FAILURE();
+  }
+  if (!subtable.Skip(2 * lookahead_count)) {
+    return OTS_FAILURE();
+  }
+
+  uint16_t lookup_count = 0;
+  if (!subtable.ReadU16(&lookup_count)) {
+    return OTS_FAILURE();
+  }
+  for (unsigned i = 0; i < lookup_count; ++i) {
+    if (!ParseLookupRecord(&subtable, num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  }
+
+  return true;
+}
+
+bool ParseChainClassSetTable(const uint8_t *data, const size_t length,
+                             const uint16_t num_glyphs,
+                             const uint16_t num_lookups) {
+  ots::Buffer subtable(data, length);
+
+  uint16_t chain_class_rule_count = 0;
+  if (!subtable.ReadU16(&chain_class_rule_count)) {
+    return OTS_FAILURE();
+  }
+  const unsigned chain_class_rule_end = static_cast<unsigned>(2) +
+      chain_class_rule_count * 2;
+  if (chain_class_rule_end > std::numeric_limits<uint16_t>::max()) {
+    return OTS_FAILURE();
+  }
+  for (unsigned i = 0; i < chain_class_rule_count; ++i) {
+    uint16_t offset_chain_class_rule = 0;
+    if (!subtable.ReadU16(&offset_chain_class_rule)) {
+      return OTS_FAILURE();
+    }
+    if (offset_chain_class_rule < chain_class_rule_end ||
+        offset_chain_class_rule >= length) {
+      return OTS_FAILURE();
+    }
+    if (!ParseChainClassRuleSubtable(data + offset_chain_class_rule,
+                                     length - offset_chain_class_rule,
+                                     num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  }
+
+  return true;
+}
+
+bool ParseChainContextFormat2(const uint8_t *data, const size_t length,
+                              const uint16_t num_glyphs,
+                              const uint16_t num_lookups) {
+  ots::Buffer subtable(data, length);
+
+  uint16_t offset_coverage = 0;
+  uint16_t offset_backtrack_class_def = 0;
+  uint16_t offset_input_class_def = 0;
+  uint16_t offset_lookahead_class_def = 0;
+  uint16_t chain_class_set_count = 0;
+  // Skip format field.
+  if (!subtable.Skip(2) ||
+      !subtable.ReadU16(&offset_coverage) ||
+      !subtable.ReadU16(&offset_backtrack_class_def) ||
+      !subtable.ReadU16(&offset_input_class_def) ||
+      !subtable.ReadU16(&offset_lookahead_class_def) ||
+      !subtable.ReadU16(&chain_class_set_count)) {
+    return OTS_FAILURE();
+  }
+
+  const unsigned chain_class_set_end = static_cast<unsigned>(12) +
+      chain_class_set_count * 2;
+  if (chain_class_set_end > std::numeric_limits<uint16_t>::max()) {
+    return OTS_FAILURE();
+  }
+  if (offset_coverage < chain_class_set_end || offset_coverage >= length) {
+    return OTS_FAILURE();
+  }
+  if (!ots::ParseCoverageTable(data + offset_coverage,
+                               length - offset_coverage, num_glyphs)) {
+    return OTS_FAILURE();
+  }
+
+  // Classes for backtrack/lookahead sequences might not be defined.
+  if (offset_backtrack_class_def) {
+    if (offset_backtrack_class_def < chain_class_set_end ||
+        offset_backtrack_class_def >= length) {
+      return OTS_FAILURE();
+    }
+    if (!ots::ParseClassDefTable(data + offset_backtrack_class_def,
+                                 length - offset_backtrack_class_def,
+                                 num_glyphs, kMaxClassDefValue)) {
+      return OTS_FAILURE();
+    }
+  }
+
+  if (offset_input_class_def < chain_class_set_end ||
+      offset_input_class_def >= length) {
+    return OTS_FAILURE();
+  }
+  if (!ots::ParseClassDefTable(data + offset_input_class_def,
+                               length - offset_input_class_def,
+                               num_glyphs, kMaxClassDefValue)) {
+    return OTS_FAILURE();
+  }
+
+  if (offset_lookahead_class_def) {
+    if (offset_lookahead_class_def < chain_class_set_end ||
+        offset_lookahead_class_def >= length) {
+      return OTS_FAILURE();
+    }
+    if (!ots::ParseClassDefTable(data + offset_lookahead_class_def,
+                                 length - offset_lookahead_class_def,
+                                 num_glyphs, kMaxClassDefValue)) {
+      return OTS_FAILURE();
+    }
+  }
+
+  for (unsigned i = 0; i < chain_class_set_count; ++i) {
+    uint16_t offset_chain_class_set = 0;
+    if (!subtable.ReadU16(&offset_chain_class_set)) {
+      return OTS_FAILURE();
+    }
+    // |offset_chain_class_set| could be NULL.
+    if (offset_chain_class_set) {
+      if (offset_chain_class_set < chain_class_set_end ||
+          offset_chain_class_set >= length) {
+        return OTS_FAILURE();
+      }
+      if (!ParseChainClassSetTable(data + offset_chain_class_set,
+                                   length - offset_chain_class_set,
+                                   num_glyphs, num_lookups)) {
+        return OTS_FAILURE();
+      }
+    }
+  }
+
+  return true;
+}
+
+bool ParseChainContextFormat3(const uint8_t *data, const size_t length,
+                              const uint16_t num_glyphs,
+                              const uint16_t num_lookups) {
+  ots::Buffer subtable(data, length);
+
+  uint16_t backtrack_count = 0;
+  // Skip format field.
+  if (!subtable.Skip(2) ||
+      !subtable.ReadU16(&backtrack_count)) {
+    return OTS_FAILURE();
+  }
+
+  if (backtrack_count >= num_glyphs) {
+    return OTS_FAILURE();
+  }
+  std::vector<uint16_t> offsets_backtrack;
+  offsets_backtrack.reserve(backtrack_count);
+  for (unsigned i = 0; i < backtrack_count; ++i) {
+    if (!subtable.ReadU16(&offsets_backtrack[i])) {
+      return OTS_FAILURE();
+    }
+  }
+
+  uint16_t input_count = 0;
+  if (!subtable.ReadU16(&input_count)) {
+    return OTS_FAILURE();
+  }
+  if (input_count >= num_glyphs) {
+    return OTS_FAILURE();
+  }
+  std::vector<uint16_t> offsets_input;
+  offsets_input.reserve(input_count);
+  for (unsigned i = 0; i < input_count; ++i) {
+    if (!subtable.ReadU16(&offsets_input[i])) {
+      return OTS_FAILURE();
+    }
+  }
+
+  uint16_t lookahead_count = 0;
+  if (!subtable.ReadU16(&lookahead_count)) {
+    return OTS_FAILURE();
+  }
+  if (lookahead_count >= num_glyphs) {
+    return OTS_FAILURE();
+  }
+  std::vector<uint16_t> offsets_lookahead;
+  offsets_lookahead.reserve(lookahead_count);
+  for (unsigned i = 0; i < lookahead_count; ++i) {
+    if (!subtable.ReadU16(&offsets_lookahead[i])) {
+      return OTS_FAILURE();
+    }
+  }
+
+  uint16_t lookup_count = 0;
+  if (!subtable.ReadU16(&lookup_count)) {
+    return OTS_FAILURE();
+  }
+  for (unsigned i = 0; i < lookup_count; ++i) {
+    if (!ParseLookupRecord(&subtable, num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  }
+
+  const unsigned lookup_record_end = static_cast<unsigned>(10) +
+      (backtrack_count + input_count + lookahead_count) * 2 + lookup_count * 4;
+  if (lookup_record_end > std::numeric_limits<uint16_t>::max()) {
+    return OTS_FAILURE();
+  }
+  for (unsigned i = 0; i < backtrack_count; ++i) {
+    if (offsets_backtrack[i] < lookup_record_end ||
+        offsets_backtrack[i] >= length) {
+      return OTS_FAILURE();
+    }
+    if (!ots::ParseCoverageTable(data + offsets_backtrack[i],
+                                 length - offsets_backtrack[i], num_glyphs)) {
+      return OTS_FAILURE();
+    }
+  }
+  for (unsigned i = 0; i < input_count; ++i) {
+    if (offsets_input[i] < lookup_record_end || offsets_input[i] >= length) {
+      return OTS_FAILURE();
+    }
+    if (!ots::ParseCoverageTable(data + offsets_input[i],
+                                 length - offsets_input[i], num_glyphs)) {
+      return OTS_FAILURE();
+    }
+  }
+  for (unsigned i = 0; i < lookahead_count; ++i) {
+    if (offsets_lookahead[i] < lookup_record_end ||
+        offsets_lookahead[i] >= length) {
+      return OTS_FAILURE();
+    }
+    if (!ots::ParseCoverageTable(data + offsets_lookahead[i],
+                                 length - offsets_lookahead[i], num_glyphs)) {
+      return OTS_FAILURE();
+    }
+  }
+
+  return true;
+}
+
 }  // namespace
 
 namespace ots {
+
+bool LookupSubtableParser::Parse(const OpenTypeFile *file, const uint8_t *data,
+                                 const size_t length,
+                                 const uint16_t lookup_type) const {
+  for (unsigned i = 0; i < num_types; ++i) {
+    if (parsers[i].type == lookup_type && parsers[i].parse) {
+      if (!parsers[i].parse(file, data, length)) {
+        return OTS_FAILURE();
+      }
+      return true;
+    }
+  }
+  return OTS_FAILURE();
+}
 
 // Parsing ScriptListTable requires number of features so we need to
 // parse FeatureListTable before calling this function.
@@ -506,8 +1232,8 @@ bool ParseFeatureListTable(const uint8_t *data, const size_t length,
 // obtain the number of lookups because parsing FeatureTableList requires
 // the number.
 bool ParseLookupListTable(OpenTypeFile *file, const uint8_t *data,
-                          const size_t length, const size_t num_types,
-                          const LookupTypeParser* parsers,
+                          const size_t length,
+                          const LookupSubtableParser* parser,
                           uint16_t *num_lookups) {
   Buffer subtable(data, length);
 
@@ -533,7 +1259,7 @@ bool ParseLookupListTable(OpenTypeFile *file, const uint8_t *data,
 
   for (unsigned i = 0; i < *num_lookups; ++i) {
     if (!ParseLookupTable(file, data + lookups[i], length - lookups[i],
-                          num_types, parsers)) {
+                          parser)) {
       return OTS_FAILURE();
     }
   }
@@ -604,6 +1330,102 @@ bool ParseDeviceTable(const uint8_t *data, size_t length) {
   if (!subtable.Skip(num_units * 2)) {
     return OTS_FAILURE();
   }
+  return true;
+}
+
+bool ParseContextSubtable(const uint8_t *data, const size_t length,
+                          const uint16_t num_glyphs,
+                          const uint16_t num_lookups) {
+  Buffer subtable(data, length);
+
+  uint16_t format = 0;
+  if (!subtable.ReadU16(&format)) {
+    return OTS_FAILURE();
+  }
+
+  if (format == 1) {
+    if (!ParseContextFormat1(data, length, num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  } else if (format == 2) {
+    if (!ParseContextFormat2(data, length, num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  } else if (format == 3) {
+    if (!ParseContextFormat3(data, length, num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  } else {
+    return OTS_FAILURE();
+  }
+
+  return true;
+}
+
+bool ParseChainingContextSubtable(const uint8_t *data, const size_t length,
+                                  const uint16_t num_glyphs,
+                                  const uint16_t num_lookups) {
+  Buffer subtable(data, length);
+
+  uint16_t format = 0;
+  if (!subtable.ReadU16(&format)) {
+    return OTS_FAILURE();
+  }
+
+  if (format == 1) {
+    if (!ParseChainContextFormat1(data, length, num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  } else if (format == 2) {
+    if (!ParseChainContextFormat2(data, length, num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  } else if (format == 3) {
+    if (!ParseChainContextFormat3(data, length, num_glyphs, num_lookups)) {
+      return OTS_FAILURE();
+    }
+  } else {
+    return OTS_FAILURE();
+  }
+
+  return true;
+}
+
+bool ParseExtensionSubtable(const OpenTypeFile *file,
+                            const uint8_t *data, const size_t length,
+                            const LookupSubtableParser* parser) {
+  Buffer subtable(data, length);
+
+  uint16_t format = 0;
+  uint16_t lookup_type = 0;
+  uint32_t offset_extension = 0;
+  if (!subtable.ReadU16(&format) ||
+      !subtable.ReadU16(&lookup_type) ||
+      !subtable.ReadU32(&offset_extension)) {
+    return OTS_FAILURE();
+  }
+
+  if (format != 1) {
+    return OTS_FAILURE();
+  }
+  // |lookup_type| should be other than |parser->extension_type|.
+  if (lookup_type < 1 || lookup_type > parser->num_types ||
+      lookup_type == parser->extension_type) {
+    return OTS_FAILURE();
+  }
+
+  const unsigned format_end = static_cast<unsigned>(8);
+  if (offset_extension < format_end ||
+      offset_extension >= length) {
+    return OTS_FAILURE();
+  }
+
+  // Parse the extension subtable of |lookup_type|.
+  if (!parser->Parse(file, data + offset_extension, length - offset_extension,
+                     lookup_type)) {
+    return OTS_FAILURE();
+  }
+
   return true;
 }
 
