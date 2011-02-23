@@ -219,6 +219,9 @@ bool ParseLookupTable(ots::OpenTypeFile *file, const uint8_t *data,
     }
     subtables.push_back(offset_subtable);
   }
+  if (subtables.size() != subtable_count) {
+    return OTS_FAILURE();
+  }
 
   if (use_mark_filtering_set) {
     uint16_t mark_filtering_set = 0;
@@ -1043,6 +1046,9 @@ bool ParseChainContextFormat3(const uint8_t *data, const size_t length,
     }
     offsets_backtrack.push_back(offset);
   }
+  if (offsets_backtrack.size() != backtrack_count) {
+    return OTS_FAILURE();
+  }
 
   uint16_t input_count = 0;
   if (!subtable.ReadU16(&input_count)) {
@@ -1060,6 +1066,9 @@ bool ParseChainContextFormat3(const uint8_t *data, const size_t length,
     }
     offsets_input.push_back(offset);
   }
+  if (offsets_input.size() != input_count) {
+    return OTS_FAILURE();
+  }
 
   uint16_t lookahead_count = 0;
   if (!subtable.ReadU16(&lookahead_count)) {
@@ -1076,6 +1085,9 @@ bool ParseChainContextFormat3(const uint8_t *data, const size_t length,
       return OTS_FAILURE();
     }
     offsets_lookahead.push_back(offset);
+  }
+  if (offsets_lookahead.size() != lookahead_count) {
+    return OTS_FAILURE();
   }
 
   uint16_t lookup_count = 0;
@@ -1179,6 +1191,9 @@ bool ParseScriptListTable(const uint8_t *data, const size_t length,
     }
     script_list.push_back(record);
   }
+  if (script_list.size() != script_count) {
+    return OTS_FAILURE();
+  }
 
   // Check script records.
   for (unsigned i = 0; i < script_count; ++i) {
@@ -1267,6 +1282,9 @@ bool ParseLookupListTable(OpenTypeFile *file, const uint8_t *data,
       return OTS_FAILURE();
     }
     lookups.push_back(offset);
+  }
+  if (lookups.size() != *num_lookups) {
+    return OTS_FAILURE();
   }
 
   for (unsigned i = 0; i < *num_lookups; ++i) {
