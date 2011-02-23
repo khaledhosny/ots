@@ -209,12 +209,15 @@ bool ParseLookupTable(ots::OpenTypeFile *file, const uint8_t *data,
     return OTS_FAILURE();
   }
   for (unsigned i = 0; i < subtable_count; ++i) {
-    if (!subtable.ReadU16(&subtables[i])) {
+    uint16_t offset_subtable = 0;
+    if (!subtable.ReadU16(&offset_subtable)) {
       return OTS_FAILURE();
     }
-    if (subtables[i] < lookup_table_end || subtables[i] >= length) {
+    if (offset_subtable < lookup_table_end ||
+        offset_subtable >= length) {
       return OTS_FAILURE();
     }
+    subtables.push_back(offset_subtable);
   }
 
   if (use_mark_filtering_set) {
@@ -1034,9 +1037,11 @@ bool ParseChainContextFormat3(const uint8_t *data, const size_t length,
   std::vector<uint16_t> offsets_backtrack;
   offsets_backtrack.reserve(backtrack_count);
   for (unsigned i = 0; i < backtrack_count; ++i) {
-    if (!subtable.ReadU16(&offsets_backtrack[i])) {
+    uint16_t offset = 0;
+    if (!subtable.ReadU16(&offset)) {
       return OTS_FAILURE();
     }
+    offsets_backtrack.push_back(offset);
   }
 
   uint16_t input_count = 0;
@@ -1049,9 +1054,11 @@ bool ParseChainContextFormat3(const uint8_t *data, const size_t length,
   std::vector<uint16_t> offsets_input;
   offsets_input.reserve(input_count);
   for (unsigned i = 0; i < input_count; ++i) {
-    if (!subtable.ReadU16(&offsets_input[i])) {
+    uint16_t offset = 0;
+    if (!subtable.ReadU16(&offset)) {
       return OTS_FAILURE();
     }
+    offsets_input.push_back(offset);
   }
 
   uint16_t lookahead_count = 0;
@@ -1064,9 +1071,11 @@ bool ParseChainContextFormat3(const uint8_t *data, const size_t length,
   std::vector<uint16_t> offsets_lookahead;
   offsets_lookahead.reserve(lookahead_count);
   for (unsigned i = 0; i < lookahead_count; ++i) {
-    if (!subtable.ReadU16(&offsets_lookahead[i])) {
+    uint16_t offset = 0;
+    if (!subtable.ReadU16(&offset)) {
       return OTS_FAILURE();
     }
+    offsets_lookahead.push_back(offset);
   }
 
   uint16_t lookup_count = 0;
@@ -1155,19 +1164,20 @@ bool ParseScriptListTable(const uint8_t *data, const size_t length,
   script_list.reserve(script_count);
   uint32_t last_tag = 0;
   for (unsigned i = 0; i < script_count; ++i) {
-    if (!subtable.ReadU32(&script_list[i].tag) ||
-        !subtable.ReadU16(&script_list[i].offset)) {
+    ScriptRecord record;
+    if (!subtable.ReadU32(&record.tag) ||
+        !subtable.ReadU16(&record.offset)) {
       return OTS_FAILURE();
     }
     // Script tags should be arranged alphabetically by tag
-    if (last_tag != 0 && last_tag > script_list[i].tag) {
+    if (last_tag != 0 && last_tag > record.tag) {
       return OTS_FAILURE();
     }
-    last_tag = script_list[i].tag;
-    if (script_list[i].offset < script_record_end ||
-        script_list[i].offset >= length) {
+    last_tag = record.tag;
+    if (record.offset < script_record_end || record.offset >= length) {
       return OTS_FAILURE();
     }
+    script_list.push_back(record);
   }
 
   // Check script records.
@@ -1249,12 +1259,14 @@ bool ParseLookupListTable(OpenTypeFile *file, const uint8_t *data,
     return OTS_FAILURE();
   }
   for (unsigned i = 0; i < *num_lookups; ++i) {
-    if (!subtable.ReadU16(&lookups[i])) {
+    uint16_t offset = 0;
+    if (!subtable.ReadU16(&offset)) {
       return OTS_FAILURE();
     }
-    if (lookups[i] < lookup_end || lookups[i] >= length) {
+    if (offset < lookup_end || offset >= length) {
       return OTS_FAILURE();
     }
+    lookups.push_back(offset);
   }
 
   for (unsigned i = 0; i < *num_lookups; ++i) {
