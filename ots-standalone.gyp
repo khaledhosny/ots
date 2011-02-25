@@ -3,6 +3,16 @@
 # found in the LICENSE file.
 
 {
+  'conditions': [
+    ['OS=="win"', {
+      'target_defaults': {
+        'defines': [
+          'NOMINMAX', # To suppress max/min macro definition.
+          'WIN32',
+        ],
+      },
+    }],
+  ],
   'variables': {
     'gcc_cflags': [
       '-ggdb',
