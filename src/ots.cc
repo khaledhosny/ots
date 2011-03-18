@@ -148,7 +148,9 @@ const struct {
     ots::ots_gdef_should_serialise, ots::ots_gdef_free, false },
   { Tag("GPOS"), ots::ots_gpos_parse, ots::ots_gpos_serialise,
     ots::ots_gpos_should_serialise, ots::ots_gpos_free, false },
-  // TODO(bashi): Support GSUB, mort, base, and jstf tables.
+  { Tag("GSUB"), ots::ots_gsub_parse, ots::ots_gsub_serialise,
+    ots::ots_gsub_should_serialise, ots::ots_gsub_free, false },
+  // TODO(bashi): Support mort, base, and jstf tables.
   { 0, NULL, NULL, NULL, NULL, false },
 };
 

@@ -7,6 +7,8 @@
 #include <limits>
 #include <vector>
 
+#include "gdef.h"
+#include "gsub.h"
 #include "layout.h"
 #include "maxp.h"
 
@@ -665,7 +667,7 @@ bool ParseExtensionPositioning(const ots::OpenTypeFile *file,
 }  // namespace
 
 #define DROP_THIS_TABLE \
-  do { delete file->gpos; file->gpos = 0; } while (0)
+  do { file->gpos->data = 0; file->gpos->length = 0; } while (0)
 
 namespace ots {
 
@@ -784,7 +786,11 @@ bool ots_gpos_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 }
 
 bool ots_gpos_should_serialise(OpenTypeFile *file) {
-  return file->gpos != NULL;
+  const bool needed_tables_dropped =
+      (file->gdef && file->gdef->data == NULL) ||
+      (file->gsub && file->gsub->data == NULL);
+  return file->gpos != NULL && file->gpos->data != NULL &&
+      !needed_tables_dropped;
 }
 
 bool ots_gpos_serialise(OTSStream *out, OpenTypeFile *file) {

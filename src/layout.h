@@ -32,7 +32,7 @@ bool ParseScriptListTable(const uint8_t *data, const size_t length,
 
 bool ParseFeatureListTable(const uint8_t *data, const size_t length,
                            const uint16_t num_lookups,
-                           uint16_t* num_features);
+                           uint16_t *num_features);
 
 bool ParseLookupListTable(OpenTypeFile *file, const uint8_t *data,
                           const size_t length,

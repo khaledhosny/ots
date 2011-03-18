@@ -2,21 +2,21 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef OTS_GPOS_H_
-#define OTS_GPOS_H_
+#ifndef OTS_GSUB_H_
+#define OTS_GSUB_H_
 
 #include "ots.h"
 
 namespace ots {
 
-struct OpenTypeGPOS {
-  OpenTypeGPOS()
+struct OpenTypeGSUB {
+  OpenTypeGSUB()
       : num_lookups(0),
         data(NULL),
         length(0) {
   }
 
-  // Number of lookups in GPOS table
+  // Number of lookups in GPSUB table
   uint16_t num_lookups;
 
   const uint8_t *data;
@@ -25,5 +25,5 @@ struct OpenTypeGPOS {
 
 }  // namespace ots
 
-#endif
+#endif  // OTS_GSUB_H_
 

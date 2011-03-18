@@ -7,6 +7,8 @@
 #include <limits>
 #include <vector>
 
+#include "gpos.h"
+#include "gsub.h"
 #include "layout.h"
 #include "maxp.h"
 
@@ -238,7 +240,7 @@ bool ParseMarkGlyphSetsDefTable(ots::OpenTypeFile *file, const uint8_t *data,
 }  // namespace
 
 #define DROP_THIS_TABLE \
-  do { delete file->gdef; file->gdef = 0; } while (0)
+  do { file->gdef->data = 0; file->gdef->length = 0; } while (0)
 
 namespace ots {
 
@@ -367,7 +369,11 @@ bool ots_gdef_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 }
 
 bool ots_gdef_should_serialise(OpenTypeFile *file) {
-  return file->gdef != NULL;
+  const bool needed_tables_dropped =
+      (file->gsub && file->gsub->data == NULL) ||
+      (file->gpos && file->gpos->data == NULL);
+  return file->gdef != NULL && file->gdef->data != NULL &&
+      !needed_tables_dropped;
 }
 
 bool ots_gdef_serialise(OTSStream *out, OpenTypeFile *file) {

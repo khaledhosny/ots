@@ -115,6 +115,8 @@ bool ParseScriptTable(const uint8_t *data, const size_t length,
     }
     if (lang_sys_records[i].offset < lang_sys_record_end ||
         lang_sys_records[i].offset >= length) {
+      OTS_WARNING("bad offset to lang sys table: %x",
+                  lang_sys_records[i].offset);
       return OTS_FAILURE();
     }
     last_tag = lang_sys_records[i].tag;
@@ -1183,7 +1185,10 @@ bool ParseScriptListTable(const uint8_t *data, const size_t length,
     }
     // Script tags should be arranged alphabetically by tag
     if (last_tag != 0 && last_tag > record.tag) {
-      return OTS_FAILURE();
+      // Several fonts don't arrange tags alphabetically.
+      // It seems that the order of tags might not be a security issue
+      // so we just warn it.
+      OTS_WARNING("tags aren't arranged alphabetically.");
     }
     last_tag = record.tag;
     if (record.offset < script_record_end || record.offset >= length) {
@@ -1234,7 +1239,10 @@ bool ParseFeatureListTable(const uint8_t *data, const size_t length,
     }
     // Feature record array should be arranged alphabetically by tag
     if (last_tag != 0 && last_tag > feature_records[i].tag) {
-      return OTS_FAILURE();
+      // Several fonts don't arrange tags alphabetically.
+      // It seems that the order of tags might not be a security issue
+      // so we just warn it.
+      OTS_WARNING("tags aren't arranged alphabetically.");
     }
     last_tag = feature_records[i].tag;
     if (feature_records[i].offset < feature_record_end ||

@@ -165,6 +165,7 @@ class Buffer {
   F(gdef, GDEF) \
   F(glyf, GLYF) \
   F(gpos, GPOS) \
+  F(gsub, GSUB) \
   F(hdmx, HDMX) \
   F(head, HEAD) \
   F(hhea, HHEA) \
