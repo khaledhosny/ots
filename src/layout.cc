@@ -20,6 +20,8 @@ const uint32_t kScriptTableTagDflt = 0x44464c54;
 const uint16_t kNoRequiredFeatureIndexDefined = 0xFFFF;
 // The lookup flag bit which indicates existence of MarkFilteringSet.
 const uint16_t kUseMarkFilteringSetBit = 0x0010;
+// The lookup flags which require GDEF table.
+const uint16_t kGdefRequiredFlags = 0x0002 | 0x0004 | 0x0008;
 // The mask for MarkAttachmentType.
 const uint16_t kMarkAttachmentTypeMask = 0xFF00;
 // The maximum type number of format for device tables.
@@ -188,6 +190,10 @@ bool ParseLookupTable(ots::OpenTypeFile *file, const uint8_t *data,
   }
 
   // Check lookup flags.
+  if ((lookup_flag & kGdefRequiredFlags) &&
+      (!file->gdef || !file->gdef->has_glyph_class_def)) {
+    return OTS_FAILURE();
+  }
   if ((lookup_flag & kMarkAttachmentTypeMask) &&
       (!file->gdef || !file->gdef->has_mark_attachment_class_def)) {
     return OTS_FAILURE();

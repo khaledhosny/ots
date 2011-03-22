@@ -306,6 +306,7 @@ bool ots_gdef_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
       DROP_THIS_TABLE;
       return true;
     }
+    gdef->has_glyph_class_def = true;
   }
 
   if (offset_attach_list) {

@@ -12,6 +12,7 @@ namespace ots {
 struct OpenTypeGDEF {
   OpenTypeGDEF()
       : version_2(false),
+        has_glyph_class_def(false),
         has_mark_attachment_class_def(false),
         has_mark_glyph_sets_def(false),
         num_mark_glyph_sets(0),
@@ -20,6 +21,7 @@ struct OpenTypeGDEF {
   }
 
   bool version_2;
+  bool has_glyph_class_def;
   bool has_mark_attachment_class_def;
   bool has_mark_glyph_sets_def;
   uint16_t num_mark_glyph_sets;

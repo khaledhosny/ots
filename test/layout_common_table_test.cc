@@ -508,6 +508,14 @@ TEST_F(LookupListTableTest, TesBadLookupType) {
   EXPECT_FALSE(Parse());
 }
 
+TEST_F(LookupListTableTest, TesBadLookupFlag) {
+  BuildFakeLookupListTable(&out, 1, 1);
+  // Set IgnoreBaseGlyphs(0x0002) to the lookup flag of LookupTable[0].
+  out.Seek(6);
+  out.WriteU16(0x0002);
+  EXPECT_FALSE(Parse());
+}
+
 TEST_F(LookupListTableTest, TesBadSubtableCount) {
   BuildFakeLookupListTable(&out, 1, 1);
   // Set too large sutable count of LookupTable[0].
