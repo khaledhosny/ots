@@ -21,14 +21,14 @@ namespace {
 const size_t kGsubHeaderSize = 8;
 
 enum GSUB_TYPE {
-  SINGLE = 1,
-  MULTIPLE = 2,
-  ALTERNATE = 3,
-  LIGATURE = 4,
-  CONTEXT = 5,
-  CHANGING_CONTEXT = 6,
-  EXTENSION_SUBSTITUTION = 7,
-  REVERSE_CHAINING_CONTEXT_SINGLE = 8,
+  GSUB_TYPE_SINGLE = 1,
+  GSUB_TYPE_MULTIPLE = 2,
+  GSUB_TYPE_ALTERNATE = 3,
+  GSUB_TYPE_LIGATURE = 4,
+  GSUB_TYPE_CONTEXT = 5,
+  GSUB_TYPE_CHANGING_CONTEXT = 6,
+  GSUB_TYPE_EXTENSION_SUBSTITUTION = 7,
+  GSUB_TYPE_REVERSE_CHAINING_CONTEXT_SINGLE = 8,
   GSUB_TYPE_RESERVED = 9
 };
 
@@ -52,19 +52,19 @@ bool ParseReverseChainingContextSingleSubstitution(
     const ots::OpenTypeFile *file, const uint8_t *data, const size_t length);
 
 const ots::LookupSubtableParser::TypeParser kGsubTypeParsers[] = {
-  {SINGLE, ParseSingleSubstitution},
-  {MULTIPLE, ParseMutipleSubstitution},
-  {ALTERNATE, ParseAlternateSubstitution},
-  {LIGATURE, ParseLigatureSubstitution},
-  {CONTEXT, ParseContextSubstitution},
-  {CHANGING_CONTEXT, ParseChainingContextSubstitution},
-  {EXTENSION_SUBSTITUTION, ParseExtensionSubstitution},
-  {REVERSE_CHAINING_CONTEXT_SINGLE,
+  {GSUB_TYPE_SINGLE, ParseSingleSubstitution},
+  {GSUB_TYPE_MULTIPLE, ParseMutipleSubstitution},
+  {GSUB_TYPE_ALTERNATE, ParseAlternateSubstitution},
+  {GSUB_TYPE_LIGATURE, ParseLigatureSubstitution},
+  {GSUB_TYPE_CONTEXT, ParseContextSubstitution},
+  {GSUB_TYPE_CHANGING_CONTEXT, ParseChainingContextSubstitution},
+  {GSUB_TYPE_EXTENSION_SUBSTITUTION, ParseExtensionSubstitution},
+  {GSUB_TYPE_REVERSE_CHAINING_CONTEXT_SINGLE,
     ParseReverseChainingContextSingleSubstitution}
 };
 
 const ots::LookupSubtableParser kGsubLookupSubtableParser = {
-  GSUB_TYPE_RESERVED, EXTENSION_SUBSTITUTION, kGsubTypeParsers
+  GSUB_TYPE_RESERVED, GSUB_TYPE_EXTENSION_SUBSTITUTION, kGsubTypeParsers
 };
 
 // Lookup Type 1:

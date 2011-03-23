@@ -18,15 +18,15 @@
 namespace {
 
 enum GPOS_TYPE {
-  SINGLE_ADJUSTMENT = 1,
-  PAIR_ADJUSTMENT = 2,
-  CURSIVE_ATTACHMENT = 3,
-  MARK_TO_BASE_ATTACHMENT = 4,
-  MARK_TO_LIGATURE_ATTACHMENT = 5,
-  MARK_TO_MARK_ATTACHMENT = 6,
-  CONTEXT_POSITIONING = 7,
-  CHAINED_CONTEXT_POSITIONING = 8,
-  EXTENSION_POSITIONING = 9,
+  GPOS_TYPE_SINGLE_ADJUSTMENT = 1,
+  GPOS_TYPE_PAIR_ADJUSTMENT = 2,
+  GPOS_TYPE_CURSIVE_ATTACHMENT = 3,
+  GPOS_TYPE_MARK_TO_BASE_ATTACHMENT = 4,
+  GPOS_TYPE_MARK_TO_LIGATURE_ATTACHMENT = 5,
+  GPOS_TYPE_MARK_TO_MARK_ATTACHMENT = 6,
+  GPOS_TYPE_CONTEXT_POSITIONING = 7,
+  GPOS_TYPE_CHAINED_CONTEXT_POSITIONING = 8,
+  GPOS_TYPE_EXTENSION_POSITIONING = 9,
   GPOS_TYPE_RESERVED = 10
 };
 
@@ -58,19 +58,19 @@ bool ParseExtensionPositioning(const ots::OpenTypeFile *file,
                                const uint8_t *data, const size_t length);
 
 const ots::LookupSubtableParser::TypeParser kGposTypeParsers[] = {
-  {SINGLE_ADJUSTMENT, ParseSingleAdjustment},
-  {PAIR_ADJUSTMENT, ParsePairAdjustment},
-  {CURSIVE_ATTACHMENT, ParseCursiveAttachment},
-  {MARK_TO_BASE_ATTACHMENT, ParseMarkToBaseAttachment},
-  {MARK_TO_LIGATURE_ATTACHMENT, ParseMarkToLigatureAttachment},
-  {MARK_TO_MARK_ATTACHMENT, ParseMarkToMarkAttachment},
-  {CONTEXT_POSITIONING, ParseContextPositioning},
-  {CHAINED_CONTEXT_POSITIONING, ParseChainedContextPositioning},
-  {EXTENSION_POSITIONING, ParseExtensionPositioning}
+  {GPOS_TYPE_SINGLE_ADJUSTMENT, ParseSingleAdjustment},
+  {GPOS_TYPE_PAIR_ADJUSTMENT, ParsePairAdjustment},
+  {GPOS_TYPE_CURSIVE_ATTACHMENT, ParseCursiveAttachment},
+  {GPOS_TYPE_MARK_TO_BASE_ATTACHMENT, ParseMarkToBaseAttachment},
+  {GPOS_TYPE_MARK_TO_LIGATURE_ATTACHMENT, ParseMarkToLigatureAttachment},
+  {GPOS_TYPE_MARK_TO_MARK_ATTACHMENT, ParseMarkToMarkAttachment},
+  {GPOS_TYPE_CONTEXT_POSITIONING, ParseContextPositioning},
+  {GPOS_TYPE_CHAINED_CONTEXT_POSITIONING, ParseChainedContextPositioning},
+  {GPOS_TYPE_EXTENSION_POSITIONING, ParseExtensionPositioning}
 };
 
 const ots::LookupSubtableParser kGposLookupSubtableParser = {
-  GPOS_TYPE_RESERVED, EXTENSION_POSITIONING, kGposTypeParsers
+  GPOS_TYPE_RESERVED, GPOS_TYPE_EXTENSION_POSITIONING, kGposTypeParsers
 };
 
 // Shared Tables: ValueRecord, Anchor Table, and MarkArray
@@ -596,13 +596,14 @@ bool ParseMarkToAttachmentSubtables(const ots::OpenTypeFile *file,
       offset_type_specific_array >= length) {
     return OTS_FAILURE();
   }
-  if (type == MARK_TO_BASE_ATTACHMENT || type == MARK_TO_MARK_ATTACHMENT) {
+  if (type == GPOS_TYPE_MARK_TO_BASE_ATTACHMENT ||
+      type == GPOS_TYPE_MARK_TO_MARK_ATTACHMENT) {
     if (!ParseAnchorArrayTable(data + offset_type_specific_array,
                                length - offset_type_specific_array,
                                class_count)) {
       return OTS_FAILURE();
     }
-  } else if (type == MARK_TO_LIGATURE_ATTACHMENT) {
+  } else if (type == GPOS_TYPE_MARK_TO_LIGATURE_ATTACHMENT) {
     if (!ParseLigatureArrayTable(data + offset_type_specific_array,
                                  length - offset_type_specific_array,
                                  class_count)) {
@@ -620,7 +621,7 @@ bool ParseMarkToAttachmentSubtables(const ots::OpenTypeFile *file,
 bool ParseMarkToBaseAttachment(const ots::OpenTypeFile *file,
                                const uint8_t *data, const size_t length) {
   return ParseMarkToAttachmentSubtables(file, data, length,
-                                        MARK_TO_BASE_ATTACHMENT);
+                                        GPOS_TYPE_MARK_TO_BASE_ATTACHMENT);
 }
 
 // Lookup Type 5:
@@ -628,7 +629,7 @@ bool ParseMarkToBaseAttachment(const ots::OpenTypeFile *file,
 bool ParseMarkToLigatureAttachment(const ots::OpenTypeFile *file,
                                    const uint8_t *data, const size_t length) {
   return ParseMarkToAttachmentSubtables(file, data, length,
-                                        MARK_TO_LIGATURE_ATTACHMENT);
+                                        GPOS_TYPE_MARK_TO_LIGATURE_ATTACHMENT);
 }
 
 // Lookup Type 6:
@@ -636,7 +637,7 @@ bool ParseMarkToLigatureAttachment(const ots::OpenTypeFile *file,
 bool ParseMarkToMarkAttachment(const ots::OpenTypeFile *file,
                                const uint8_t *data, const size_t length) {
   return ParseMarkToAttachmentSubtables(file, data, length,
-                                        MARK_TO_MARK_ATTACHMENT);
+                                        GPOS_TYPE_MARK_TO_MARK_ATTACHMENT);
 }
 
 // Lookup Type 7:
