@@ -179,7 +179,9 @@ class Buffer {
   F(post, POST) \
   F(prep, PREP) \
   F(vdmx, VDMX) \
-  F(vorg, VORG)
+  F(vorg, VORG) \
+  F(vhea, VHEA) \
+  F(vmtx, VMTX)
 
 #define F(name, capname) struct OpenType##capname;
 FOR_EACH_TABLE_TYPE
@@ -202,6 +204,15 @@ struct OpenTypeFile {
 FOR_EACH_TABLE_TYPE
 #undef F
 };
+
+#define F(name, capname) \
+bool ots_##name##_parse(OpenTypeFile *f, const uint8_t *d, size_t l); \
+bool ots_##name##_should_serialise(OpenTypeFile *f); \
+bool ots_##name##_serialise(OTSStream *s, OpenTypeFile *f); \
+void ots_##name##_free(OpenTypeFile *f);
+// TODO(yusukes): change these function names to follow Chromium coding rule.
+FOR_EACH_TABLE_TYPE
+#undef F
 
 }  // namespace ots
 

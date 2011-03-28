@@ -31,17 +31,21 @@ env.Library('../src/libots.a',
 	    '../src/loca.cc',
 	    '../src/ltsh.cc',
 	    '../src/maxp.cc',
+	    '../src/metrics.cc',
 	    '../src/name.cc',
 	    '../src/os2.cc',
 	    '../src/ots.cc',
 	    '../src/post.cc',
 	    '../src/prep.cc',
 	    '../src/vdmx.cc',
+	    '../src/vhea.cc',
+	    '../src/vmtx.cc',
 	    '../src/vorg.cc'
             ])
 
 env.Program('../test/cff_type2_charstring_test.cc', LIBS = ['ots', 'gtest_main'], LIBPATH = '../src')
 env.Program('../test/layout_common_table_test.cc', LIBS = ['ots', 'gtest_main'], LIBPATH = '../src')
+env.Program('../test/table_dependencies_test.cc', LIBS = ['ots', 'gtest_main'], LIBPATH = '../src')
 env.Program('../test/ot-sanitise.cc', LIBS = ['ots'], LIBPATH='../src')
 env.Program('../test/idempotent.cc', LIBS = ['ots', 'freetype', 'z', 'm'], LIBPATH='../src')
 env.Program('../test/perf.cc', LIBS = ['ots'], LIBPATH='../src')

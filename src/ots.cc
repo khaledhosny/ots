@@ -16,17 +16,6 @@
 // The OpenType Font File
 // http://www.microsoft.com/typography/otspec/cmap.htm
 
-#define F(name, capname) \
-  namespace ots { \
-  bool ots_##name##_parse(OpenTypeFile *f, const uint8_t *d, size_t l); \
-  bool ots_##name##_should_serialise(OpenTypeFile *f); \
-  bool ots_##name##_serialise(OTSStream *s, OpenTypeFile *f); \
-  void ots_##name##_free(OpenTypeFile *f); \
-  }
-  // TODO(yusukes): change these function names to follow Chromium coding rule.
-FOR_EACH_TABLE_TYPE
-#undef F
-
 namespace {
 
 bool g_debug_output = true;
@@ -150,6 +139,10 @@ const struct {
     ots::ots_gpos_should_serialise, ots::ots_gpos_free, false },
   { Tag("GSUB"), ots::ots_gsub_parse, ots::ots_gsub_serialise,
     ots::ots_gsub_should_serialise, ots::ots_gsub_free, false },
+  { Tag("vhea"), ots::ots_vhea_parse, ots::ots_vhea_serialise,
+    ots::ots_vhea_should_serialise, ots::ots_vhea_free, false },
+  { Tag("vmtx"), ots::ots_vmtx_parse, ots::ots_vmtx_serialise,
+    ots::ots_vmtx_should_serialise, ots::ots_vmtx_free, false },
   // TODO(bashi): Support mort, base, and jstf tables.
   { 0, NULL, NULL, NULL, NULL, false },
 };
