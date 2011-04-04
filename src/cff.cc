@@ -104,7 +104,9 @@ bool ParseIndex(ots::Buffer *table, ots::CFFIndex *index) {
   }
 
   for (unsigned i = 1; i < index->offsets.size(); ++i) {
-    if (index->offsets[i] <= index->offsets[i - 1]) {
+    // We allow consecutive identical offsets here for zero-length strings.
+    // See http://crbug.com/69341 for more details.
+    if (index->offsets[i] < index->offsets[i - 1]) {
       return OTS_FAILURE();
     }
   }
