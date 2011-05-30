@@ -288,11 +288,9 @@ bool ots_gdef_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     }
   }
 
-  const unsigned gdef_header_end = static_cast<unsigned>(8) +
-      gdef->version_2 ? static_cast<unsigned>(2) : static_cast<unsigned>(0);
-  if (gdef_header_end > std::numeric_limits<uint16_t>::max()) {
-    return OTS_FAILURE();
-  }
+  unsigned gdef_header_end = 8;
+  if (gdef->version_2)
+    gdef_header_end += 2;
 
   // Parse subtables
   if (offset_glyph_class_def) {
