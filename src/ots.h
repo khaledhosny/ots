@@ -6,6 +6,7 @@
 #define OTS_H_
 
 #include <cstdarg>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
