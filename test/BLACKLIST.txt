@@ -121,3 +121,8 @@ Samyak-Oriya.ttf
 
 # Unsupported CFF table; "supplemental encoding" is not supported at the moment. This should be fixed in the future.
 Walbf___.otf
+
+# GDEF MarkAttachClassDef offset is invalid.
+ManchuFont.ttf
+arianamu.ttf
+summersby.ttf
