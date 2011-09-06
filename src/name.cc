@@ -29,7 +29,7 @@ bool ots_name_serialise(OTSStream *out, OpenTypeFile *file) {
       "OTS derived font",  // 1: the name the user sees
       "Unspecified",  // 2: face weight
       "UniqueID",  // 3: unique id
-      "OTS derivied font",  // 4: human readable name
+      "OTS derived font",  // 4: human readable name
       "1.000",  // 5: version
       "False",  // 6: postscript name
       NULL,  // 7: trademark data
