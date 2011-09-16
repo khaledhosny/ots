@@ -1,131 +1,331 @@
-// Copyright (c) 2009 The Chromium Authors. All rights reserved.
+// Copyright (c) 2011 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "name.h"
+
+#include <algorithm>
 #include <cstring>
 
 #include "cff.h"
-#include "ots.h"
 
 // name - Naming Table
 // http://www.microsoft.com/opentype/otspec/name.htm
 
+namespace {
+
+bool ValidInPsName(char c) {
+  return (c > 0x20 && c < 0x7f && !std::strchr("[](){}<>/%", c));
+}
+
+bool CheckPsNameAscii(const std::string& name) {
+  for (unsigned i = 0; i < name.size(); ++i) {
+    if (!ValidInPsName(name[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool CheckPsNameUtf16Be(const std::string& name) {
+  if ((name.size() & 1) != 0)
+    return false;
+
+  for (unsigned i = 0; i < name.size(); i += 2) {
+    if (name[i] != 0) {
+      return false;
+    }
+    if (!ValidInPsName(name[i+1])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void AssignToUtf16BeFromAscii(std::string* target,
+                              const std::string& source) {
+  target->resize(source.size() * 2);
+  for (unsigned i = 0, j = 0; i < source.size(); i++) {
+    (*target)[j++] = '\0';
+    (*target)[j++] = source[i];
+  }
+}
+
+}  // namespace
+
+
 namespace ots {
 
-bool ots_name_parse(OpenTypeFile *, const uint8_t *, size_t) {
-  return true;
-}
+bool ots_name_parse(OpenTypeFile* file, const uint8_t* data, size_t length) {
+  Buffer table(data, length);
 
-bool ots_name_should_serialise(OpenTypeFile *) {
-  return true;
-}
+  OpenTypeNAME* name = new OpenTypeNAME;
+  file->name = name;
 
-bool ots_name_serialise(OTSStream *out, OpenTypeFile *file) {
-  // NAME is a required table, but we don't want anything to do with it. Thus,
-  // we don't bother parsing it and we just serialise an empty name table.
+  uint16_t format = 0;
+  if (!table.ReadU16(&format) || format > 1) {
+    return OTS_FAILURE();
+  }
 
-  const char* kStrings[] = {
-      "Derived font data",  // 0: copyright
-      "OTS derived font",  // 1: the name the user sees
-      "Unspecified",  // 2: face weight
-      "UniqueID",  // 3: unique id
-      "OTS derived font",  // 4: human readable name
-      "1.000",  // 5: version
-      "False",  // 6: postscript name
-      NULL,  // 7: trademark data
-      "OTS",  // 8: foundary
-      "OTS",  // 9: designer
+  uint16_t count = 0;
+  if (!table.ReadU16(&count)) {
+    return OTS_FAILURE();
+  }
+
+  uint16_t string_offset = 0;
+  if (!table.ReadU16(&string_offset) || string_offset > length) {
+    return OTS_FAILURE();
+  }
+  const char* string_base = reinterpret_cast<const char*>(data) +
+      string_offset;
+
+  NameRecord prev_record;
+  bool sort_required = false;
+
+  // Read all the names, discarding any with invalid IDs,
+  // and any where the offset/length would be outside the table.
+  // A stricter alternative would be to reject the font if there
+  // are invalid name records, but it's not clear that is necessary.
+  for (unsigned i = 0; i < count; ++i) {
+    NameRecord rec;
+    uint16_t name_length, name_offset;
+    if (!table.ReadU16(&rec.platform_id) ||
+        !table.ReadU16(&rec.encoding_id) ||
+        !table.ReadU16(&rec.language_id) ||
+        !table.ReadU16(&rec.name_id) ||
+        !table.ReadU16(&name_length) ||
+        !table.ReadU16(&name_offset)) {
+      return OTS_FAILURE();
+    }
+    // check platform & encoding, discard names with unknown values
+    switch (rec.platform_id) {
+      case 0:  // Unicode
+        if (rec.encoding_id > 6) {
+          continue;
+        }
+        break;
+      case 1:  // Macintosh
+        if (rec.encoding_id > 32) {
+          continue;
+        }
+        break;
+      case 2:  // ISO
+        if (rec.encoding_id > 2) {
+          continue;
+        }
+        break;
+      case 3:  // Windows: IDs 7 to 9 are "reserved"
+        if (rec.encoding_id > 6 && rec.encoding_id != 10) {
+          continue;
+        }
+        break;
+      case 4:  // Custom (OTF Windows NT compatibility)
+        if (rec.encoding_id > 255) {
+          continue;
+        }
+        break;
+      default:  // unknown platform
+        continue;
+    }
+
+    const unsigned name_end = static_cast<unsigned>(string_offset) +
+        name_offset + name_length;
+    if (name_end > length) {
+      continue;
+    }
+    rec.text.resize(name_length);
+    rec.text.assign(string_base + name_offset, name_length);
+
+    if (rec.name_id == 6) {
+      // PostScript name: check that it is valid, if not then discard it
+      if (rec.platform_id == 1) {
+        if (file->cff && !file->cff->name.empty()) {
+          rec.text = file->cff->name;
+        } else if (!CheckPsNameAscii(rec.text)) {
+          continue;
+        }
+      } else if (rec.platform_id == 0 || rec.platform_id == 3) {
+        if (file->cff && !file->cff->name.empty()) {
+          AssignToUtf16BeFromAscii(&rec.text, file->cff->name);
+        } else if (!CheckPsNameUtf16Be(rec.text)) {
+          continue;
+        }
+      }
+    }
+
+    if ((i > 0) && !(prev_record < rec)) {
+      OTS_FAILURE();
+    }
+
+    name->names.push_back(rec);
+    prev_record = rec;
+  }
+
+  if (format == 1) {
+    // extended name table format with language tags
+    uint16_t lang_tag_count;
+    if (!table.ReadU16(&lang_tag_count)) {
+      return OTS_FAILURE();
+    }
+    for (unsigned i = 0; i < lang_tag_count; ++i) {
+      uint16_t tag_length = 0;
+      uint16_t tag_offset = 0;
+      if (!table.ReadU16(&tag_length) || !table.ReadU16(&tag_offset)) {
+        return OTS_FAILURE();
+      }
+      const unsigned tag_end = static_cast<unsigned>(string_offset) +
+          tag_offset + tag_length;
+      if (tag_end > length) {
+        return OTS_FAILURE();
+      }
+      std::string tag(string_base + tag_offset, tag_length);
+      name->lang_tags.push_back(tag);
+    }
+  }
+
+  if (table.offset() > string_offset) {
+    // the string storage apparently overlapped the name/tag records;
+    // consider this font to be badly broken
+    return OTS_FAILURE();
+  }
+
+  // check existence of required name strings (synthesize if necessary)
+  //  [0 - copyright - skip]
+  //   1 - family
+  //   2 - subfamily
+  //  [3 - unique ID - skip]
+  //   4 - full name
+  //   5 - version
+  //   6 - postscript name
+  static const unsigned kStdNameCount = 7;
+  static const char* kStdNames[kStdNameCount] = {
+    NULL,
+    "OTS derived font",
+    "Unspecified",
+    NULL,
+    "OTS derived font",
+    "1.000",
+    "OTS-derived-font"
   };
-  static const size_t kStringsLen = sizeof(kStrings) / sizeof(kStrings[0]);
-
   // The spec says that "In CFF OpenType fonts, these two name strings, when
   // translated to ASCII, must also be identical to the font name as stored in
   // the CFF's Name INDEX." And actually, Mac OS X's font parser requires that.
   if (file->cff && !file->cff->name.empty()) {
-    kStrings[6] = file->cff->name.c_str();
+    kStdNames[6] = file->cff->name.c_str();
   }
 
-  unsigned num_strings = 0;
-  for (unsigned i = 0; i < kStringsLen; ++i) {
-    if (kStrings[i]) num_strings++;
-  }
-
-  if (!out->WriteU16(0) ||  // version
-      // Magic numbers:
-      //   6:  This entry (U16 * 3 = 6 bytes)
-      //   2:  Mac Roman & Windows Roman = 2 types
-      //   12: Each string entry (U16 * 6 = 12 bytes)
-      !out->WriteU16(num_strings * 2) ||  // count
-      !out->WriteU16(6 + num_strings * 2 * 12)) {  // string data offset
-    return OTS_FAILURE();
-  }
-
-  unsigned current_offset = 0;
-  for (unsigned i = 0; i < kStringsLen; ++i) {
-    if (!kStrings[i]) continue;
-
-    // string length in UTF-8 (ASCII).
-    size_t len = std::strlen(kStrings[i]);
-
-    if (!out->WriteU16(1) ||  // Mac
-        !out->WriteU16(0) ||  // Roman
-        !out->WriteU16(0) ||  // English
-        !out->WriteU16(i) ||
-        !out->WriteU16(len) ||
-        !out->WriteU16(current_offset)) {
-      return OTS_FAILURE();
+  // scan the names to check whether the required "standard" ones are present;
+  // if not, we'll add our fixed versions here
+  bool mac_name[kStdNameCount] = { 0 };
+  bool win_name[kStdNameCount] = { 0 };
+  for (std::vector<NameRecord>::iterator name_iter = name->names.begin();
+       name_iter != name->names.end(); name_iter++) {
+    const uint16_t id = name_iter->name_id;
+    if (id >= kStdNameCount || kStdNames[id] == NULL) {
+      continue;
     }
-
-    current_offset += len;
-  }
-
-  for (unsigned i = 0; i < kStringsLen; ++i) {
-    if (!kStrings[i]) continue;
-
-    // string length in UTF-16.
-    size_t len = std::strlen(kStrings[i]) * 2;
-
-    if (!out->WriteU16(3) ||  // Windows
-        !out->WriteU16(1) ||  // Unicode BMP (UCS-2)
-        !out->WriteU16(0x0409) ||  // US English
-        !out->WriteU16(i) ||
-        !out->WriteU16(len) ||
-        !out->WriteU16(current_offset)) {
-      return OTS_FAILURE();
+    if (name_iter->platform_id == 1) {
+      mac_name[id] = true;
+      continue;
     }
-
-    current_offset += len;
-  }
-
-  // Write strings in Mac Roman compatible with ASCII.
-  // Because all the entries are ASCII, we can just copy.
-  for (unsigned i = 0; i < kStringsLen; ++i) {
-    if (!kStrings[i]) continue;
-
-    const size_t len = std::strlen(kStrings[i]);
-    if (!out->Write(kStrings[i], len)) {
-      return OTS_FAILURE();
+    if (name_iter->platform_id == 3) {
+      win_name[id] = true;
+      continue;
     }
   }
 
-  // Write strings in UCS-2. Because all the entries are ASCII,
-  // we can just expand each byte to U16.
-  for (unsigned i = 0; i < kStringsLen; ++i) {
-    if (!kStrings[i]) continue;
-
-    const size_t len = std::strlen(kStrings[i]);
-    for (size_t j = 0; j < len; ++j) {
-      uint16_t v = kStrings[i][j];
-      if (!out->WriteU16(v)) {
-        return OTS_FAILURE();
-      }
+  for (unsigned i = 0; i < kStdNameCount; ++i) {
+    if (kStdNames[i] == NULL) {
+      continue;
     }
+    if (!mac_name[i]) {
+      NameRecord rec(1 /* platform_id */, 0 /* encoding_id */,
+                     0 /* language_id */ , i /* name_id */);
+      rec.text.assign(kStdNames[i]);
+      name->names.push_back(rec);
+      sort_required = true;
+    }
+    if (!win_name[i]) {
+      NameRecord rec(3 /* platform_id */, 1 /* encoding_id */,
+                     1033 /* language_id */ , i /* name_id */);
+      AssignToUtf16BeFromAscii(&rec.text, std::string(kStdNames[i]));
+      name->names.push_back(rec);
+      sort_required = true;
+    }
+  }
+
+  if (sort_required) {
+    std::sort(name->names.begin(), name->names.end());
   }
 
   return true;
 }
 
-void ots_name_free(OpenTypeFile *) {
+bool ots_name_should_serialise(OpenTypeFile* file) {
+  return file->name != NULL;
+}
+
+bool ots_name_serialise(OTSStream* out, OpenTypeFile* file) {
+  const OpenTypeNAME* name = file->name;
+
+  uint16_t name_count = name->names.size();
+  uint16_t lang_tag_count = name->lang_tags.size();
+  uint16_t format = 0;
+  size_t string_offset = 6 + name_count * 12;
+
+  if (name->lang_tags.size() > 0) {
+    // lang tags require a format-1 name table
+    format = 1;
+    string_offset += 2 + lang_tag_count * 4;
+  }
+  if (string_offset > 0xffff) {
+    return OTS_FAILURE();
+  }
+  if (!out->WriteU16(format) ||
+      !out->WriteU16(name_count) ||
+      !out->WriteU16(string_offset)) {
+    return OTS_FAILURE();
+  }
+
+  std::string string_data;
+  for (std::vector<NameRecord>::const_iterator name_iter = name->names.begin();
+       name_iter != name->names.end(); name_iter++) {
+    const NameRecord& rec = *name_iter;
+    if (!out->WriteU16(rec.platform_id) ||
+        !out->WriteU16(rec.encoding_id) ||
+        !out->WriteU16(rec.language_id) ||
+        !out->WriteU16(rec.name_id) ||
+        !out->WriteU16(rec.text.size()) ||
+        !out->WriteU16(string_data.size()) ) {
+      return OTS_FAILURE();
+    }
+    string_data.append(rec.text);
+  }
+
+  if (format == 1) {
+    if (!out->WriteU16(lang_tag_count)) {
+      return OTS_FAILURE();
+    }
+    for (std::vector<std::string>::const_iterator tag_iter =
+             name->lang_tags.begin();
+         tag_iter != name->lang_tags.end(); tag_iter++) {
+      if (!out->WriteU16(tag_iter->size()) ||
+          !out->WriteU16(string_data.size())) {
+        return OTS_FAILURE();
+      }
+      string_data.append(*tag_iter);
+    }
+  }
+
+  if (!out->Write(string_data.data(), string_data.size())) {
+    return OTS_FAILURE();
+  }
+
+  return true;
+}
+
+void ots_name_free(OpenTypeFile* file) {
+  delete file->name;
 }
 
 }  // namespace
