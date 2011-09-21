@@ -154,7 +154,8 @@ bool ots_name_parse(OpenTypeFile* file, const uint8_t* data, size_t length) {
     }
 
     if ((i > 0) && !(prev_record < rec)) {
-      OTS_FAILURE();
+      OTS_WARNING("name records are not sorted.");
+      sort_required = true;
     }
 
     name->names.push_back(rec);

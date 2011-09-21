@@ -48,6 +48,7 @@
       'src/metrics.cc',
       'src/metrics.h',
       'src/name.cc',
+      'src/name.h',
       'src/os2.cc',
       'src/os2.h',
       'src/ots.cc',
