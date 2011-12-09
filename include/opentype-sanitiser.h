@@ -196,9 +196,11 @@ typedef bool (*MessageFunc)(void *user_data, const char *format, ...)  MSGFUNC_F
 //   length: the size, in bytes, of |input|
 //   message_func: if non-NULL, pointer to an error-message callback
 //   user_data: pointer passed as user_data to the error-message callback
+//   preserve_graphite_tables: whether to preserve Graphite Layout tables
 // -----------------------------------------------------------------------------
 bool Process(OTSStream *output, const uint8_t *input, size_t length,
-             MessageFunc message_func = NULL, void *user_data = NULL);
+             MessageFunc message_func = NULL, void *user_data = NULL,
+             bool preserve_graphite_tables = false);
 
 // Force to disable debug output even when the library is compiled with
 // -DOTS_DEBUG.

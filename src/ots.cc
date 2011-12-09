@@ -146,6 +146,17 @@ const struct {
     ots::ots_vhea_should_serialise, ots::ots_vhea_free, false },
   { "vmtx", ots::ots_vmtx_parse, ots::ots_vmtx_serialise,
     ots::ots_vmtx_should_serialise, ots::ots_vmtx_free, false },
+  // SILGraphite layout tables - not actually parsed, just copied
+  { "Silf", ots::ots_silf_parse, ots::ots_silf_serialise,
+    ots::ots_silf_should_serialise, ots::ots_silf_free, false },
+  { "Sill", ots::ots_sill_parse, ots::ots_sill_serialise,
+    ots::ots_sill_should_serialise, ots::ots_sill_free, false },
+  { "Gloc", ots::ots_gloc_parse, ots::ots_gloc_serialise,
+    ots::ots_gloc_should_serialise, ots::ots_gloc_free, false },
+  { "Glat", ots::ots_glat_parse, ots::ots_glat_serialise,
+    ots::ots_glat_should_serialise, ots::ots_glat_free, false },
+  { "Feat", ots::ots_feat_parse, ots::ots_feat_serialise,
+    ots::ots_feat_should_serialise, ots::ots_feat_free, false },
   // TODO(bashi): Support mort, base, and jstf tables.
   { 0, NULL, NULL, NULL, NULL, false },
 };
@@ -710,7 +721,8 @@ void EnableWOFF2() {
 }
 
 bool Process(OTSStream *output, const uint8_t *data, size_t length,
-             MessageFunc message_func, void *user_data) {
+             MessageFunc message_func, void *user_data,
+             bool preserveGraphite) {
   OpenTypeFile header;
 
   header.message_func = message_func;
@@ -719,6 +731,8 @@ bool Process(OTSStream *output, const uint8_t *data, size_t length,
   if (length < 4) {
     return OTS_FAILURE_MSG_(&header, "file less than 4 bytes");
   }
+
+  header.preserve_graphite = preserveGraphite;
 
   bool result;
   if (data[0] == 'w' && data[1] == 'O' && data[2] == 'F' && data[3] == 'F') {
