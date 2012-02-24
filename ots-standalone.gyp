@@ -71,7 +71,6 @@
         'link_settings': {
           'libraries': [
             '-lzdll.lib',
-            '-lWs2_32.lib', # This is needed for htons/ntohs.
           ],
         },
         'msvs_settings': {
