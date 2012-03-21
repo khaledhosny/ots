@@ -417,7 +417,7 @@ bool ParsePrivateDictData(
             return OTS_FAILURE();  // not reached.
           }
           local_subrs_index = out_cff->local_subrs_per_font.back();
-        } else if (type == DICT_DATA_TOPLEVEL) {
+        } else { // type == DICT_DATA_TOPLEVEL
           if (out_cff->local_subrs) {
             return OTS_FAILURE();  // two or more local_subrs?
           }
