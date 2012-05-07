@@ -73,8 +73,9 @@ int main(int argc, char **argv) {
 
   long long unsigned us
       = ((elapsed.tv_sec * 1000 * 1000) + elapsed.tv_usec) / num_repeat;
-  std::fprintf(stderr, "%llu [us] %s (%lu bytes, %llu [byte/us])\n",
-               us, argv[1], st.st_size, (us ? st.st_size / us : 0));
+  std::fprintf(stderr, "%llu [us] %s (%llu bytes, %llu [byte/us])\n",
+               us, argv[1], static_cast<long long>(st.st_size),
+               (us ? st.st_size / us : 0));
 
   return 0;
 }

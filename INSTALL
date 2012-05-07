@@ -1,25 +1,37 @@
-How to build (on Linux):
+How to build (using scons, on Linux):
 
  $ cd ots/test/
  $ sudo apt-get install scons g++ libfreetype6-dev
  $ scons
 
-How to build (on Windows) (experimental):
+How to build (using gyp):
 
-  1. Download zlib compiled DLL from http://www.zlib.net/ and install them
-     following the instruction described in the document.
+  (Note: test programs which require gtest can't build with gyp for now)
 
-  2. Install gyp (Generate Your Projects) from http://code.google.com/p/gyp/.
-     You will need a subversion client to install gyp.
-     See http://code.google.com/p/gyp/source/checkout to install gyp.
+  1. If you are building OTS on Windows, download zlib from
+     http://www.zlib.net/ and put them in appropriate folder.
 
-  3. Generate MSVS project file.
+  2. Run gyp_ots
 
-    $ gyp --depth=. -f msvs ots-standalone.gyp
+    $ ./gyp_ots
 
-  4. Open the generated project file (ots-standalone.sln) and build it.
-     Make sure that zlib.h and zconf.h are located in a directory found in
-     the INCLUDE path list.
+    This will fetch gyp and generate build files. By default, following
+    files will be generated:
+      - MSVS solution file on Windows
+      - Xcode project file on Mac
+      - Makefile on Linux
 
-  5. Test binary (only idempotent.exe for now) will be located in Default/
-     directory.
+    If you want to generate Makefile on Mac, you can use -f option:
+
+    $ ./gyp_ots -f make
+
+  3. Build OTS
+
+    Using MSVS:
+      Open ots-standalone.sln and build targets.
+
+    Using Xcode:
+      $ xcodebuild -target ots-standalone.xcodeproj -target all
+
+    Using Makefile:
+      $ make

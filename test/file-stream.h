@@ -28,11 +28,18 @@ class FILEStream : public OTSStream {
   }
 
   bool Seek(off_t position) {
+#if defined(_WIN32)
+    if (!::_fseeki64(file_, position, SEEK_SET)) {
+      position_ = position;
+      return true;
+    }
+#else
     if (!::fseeko(file_, position, SEEK_SET)) {
       position_ = position;
       return true;
     }
     return false;
+#endif  // defined(_WIN32)
   }
 
   off_t Tell() const {

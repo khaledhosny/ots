@@ -7,7 +7,11 @@
 
 #include <fcntl.h>
 #include <sys/stat.h>
+#if defined(_WIN32)
+#include <io.h>
+#else
 #include <unistd.h>
+#endif  // defined(_WIN32)
 
 #include <cstdio>
 #include <cstdlib>

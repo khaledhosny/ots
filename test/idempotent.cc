@@ -16,6 +16,7 @@
 #else
 // Windows
 #include <io.h>
+#include <Windows.h>
 #endif  // !defiend(_WIN32)
 
 #include <fcntl.h>
@@ -130,8 +131,9 @@ bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
     return false;
   }
 
-  CGFontRef cg_font_ref = CGFontCreateWithPlatformFont(&ats_font_ref);
-  if (!CGFontGetNumberOfGlyphs(cg_font_ref)) {
+  CTFontRef ct_font_ref = CTFontCreateWithPlatformFont(ats_font_ref, 12,
+                                                       NULL, NULL);
+  if (!CTFontGetGlyphCount(ct_font_ref)) {
     return false;
   }
   return true;

@@ -18,8 +18,8 @@
       '-ggdb',
       '-W',
       '-Wall',
+      '-Werror',
       '-Wno-unused-parameter',
-      '-fno-strict-aliasing',
       '-fPIE',
       '-fstack-protector',
     ],
@@ -34,9 +34,6 @@
     'ots-common.gypi',
   ],
   'target_defaults': {
-    'defines': [
-      'OTS_DEBUG',
-    ],
     'conditions': [
       ['OS=="linux"', {
         'cflags': [
@@ -101,6 +98,22 @@
       },
     },
     {
+      'target_name': 'freetype2',
+      'type': 'none',
+      'conditions': [
+        ['OS=="linux"', {
+          'direct_dependent_settings': {
+            'cflags': [
+              '<!(pkg-config freetype2 --cflags)',
+            ],
+            'ldflags': [
+              '<!(pkg-config freetype2 --libs)',
+            ],
+          },
+        }],
+      ],
+    },
+    {
       'target_name': 'idempotent',
       'type': 'executable',
       'sources': [
@@ -120,5 +133,64 @@
         }],
       ],
     },
+    {
+      'target_name': 'ot-sanitise',
+      'type': 'executable',
+      'sources': [
+        'test/ot-sanitise.cc',
+        'test/file-stream.h',
+      ],
+      'dependencies': [
+        'ots',
+      ],
+    },
+  ],
+  'conditions': [
+    ['OS=="linux" or OS=="mac"', {
+      'targets': [
+        {
+          'target_name': 'validator_checker',
+          'type': 'executable',
+          'sources': [
+            'test/validator-checker.cc',
+          ],
+          'dependencies': [
+            'ots',
+          ],
+          'conditions': [
+            ['OS=="linux"', {
+              'dependencies': [
+                'freetype2',
+              ]
+            }],
+          ],
+        },
+        {
+          'target_name': 'perf',
+          'type': 'executable',
+          'sources': [
+            'test/perf.cc',
+          ],
+          'dependencies': [
+            'ots',
+          ],
+        },
+      ],
+    }],
+    ['OS=="linux"', {
+      'targets': [
+        {
+          'target_name': 'side_by_side',
+          'type': 'executable',
+          'sources': [
+            'test/side-by-side.cc',
+          ],
+          'dependencies': [
+            'freetype2',
+            'ots',
+          ],
+        },
+      ],
+    }],
   ],
 }

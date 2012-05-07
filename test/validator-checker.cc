@@ -122,8 +122,9 @@ int OpenAndLoadChars(
     return 0;
   }
 
-  CGFontRef cg_font_ref = CGFontCreateWithPlatformFont(&ats_font_ref);
-  if (!CGFontGetNumberOfGlyphs(cg_font_ref)) {
+  CTFontRef ct_font_ref = CTFontCreateWithPlatformFont(ats_font_ref, 12,
+                                                       NULL, NULL);
+  if (!CTFontGetGlyphCount(ct_font_ref)) {
     std::fprintf(stderr,
                  "OK: font renderer couldn't open the transcoded font: %s\n",
                  file_name);
