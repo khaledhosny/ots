@@ -1,5 +1,6 @@
 /* LzmaEnc.c -- LZMA Encoder
-2010-04-16 : Igor Pavlov : Public domain */
+2010-04-16 : Igor Pavlov : Public domain
+in the public domain */
 
 #include <string.h>
 

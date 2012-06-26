@@ -1,5 +1,6 @@
 /* Types.h -- Basic types
-2010-10-09 : Igor Pavlov : Public domain */
+2010-10-09 : Igor Pavlov : Public domain
+in the public domain */
 
 #ifndef __7Z_TYPES_H
 #define __7Z_TYPES_H

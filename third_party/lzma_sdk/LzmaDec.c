@@ -1,5 +1,6 @@
 /* LzmaDec.c -- LZMA Decoder
-2009-09-20 : Igor Pavlov : Public domain */
+2009-09-20 : Igor Pavlov : Public domain
+in the public domain */
 
 #include "LzmaDec.h"
 

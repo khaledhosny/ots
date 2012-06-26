@@ -1,5 +1,6 @@
 /* LzFind.c -- Match finder for LZ algorithms
-2009-04-22 : Igor Pavlov : Public domain */
+2009-04-22 : Igor Pavlov : Public domain
+in the public domain */
 
 #include <string.h>
 

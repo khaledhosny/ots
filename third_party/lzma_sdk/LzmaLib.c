@@ -1,7 +1,8 @@
 /* LzmaLib.c -- LZMA library wrapper
 2008-08-05
 Igor Pavlov
-Public domain */
+Public domain
+in the public domain */
 
 #include "LzmaEnc.h"
 #include "LzmaDec.h"
