@@ -12,7 +12,7 @@
   'targets': [
     {
       'target_name': 'ots',
-      'type': '<(library)',
+      'type': 'static_library',
       'sources': [
         '<@(ots_sources)',
       ],
