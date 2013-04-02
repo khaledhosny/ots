@@ -3,16 +3,6 @@
 # found in the LICENSE file.
 
 {
-  'conditions': [
-    ['OS=="win"', {
-      'target_defaults': {
-        'defines': [
-          'NOMINMAX', # To suppress max/min macro definition.
-          'WIN32',
-        ],
-      },
-    }],
-  ],
   'variables': {
     'gcc_cflags': [
       '-ggdb',
@@ -72,9 +62,17 @@
         },
         'msvs_settings': {
           'VCLinkerTool': {
+            'AdditionalLibraryDirectories': ['third_party/zlib'],
             'DelayLoadDLLs': ['zlib1.dll'],
           },
         },
+        'include_dirs': [
+          'third_party/zlib'
+        ],
+        'defines': [
+          'NOMINMAX', # To suppress max/min macro definition.
+          'WIN32',
+        ],
       }],
     ],
   },
@@ -106,9 +104,11 @@
             'cflags': [
               '<!(pkg-config freetype2 --cflags)',
             ],
-            'ldflags': [
-              '<!(pkg-config freetype2 --libs)',
-            ],
+            'link_settings': {
+              'libraries': [
+                '<!(pkg-config freetype2 --libs)',
+              ],
+            },
           },
         }],
       ],
@@ -124,12 +124,16 @@
       ],
       'conditions': [
         ['OS=="linux"', {
-          'cflags': [
-            '<!(pkg-config freetype2 --cflags)',
-          ],
-          'ldflags': [
-            '<!(pkg-config freetype2 --libs)',
-          ],
+          'dependencies': [
+            'freetype2',
+          ]
+        }],
+        ['OS=="win"', {
+          'link_settings': {
+            'libraries': [
+              '-lgdi32.lib',
+            ],
+          },
         }],
       ],
     },

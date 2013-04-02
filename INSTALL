@@ -9,7 +9,7 @@ How to build (using gyp):
   (Note: test programs which require gtest can't build with gyp for now)
 
   1. If you are building OTS on Windows, download zlib from
-     http://www.zlib.net/ and put them in appropriate folder.
+     http://www.zlib.net/ and put them in third_party/zlib.
 
   2. Run gyp_ots
 

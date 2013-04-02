@@ -19,6 +19,12 @@
 #include "file-stream.h"
 #include "opentype-sanitiser.h"
 
+#if defined(_WIN32)
+#define ADDITIONAL_OPEN_FLAGS O_BINARY
+#else
+#define ADDITIONAL_OPEN_FLAGS 0
+#endif
+
 namespace {
 
 int Usage(const char *argv0) {
@@ -32,7 +38,7 @@ int main(int argc, char **argv) {
   if (argc != 2) return Usage(argv[0]);
   if (::isatty(1)) return Usage(argv[0]);
 
-  const int fd = ::open(argv[1], O_RDONLY);
+  const int fd = ::open(argv[1], O_RDONLY | ADDITIONAL_OPEN_FLAGS);
   if (fd < 0) {
     ::perror("open");
     return 1;
@@ -49,6 +55,9 @@ int main(int argc, char **argv) {
   ::close(fd);
 
   ots::FILEStream output(stdout);
+#if defined(_WIN32)
+  ::setmode(fileno(stdout), O_BINARY);
+#endif
   const bool result = ots::Process(&output, data, st.st_size);
 
   if (!result) {
