@@ -92,45 +92,33 @@ int OpenAndLoadChars(
 // Mac OS X
 int OpenAndLoadChars(
     const char *file_name, uint8_t *trans_font, size_t trans_len) {
-  ATSFontContainerRef container_ref = 0;
-  ATSFontActivateFromMemory(trans_font, trans_len, 3, kATSFontFormatUnspecified,
-                            NULL, kATSOptionFlagsDefault, &container_ref);
-  if (!container_ref) {
+  CFDataRef data = CFDataCreate(0, trans_font, trans_len);
+  if (!data) {
     std::fprintf(stderr,
                  "OK: font renderer couldn't open the transcoded font: %s\n",
                  file_name);
     return 0;
   }
 
-  ItemCount count;
-  ATSFontFindFromContainer(
-      container_ref, kATSOptionFlagsDefault, 0, NULL, &count);
-  if (!count) {
+  CGDataProviderRef dataProvider = CGDataProviderCreateWithCFData(data);
+  CGFontRef cgFontRef = CGFontCreateWithDataProvider(dataProvider);
+  CGDataProviderRelease(dataProvider);
+  CFRelease(data);
+  if (!cgFontRef) {
     std::fprintf(stderr,
                  "OK: font renderer couldn't open the transcoded font: %s\n",
                  file_name);
     return 0;
   }
 
-  ATSFontRef ats_font_ref = 0;
-  ATSFontFindFromContainer(
-    container_ref, kATSOptionFlagsDefault, 1, &ats_font_ref, NULL);
-  if (!ats_font_ref) {
+  size_t numGlyphs = CGFontGetNumberOfGlyphs(cgFontRef);
+  CGFontRelease(cgFontRef);
+  if (!numGlyphs) {
     std::fprintf(stderr,
                  "OK: font renderer couldn't open the transcoded font: %s\n",
                  file_name);
     return 0;
   }
-
-  CTFontRef ct_font_ref = CTFontCreateWithPlatformFont(ats_font_ref, 12,
-                                                       NULL, NULL);
-  if (!CTFontGetGlyphCount(ct_font_ref)) {
-    std::fprintf(stderr,
-                 "OK: font renderer couldn't open the transcoded font: %s\n",
-                 file_name);
-    return 0;
-  }
-
   std::fprintf(stderr, "OK: font renderer didn't crash: %s\n", file_name);
   // TODO(yusukes): would be better to perform LoadChar() like Linux.
   return 0;

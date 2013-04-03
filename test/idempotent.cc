@@ -110,30 +110,22 @@ bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
 #elif defined(__APPLE_CC__)
 // Mac
 bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
-  ATSFontContainerRef container_ref = 0;
-  ATSFontActivateFromMemory(result, len, 3, kATSFontFormatUnspecified,
-                            NULL, kATSOptionFlagsDefault, &container_ref);
-  if (!container_ref) {
+  CFDataRef data = CFDataCreate(0, result, len);
+  if (!data) {
     return false;
   }
 
-  ItemCount count;
-  ATSFontFindFromContainer(
-      container_ref, kATSOptionFlagsDefault, 0, NULL, &count);
-  if (!count) {
+  CGDataProviderRef dataProvider = CGDataProviderCreateWithCFData(data);
+  CGFontRef cgFontRef = CGFontCreateWithDataProvider(dataProvider);
+  CGDataProviderRelease(dataProvider);
+  CFRelease(data);
+  if (!cgFontRef) {
     return false;
   }
 
-  ATSFontRef ats_font_ref = 0;
-  ATSFontFindFromContainer(
-      container_ref, kATSOptionFlagsDefault, 1, &ats_font_ref, NULL);
-  if (!ats_font_ref) {
-    return false;
-  }
-
-  CTFontRef ct_font_ref = CTFontCreateWithPlatformFont(ats_font_ref, 12,
-                                                       NULL, NULL);
-  if (!CTFontGetGlyphCount(ct_font_ref)) {
+  size_t numGlyphs = CGFontGetNumberOfGlyphs(cgFontRef);
+  CGFontRelease(cgFontRef);
+  if (!numGlyphs) {
     return false;
   }
   return true;
