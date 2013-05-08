@@ -14,12 +14,15 @@
 #include <map>
 #include <vector>
 
+#include "woff2.h"
+
 // The OpenType Font File
 // http://www.microsoft.com/typography/otspec/cmap.htm
 
 namespace {
 
 bool g_debug_output = true;
+bool g_enable_woff2 = false;
 
 struct OpenTypeTable {
   uint32_t tag;
@@ -28,15 +31,6 @@ struct OpenTypeTable {
   uint32_t length;
   uint32_t uncompressed_length;
 };
-
-// Round a value up to the nearest multiple of 4. Don't round the value in the
-// case that rounding up overflows.
-template<typename T> T Round4(T value) {
-  if (std::numeric_limits<T>::max() - value < 3) {
-    return value;
-  }
-  return (value + 3) & ~3;
-}
 
 bool CheckTag(uint32_t tag_value) {
   for (unsigned i = 0; i < 4; ++i) {
@@ -151,15 +145,6 @@ const struct {
   { 0, NULL, NULL, NULL, NULL, false },
 };
 
-bool IsValidVersionTag(uint32_t tag) {
-  return tag == Tag("\x00\x01\x00\x00") ||
-         // OpenType fonts with CFF data have 'OTTO' tag.
-         tag == Tag("OTTO") ||
-         // Older Mac fonts might have 'true' or 'typ1' tag.
-         tag == Tag("true") ||
-         tag == Tag("typ1");
-}
-
 bool ProcessGeneric(ots::OpenTypeFile *header,
                     uint32_t signature,
                     ots::OTSStream *output,
@@ -179,7 +164,7 @@ bool ProcessTTF(ots::OpenTypeFile *header,
   if (!file.ReadTag(&header->version)) {
     return OTS_FAILURE();
   }
-  if (!IsValidVersionTag(header->version)) {
+  if (!ots::IsValidVersionTag(header->version)) {
       return OTS_FAILURE();
   }
 
@@ -265,7 +250,7 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
   if (!file.ReadTag(&header->version)) {
     return OTS_FAILURE();
   }
-  if (!IsValidVersionTag(header->version)) {
+  if (!ots::IsValidVersionTag(header->version)) {
       return OTS_FAILURE();
   }
 
@@ -343,7 +328,7 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
       return OTS_FAILURE();
     }
 
-    total_sfnt_size += Round4(table.uncompressed_length);
+    total_sfnt_size += ots::Round4(table.uncompressed_length);
     if (total_sfnt_size > std::numeric_limits<uint32_t>::max()) {
       return OTS_FAILURE();
     }
@@ -359,7 +344,7 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
   }
 
   // Table data must follow immediately after the header.
-  if (tables[first_index].offset != Round4(file.offset())) {
+  if (tables[first_index].offset != ots::Round4(file.offset())) {
     return OTS_FAILURE();
   }
 
@@ -369,7 +354,7 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
   }
   // Blocks must follow immediately after the previous block.
   // (Except for padding with a maximum of three null bytes)
-  uint64_t block_end = Round4(
+  uint64_t block_end = ots::Round4(
       static_cast<uint64_t>(tables[last_index].offset) +
       static_cast<uint64_t>(tables[last_index].length));
   if (block_end > std::numeric_limits<uint32_t>::max()) {
@@ -379,8 +364,8 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
     if (block_end != meta_offset) {
       return OTS_FAILURE();
     }
-    block_end = Round4(static_cast<uint64_t>(meta_offset) +
-                       static_cast<uint64_t>(meta_length));
+    block_end = ots::Round4(static_cast<uint64_t>(meta_offset) +
+                            static_cast<uint64_t>(meta_length));
     if (block_end > std::numeric_limits<uint32_t>::max()) {
       return OTS_FAILURE();
     }
@@ -389,17 +374,36 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
     if (block_end != priv_offset) {
       return OTS_FAILURE();
     }
-    block_end = Round4(static_cast<uint64_t>(priv_offset) +
-                       static_cast<uint64_t>(priv_length));
+    block_end = ots::Round4(static_cast<uint64_t>(priv_offset) +
+                            static_cast<uint64_t>(priv_length));
     if (block_end > std::numeric_limits<uint32_t>::max()) {
       return OTS_FAILURE();
     }
   }
-  if (block_end != Round4(length)) {
+  if (block_end != ots::Round4(length)) {
     return OTS_FAILURE();
   }
 
   return ProcessGeneric(header, woff_tag, output, data, length, tables, file);
+}
+
+bool ProcessWOFF2(ots::OpenTypeFile *header,
+                  ots::OTSStream *output, const uint8_t *data, size_t length) {
+  size_t decompressed_size = ots::ComputeWOFF2FinalSize(data, length);
+  if (decompressed_size == 0) {
+    return OTS_FAILURE();
+  }
+  // decompressed font must be <= 30MB
+  if (decompressed_size > 30 * 1024 * 1024) {
+    return OTS_FAILURE();
+  }
+
+  std::vector<uint8_t> decompressed_buffer(decompressed_size);
+  if (!ots::ConvertWOFF2ToTTF(&decompressed_buffer[0], decompressed_size,
+                              data, length)) {
+    return OTS_FAILURE();
+  }
+  return ProcessTTF(header, output, &decompressed_buffer[0], decompressed_size);
 }
 
 bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
@@ -467,7 +471,7 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
     uint32_t end_byte = tables[i].offset + tables[i].length;
     // Tables in the WOFF file must be aligned 4-byte boundary.
     if (signature == Tag("wOFF")) {
-        end_byte = Round4(end_byte);
+        end_byte = ots::Round4(end_byte);
     }
     if (!end_byte || end_byte > length) {
       return OTS_FAILURE();
@@ -679,8 +683,21 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
 
 namespace ots {
 
+bool IsValidVersionTag(uint32_t tag) {
+  return tag == Tag("\x00\x01\x00\x00") ||
+         // OpenType fonts with CFF data have 'OTTO' tag.
+         tag == Tag("OTTO") ||
+         // Older Mac fonts might have 'true' or 'typ1' tag.
+         tag == Tag("true") ||
+         tag == Tag("typ1");
+}
+
 void DisableDebugOutput() {
   g_debug_output = false;
+}
+
+void EnableWOFF2() {
+  g_enable_woff2 = true;
 }
 
 bool Process(OTSStream *output, const uint8_t *data, size_t length) {
@@ -692,6 +709,10 @@ bool Process(OTSStream *output, const uint8_t *data, size_t length) {
   bool result;
   if (data[0] == 'w' && data[1] == 'O' && data[2] == 'F' && data[3] == 'F') {
     result = ProcessWOFF(&header, output, data, length);
+  } else if (g_enable_woff2 &&
+             data[0] == 'w' && data[1] == 'O' && data[2] == 'F' &&
+             data[3] == '2') {
+    result = ProcessWOFF2(&header, output, data, length);
   } else {
     result = ProcessTTF(&header, output, data, length);
   }

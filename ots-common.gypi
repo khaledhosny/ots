@@ -65,6 +65,8 @@
       'src/vmtx.h',
       'src/vorg.cc',
       'src/vorg.h',
+      'src/woff2.cc',
+      'src/woff2.h',
     ],
     'ots_include_dirs': [
       'include',

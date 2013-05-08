@@ -11,8 +11,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 
 #include "opentype-sanitiser.h"
+
+// arraysize borrowed from base/basictypes.h
+template <typename T, size_t N>
+char (&ArraySizeHelper(T (&array)[N]))[N];
+#define arraysize(array) (sizeof(ArraySizeHelper(array)))
 
 namespace ots {
 
@@ -157,6 +163,17 @@ class Buffer {
   const size_t length_;
   size_t offset_;
 };
+
+// Round a value up to the nearest multiple of 4. Don't round the value in the
+// case that rounding up overflows.
+template<typename T> T Round4(T value) {
+  if (std::numeric_limits<T>::max() - value < 3) {
+    return value;
+  }
+  return (value + 3) & ~3;
+}
+
+bool IsValidVersionTag(uint32_t tag);
 
 #define FOR_EACH_TABLE_TYPE \
   F(cff, CFF) \

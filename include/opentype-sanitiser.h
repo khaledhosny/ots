@@ -191,6 +191,9 @@ bool Process(OTSStream *output, const uint8_t *input, size_t length);
 // -DOTS_DEBUG.
 void DisableDebugOutput();
 
+// Enable WOFF2 support(experimental).
+void EnableWOFF2();
+
 }  // namespace ots
 
 #endif  // OPENTYPE_SANITISER_H_

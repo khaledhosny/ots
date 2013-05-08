@@ -17,6 +17,7 @@
         '<@(ots_sources)',
       ],
       'include_dirs': [
+        '../..',
         '<@(ots_include_dirs)',
       ],
       'direct_dependent_settings': {
@@ -25,6 +26,7 @@
         ],
       },
       'dependencies': [
+        '../lzma_sdk/lzma_sdk.gyp:lzma_sdk',
         '../zlib/zlib.gyp:zlib',
       ],
       # TODO(jschuh): http://crbug.com/167187

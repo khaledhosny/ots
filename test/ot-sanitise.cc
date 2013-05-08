@@ -38,6 +38,8 @@ int main(int argc, char **argv) {
   if (argc != 2) return Usage(argv[0]);
   if (::isatty(1)) return Usage(argv[0]);
 
+  ots::EnableWOFF2();
+
   const int fd = ::open(argv[1], O_RDONLY | ADDITIONAL_OPEN_FLAGS);
   if (fd < 0) {
     ::perror("open");
