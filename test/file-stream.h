@@ -38,8 +38,8 @@ class FILEStream : public OTSStream {
       position_ = position;
       return true;
     }
-    return false;
 #endif  // defined(_WIN32)
+    return false;
   }
 
   off_t Tell() const {

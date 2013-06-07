@@ -1025,7 +1025,7 @@ bool ConvertWOFF2ToTTF(uint8_t* result, size_t result_length,
     }
     if (continue_valid) {
       transform_buf += transform_length;
-      if (transform_buf > &uncompressed_buf[uncompressed_buf.size()]) {
+      if (transform_buf > &uncompressed_buf[0] + uncompressed_buf.size()) {
         return OTS_FAILURE();
       }
     }
