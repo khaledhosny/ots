@@ -30,18 +30,11 @@ const int kGlyfThisYIsSame = 1 << 5;
 
 // composite glyph flags
 const int FLAG_ARG_1_AND_2_ARE_WORDS = 1 << 0;
-const int FLAG_ARGS_ARE_XY_VALUES = 1 << 1;
-const int FLAG_ROUND_XY_TO_GRID = 1 << 2;
 const int FLAG_WE_HAVE_A_SCALE = 1 << 3;
-const int FLAG_RESERVED = 1 << 4;
 const int FLAG_MORE_COMPONENTS = 1 << 5;
 const int FLAG_WE_HAVE_AN_X_AND_Y_SCALE = 1 << 6;
 const int FLAG_WE_HAVE_A_TWO_BY_TWO = 1 << 7;
 const int FLAG_WE_HAVE_INSTRUCTIONS = 1 << 8;
-const int FLAG_USE_MY_METRICS = 1 << 9;
-const int FLAG_OVERLAP_COMPOUND = 1 << 10;
-const int FLAG_SCALED_COMPONENT_OFFSET = 1 << 11;
-const int FLAG_UNSCALED_COMPONENT_OFFSET = 1 << 12;
 
 const size_t kSfntHeaderSize = 12;
 const size_t kSfntEntrySize = 16;
@@ -55,9 +48,6 @@ const size_t kCompositeGlyphBegin = 10;
 
 const unsigned int kWoff2FlagsContinueStream = 1 << 4;
 const unsigned int kWoff2FlagsTransform = 1 << 5;
-
-const size_t kWoff2HeaderSize = 44;
-const size_t kWoff2EntrySize = 20;
 
 const size_t kLzmaHeaderSize = 13;
 
