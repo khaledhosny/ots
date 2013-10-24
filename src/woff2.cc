@@ -826,6 +826,10 @@ bool ReadShortDirectory(ots::Buffer* file, std::vector<Table>* tables,
       if (!ReadBase128(file, &src_length)) {
         return OTS_FAILURE();
       }
+    } else if ((flag_byte >> 6) == kShortFlagsContinue) {
+      // The compressed data for this table is in a previuos table, so we set
+      // the src_length to zero.
+      src_length = 0;
     }
     // Disallow huge numbers (> 1GB) for sanity.
     if (src_length > 1024 * 1024 * 1024 ||
@@ -954,12 +958,12 @@ bool ConvertWOFF2ToTTF(uint8_t* result, size_t result_length,
   }
   std::vector<uint8_t> uncompressed_buf;
   bool continue_valid = false;
+  const uint8_t* transform_buf = NULL;
   for (uint16_t i = 0; i < num_tables; ++i) {
     const Table* table = &tables.at(i);
     uint32_t flags = table->flags;
     const uint8_t* src_buf = data + table->src_offset;
     uint32_t compression_type = flags & kCompressionTypeMask;
-    const uint8_t* transform_buf = NULL;
     size_t transform_length = table->transform_length;
     if ((flags & kWoff2FlagsContinueStream) != 0) {
       if (!continue_valid) {
