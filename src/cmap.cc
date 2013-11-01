@@ -233,7 +233,7 @@ bool ParseFormat4(ots::OpenTypeFile *file, int platform, int encoding,
           return OTS_FAILURE();
         }
         uint16_t glyph;
-        memcpy(&glyph, data + glyph_id_offset, 2);
+        std::memcpy(&glyph, data + glyph_id_offset, 2);
         glyph = ntohs(glyph);
         if (glyph >= num_glyphs) {
           return OTS_FAILURE();
