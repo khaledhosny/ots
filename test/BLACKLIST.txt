@@ -109,10 +109,6 @@ DroidSansFallback.ttf
 # Malformed GLYF table; The content of flags array and the lengths of xCoordinates, yCoordinates are inconsistent.
 DecoTypeNaskh.ttf
 
-# Malformed POST table; A glyph index in the reserved area (>= 32768) is specified.
-wqy-zenhei.ttf
-unifont.ttf
-
 # Malformed HMTX table; The table is too short.
 mona.ttf
 

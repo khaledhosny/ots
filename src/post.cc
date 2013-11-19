@@ -76,10 +76,9 @@ bool ots_post_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     if (!table.ReadU16(&post->glyph_name_index[i])) {
       return OTS_FAILURE();
     }
-    if (post->glyph_name_index[i] >= 32768) {
-      // Note: droid_arialuni.ttf fails this test.
-      return OTS_FAILURE();  // reserved area.
-    }
+    // Note: A strict interpretation of the specification requires name indexes
+    // are less than 32768. This, however, excludes fonts like unifont.ttf
+    // which cover all of unicode.
   }
 
   // Now we have an array of Pascal strings. We have to check that they are all
