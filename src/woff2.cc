@@ -826,7 +826,7 @@ bool ReadShortDirectory(ots::Buffer* file, std::vector<Table>* tables,
       if (!ReadBase128(file, &src_length)) {
         return OTS_FAILURE();
       }
-    } else if ((flag_byte >> 6) == kShortFlagsContinue) {
+    } else if (static_cast<uint32_t>(flag_byte >> 6) == kShortFlagsContinue) {
       // The compressed data for this table is in a previuos table, so we set
       // the src_length to zero.
       src_length = 0;
