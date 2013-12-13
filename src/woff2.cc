@@ -11,7 +11,7 @@
 
 #include <zlib.h>
 
-#include "third_party/lzma_sdk/LzmaLib.h"
+#include "third_party/brotli/src/brotli/dec/decode.h"
 
 #include "opentype-sanitiser.h"
 #include "ots-memory-stream.h"
@@ -49,13 +49,11 @@ const size_t kCompositeGlyphBegin = 10;
 const unsigned int kWoff2FlagsContinueStream = 1 << 4;
 const unsigned int kWoff2FlagsTransform = 1 << 5;
 
-const size_t kLzmaHeaderSize = 13;
-
 // Compression type values common to both short and long formats
 const uint32_t kCompressionTypeMask = 0xf;
 const uint32_t kCompressionTypeNone = 0;
 const uint32_t kCompressionTypeGzip = 1;
-const uint32_t kCompressionTypeLzma = 2;
+const uint32_t kCompressionTypeBrotli = 2;
 
 // This is a special value for the short format only, as described in
 // "Design for compressed header format" in draft doc.
@@ -756,18 +754,11 @@ bool Woff2Uncompress(uint8_t* dst_buf, size_t dst_size,
       return OTS_FAILURE();
     }
     return true;
-  } else if (compression_type == kCompressionTypeLzma) {
-    if (src_size < kLzmaHeaderSize) {
-      // Make sure we have at least a full Lzma header
-      return OTS_FAILURE();
-    }
-    // TODO: check that size matches (or elide size?)
+  } else if (compression_type == kCompressionTypeBrotli) {
     size_t uncompressed_size = dst_size;
-    size_t compressed_size = src_size;
-    int result = LzmaUncompress(dst_buf, &dst_size,
-        src_buf + kLzmaHeaderSize, &compressed_size,
-        src_buf, LZMA_PROPS_SIZE);
-    if (result != SZ_OK || uncompressed_size != dst_size) {
+    int ok = BrotliDecompressBuffer(src_size, src_buf,
+                                    &uncompressed_size, dst_buf);
+    if (!ok || uncompressed_size != dst_size) {
       return OTS_FAILURE();
     }
     return true;
@@ -802,7 +793,7 @@ bool ReadShortDirectory(ots::Buffer* file, std::vector<Table>* tables,
     } else {
       if (flags == kCompressionTypeNone ||
           flags == kCompressionTypeGzip ||
-          flags == kCompressionTypeLzma) {
+          flags == kCompressionTypeBrotli) {
         last_compression_type = flags;
       } else {
         return OTS_FAILURE();

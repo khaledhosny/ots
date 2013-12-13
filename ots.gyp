@@ -26,7 +26,7 @@
         ],
       },
       'dependencies': [
-        '../lzma_sdk/lzma_sdk.gyp:lzma_sdk',
+        '../brotli/brotli.gyp:brotli',
         '../zlib/zlib.gyp:zlib',
       ],
       # TODO(jschuh): http://crbug.com/167187
