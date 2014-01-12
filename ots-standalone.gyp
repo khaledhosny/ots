@@ -28,6 +28,7 @@
       ['OS=="linux"', {
         'cflags': [
           '<@(gcc_cflags)',
+          '-O',
         ],
         'ldflags': [
           '<@(gcc_ldflags)',
@@ -38,6 +39,9 @@
         'link_settings': {
           'libraries': ['-lz'],
         },
+        'include_dirs': [
+          '.'
+        ],
       }],
       ['OS=="mac"', {
         'xcode_settings': {
@@ -84,7 +88,7 @@
         '<@(ots_sources)',
       ],
       'dependencies': [
-        'third_party/lzma_sdk/lzma_sdk.gyp:ots_lzma_sdk',
+        'third_party/brotli/brotli.gyp:brotli',
       ],
       'include_dirs': [
         '<@(ots_include_dirs)',
