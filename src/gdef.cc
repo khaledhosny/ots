@@ -290,7 +290,7 @@ bool ots_gdef_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     }
   }
 
-  unsigned gdef_header_end = 8;
+  unsigned gdef_header_end = 4 + 4 * 2;
   if (gdef->version_2)
     gdef_header_end += 2;
 

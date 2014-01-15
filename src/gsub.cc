@@ -18,7 +18,7 @@
 namespace {
 
 // The GSUB header size
-const size_t kGsubHeaderSize = 8;
+const size_t kGsubHeaderSize = 4 + 3 * 2;
 
 enum GSUB_TYPE {
   GSUB_TYPE_SINGLE = 1,
