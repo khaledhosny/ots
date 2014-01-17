@@ -51,9 +51,9 @@ void Warning(const char *f, int l, const char *format, ...)
 // the 'false' status.
 
 // Generate a simple message
-#define OTS_FAILURE_MSG_(otf_,msg_) \
+#define OTS_FAILURE_MSG_(otf_,...) \
   ((otf_)->message_func && \
-    (*(otf_)->message_func)((otf_)->user_data, "%s", msg_) && \
+    (*(otf_)->message_func)((otf_)->user_data, __VA_ARGS__) && \
     false)
 
 // Generate a message with an associated table tag
@@ -65,7 +65,7 @@ void Warning(const char *f, int l, const char *format, ...)
 // Convenience macro for use in files that only handle a single table tag,
 // defined as TABLE_NAME at the top of the file; the 'file' variable is
 // expected to be the current OpenTypeFile pointer.
-#define OTS_FAILURE_MSG(msg_) OTS_FAILURE_MSG_TAG_(file, msg_, TABLE_NAME)
+#define OTS_FAILURE_MSG(...) OTS_FAILURE_MSG_(file, "table '" TABLE_NAME "': " __VA_ARGS__)
 
 // Define OTS_NO_TRANSCODE_HINTS (i.e., g++ -DOTS_NO_TRANSCODE_HINTS) if you
 // want to omit TrueType hinting instructions and variables in glyf, fpgm, prep,
