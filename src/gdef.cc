@@ -152,21 +152,21 @@ bool ParseLigCaretListTable(ots::OpenTypeFile *file, const uint8_t *data,
       return OTS_FAILURE_MSG("bad caret value count: %u", caret_count);
     }
 
-    std::vector<uint16_t> caret_values;
-    caret_values.resize(caret_count);
-    unsigned caret_values_end = 2 * static_cast<unsigned>(caret_count) + 2;
+    std::vector<uint16_t> caret_value_offsets;
+    caret_value_offsets.resize(caret_count);
+    unsigned caret_value_offsets_end = 2 * static_cast<unsigned>(caret_count) + 2;
     for (unsigned j = 0; j < caret_count; ++j) {
-      if (!subtable.ReadU16(&caret_values[j])) {
-        return OTS_FAILURE_MSG("Can't read caret value %d for glyph %d", j, i);
+      if (!subtable.ReadU16(&caret_value_offsets[j])) {
+        return OTS_FAILURE_MSG("Can't read caret offset %d for glyph %d", j, i);
       }
-      if (caret_values[j] >= length || caret_values[j] < caret_values_end) {
-        return OTS_FAILURE_MSG("Bad caret value %d for caret %d glyph %d", caret_values[j], j, i);
+      if (caret_value_offsets[j] >= length || caret_value_offsets[j] < caret_value_offsets_end) {
+        return OTS_FAILURE_MSG("Bad caret offset %d for caret %d glyph %d", caret_value_offsets[j], j, i);
       }
     }
 
     // Parse caret values table
     for (unsigned j = 0; j < caret_count; ++j) {
-      subtable.set_offset(lig_glyphs[i] + caret_values[j]);
+      subtable.set_offset(lig_glyphs[i] + caret_value_offsets[j]);
       uint16_t caret_format = 0;
       if (!subtable.ReadU16(&caret_format)) {
         return OTS_FAILURE_MSG("Can't read caret values table %d in glyph %d", j, i);
