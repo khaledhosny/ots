@@ -23,6 +23,7 @@ namespace {
 
 bool g_debug_output = true;
 bool g_enable_woff2 = false;
+bool g_enable_graphite = false;
 
 // Generate a message with or without a table tag, when 'header' is the OpenTypeFile pointer
 #define OTS_FAILURE_MSG_TAG(msg_,tag_) OTS_FAILURE_MSG_TAG_(header, msg_, tag_)
@@ -720,9 +721,12 @@ void EnableWOFF2() {
   g_enable_woff2 = true;
 }
 
+void EnableGraphite() {
+  g_enable_graphite = true;
+}
+
 bool Process(OTSStream *output, const uint8_t *data, size_t length,
-             MessageFunc message_func, void *user_data,
-             bool preserveGraphite) {
+             MessageFunc message_func, void *user_data) {
   OpenTypeFile header;
 
   header.message_func = message_func;
@@ -732,7 +736,7 @@ bool Process(OTSStream *output, const uint8_t *data, size_t length,
     return OTS_FAILURE_MSG_(&header, "file less than 4 bytes");
   }
 
-  header.preserve_graphite = preserveGraphite;
+  header.preserve_graphite = g_enable_graphite;
 
   bool result;
   if (data[0] == 'w' && data[1] == 'O' && data[2] == 'F' && data[3] == 'F') {
