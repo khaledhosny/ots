@@ -154,7 +154,6 @@ bool ParseLigCaretListTable(ots::OpenTypeFile *file, const uint8_t *data,
 
     std::vector<uint16_t> caret_values;
     caret_values.resize(caret_count);
-    uint16_t last_offset_caret = 0;
     unsigned caret_values_end = 2 * static_cast<unsigned>(caret_count) + 2;
     for (unsigned j = 0; j < caret_count; ++j) {
       if (!subtable.ReadU16(&caret_values[j])) {
@@ -163,12 +162,6 @@ bool ParseLigCaretListTable(ots::OpenTypeFile *file, const uint8_t *data,
       if (caret_values[j] >= length || caret_values[j] < caret_values_end) {
         return OTS_FAILURE_MSG("Bad caret value %d for caret %d glyph %d", caret_values[j], j, i);
       }
-      // Caret offsets are in increasing coordinate order
-      if (last_offset_caret != 0 && last_offset_caret >= caret_values[j]) {
-        return OTS_FAILURE_MSG("offset isn't in increasing coordinate order: %u >= %u",
-                    last_offset_caret, caret_values[j]);
-      }
-      last_offset_caret = caret_values[j];
     }
 
     // Parse caret values table
