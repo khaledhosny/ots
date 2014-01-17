@@ -24,18 +24,9 @@ namespace {
 bool g_debug_output = true;
 bool g_enable_woff2 = false;
 
-#ifdef MOZ_OTS_REPORT_ERRORS
-
 // Generate a message with or without a table tag, when 'header' is the OpenTypeFile pointer
 #define OTS_FAILURE_MSG_TAG(msg_,tag_) OTS_FAILURE_MSG_TAG_(header, msg_, tag_)
 #define OTS_FAILURE_MSG_HDR(msg_)      OTS_FAILURE_MSG_(header, msg_)
-
-#else
-
-#define OTS_FAILURE_MSG_TAG(msg_,tag_) OTS_FAILURE()
-#define OTS_FAILURE_MSG_HDR(msg_)      OTS_FAILURE()
-
-#endif
 
 
 struct OpenTypeTable {
