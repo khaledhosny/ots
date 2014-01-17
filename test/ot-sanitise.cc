@@ -13,6 +13,7 @@
 #include <unistd.h>
 #endif  // defined(_WIN32)
 
+#include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 
@@ -30,6 +31,17 @@ namespace {
 int Usage(const char *argv0) {
   std::fprintf(stderr, "Usage: %s ttf_file > dest_ttf_file\n", argv0);
   return 1;
+}
+
+bool Message(void *aUserData, const char *format, ...) {
+  va_list va;
+
+  va_start(va, format);
+  std::vfprintf(stderr, format, va);
+  std::fprintf(stderr, "\n");
+  va_end(va);
+
+  return false;
 }
 
 }  // namespace
@@ -60,7 +72,7 @@ int main(int argc, char **argv) {
 #if defined(_WIN32)
   ::setmode(fileno(stdout), O_BINARY);
 #endif
-  const bool result = ots::Process(&output, data, st.st_size);
+  const bool result = ots::Process(&output, data, st.st_size, &Message);
 
   if (!result) {
     std::fprintf(stderr, "Failed to sanitise file!\n");
