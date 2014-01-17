@@ -161,7 +161,7 @@ bool ParseLigCaretListTable(ots::OpenTypeFile *file, const uint8_t *data,
         return OTS_FAILURE_MSG("Can't read caret value %d for glyph %d", j, i);
       }
       if (caret_values[j] >= length || caret_values[j] < caret_values_end) {
-        return OTS_FAILURE_MSG("bac caret value %d for caret %d glyph %d", caret_values[j], j, i);
+        return OTS_FAILURE_MSG("Bad caret value %d for caret %d glyph %d", caret_values[j], j, i);
       }
       // Caret offsets are in increasing coordinate order
       if (last_offset_caret != 0 && last_offset_caret >= caret_values[j]) {
