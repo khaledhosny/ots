@@ -51,6 +51,7 @@ int main(int argc, char **argv) {
   if (::isatty(1)) return Usage(argv[0]);
 
   ots::EnableWOFF2();
+  ots::EnableGraphite();
 
   const int fd = ::open(argv[1], O_RDONLY | ADDITIONAL_OPEN_FLAGS);
   if (fd < 0) {
