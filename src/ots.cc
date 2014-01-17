@@ -757,9 +757,18 @@ bool Process(OTSStream *output, const uint8_t *data, size_t length,
 }
 
 #if !defined(_MSC_VER) && defined(OTS_DEBUG)
-bool Failure(const char *f, int l, const char *fn) {
+bool Failure(const char *f, int l, const char *fn, const char *format, ...) {
   if (g_debug_output) {
-    std::fprintf(stderr, "ERROR at %s:%d (%s)\n", f, l, fn);
+    std::fprintf(stderr, "ERROR at %s:%d (%s)", f, l, fn);
+    if (format)
+    {
+        std::va_list va;
+        va_start(va, format);
+        std::fprintf(stderr, ": ");
+        std::vfprintf(stderr, format, va);
+        va_end(va);
+        std::fprintf(stderr, "\n");
+    }
     std::fflush(stderr);
   }
   return false;

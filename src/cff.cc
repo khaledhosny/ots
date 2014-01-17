@@ -14,6 +14,8 @@
 // http://www.microsoft.com/typography/otspec/cff.htm
 // http://www.microsoft.com/typography/otspec/cffspec.htm
 
+#define TABLE_NAME "CFF"
+
 namespace {
 
 enum DICT_OPERAND_TYPE {

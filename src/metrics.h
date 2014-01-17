@@ -34,14 +34,17 @@ struct OpenTypeMetricsTable {
 
 bool ParseMetricsHeader(OpenTypeFile *file, Buffer *table,
                         OpenTypeMetricsHeader *header);
-bool SerialiseMetricsHeader(OTSStream *out,
+bool SerialiseMetricsHeader(const ots::OpenTypeFile *file,
+                            OTSStream *out,
                             const OpenTypeMetricsHeader *header);
 
-bool ParseMetricsTable(Buffer *table,
+bool ParseMetricsTable(const ots::OpenTypeFile *file,
+                       Buffer *table,
                        const uint16_t num_glyphs,
                        const OpenTypeMetricsHeader *header,
                        OpenTypeMetricsTable *metrics);
-bool SerialiseMetricsTable(OTSStream *out,
+bool SerialiseMetricsTable(const ots::OpenTypeFile *file,
+                           OTSStream *out,
                            const OpenTypeMetricsTable *metrics);
 
 }  // namespace ots
