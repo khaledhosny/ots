@@ -677,11 +677,11 @@ bool ParseExtensionPositioning(const ots::OpenTypeFile *file,
 
 }  // namespace
 
-#define DROP_THIS_TABLE \
+#define DROP_THIS_TABLE(msg_) \
   do { \
     file->gpos->data = 0; \
     file->gpos->length = 0; \
-    OTS_FAILURE_MSG("OpenType layout data discarded"); \
+    OTS_FAILURE_MSG(msg_ ", table discarded"); \
   } while (0)
 
 namespace ots {
@@ -751,14 +751,12 @@ bool ots_gpos_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
       !table.ReadU16(&offset_script_list) ||
       !table.ReadU16(&offset_feature_list) ||
       !table.ReadU16(&offset_lookup_list)) {
-    OTS_WARNING("incomplete GPOS table");
-    DROP_THIS_TABLE;
+    DROP_THIS_TABLE("Incomplete table");
     return true;
   }
 
   if (version != 0x00010000) {
-    OTS_WARNING("bad GPOS version");
-    DROP_THIS_TABLE;
+    DROP_THIS_TABLE("Bad version");
     return true;
   }
   if ((offset_script_list < kGposHeaderSize ||
@@ -767,8 +765,7 @@ bool ots_gpos_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
        offset_feature_list >= length) ||
       (offset_lookup_list < kGposHeaderSize ||
        offset_lookup_list >= length)) {
-    OTS_WARNING("bad offset in GPOS header");
-    DROP_THIS_TABLE;
+    DROP_THIS_TABLE("Bad offset in table header");
     return true;
   }
 
@@ -776,8 +773,7 @@ bool ots_gpos_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
                             length - offset_lookup_list,
                             &kGposLookupSubtableParser,
                             &gpos->num_lookups)) {
-    OTS_WARNING("failed to parse lookup list table");
-    DROP_THIS_TABLE;
+    DROP_THIS_TABLE("Failed to parse lookup list table");
     return true;
   }
 
@@ -785,15 +781,13 @@ bool ots_gpos_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   if (!ParseFeatureListTable(file, data + offset_feature_list,
                              length - offset_feature_list, gpos->num_lookups,
                              &num_features)) {
-    OTS_WARNING("failed to parse feature list table");
-    DROP_THIS_TABLE;
+    DROP_THIS_TABLE("Failed to parse feature list table");
     return true;
   }
 
   if (!ParseScriptListTable(file, data + offset_script_list,
                             length - offset_script_list, num_features)) {
-    OTS_WARNING("failed to parse script list table");
-    DROP_THIS_TABLE;
+    DROP_THIS_TABLE("Failed to parse script list table");
     return true;
   }
 
