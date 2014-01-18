@@ -1,0 +1,13 @@
+/Makefile
+/freetype2.target.mk
+/idempotent.target.mk
+/ot-sanitise.target.mk
+/ots-standalone.Makefile
+/ots.target.mk
+/out/
+/perf.target.mk
+/side_by_side.target.mk
+/third_party/brotli/brotli.Makefile
+/third_party/brotli/brotli.target.mk
+/third_party/lzma_sdk/
+/validator_checker.target.mk
