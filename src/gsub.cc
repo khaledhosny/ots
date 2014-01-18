@@ -7,8 +7,6 @@
 #include <limits>
 #include <vector>
 
-#include "gdef.h"
-#include "gpos.h"
 #include "layout.h"
 #include "maxp.h"
 
@@ -654,11 +652,7 @@ bool ots_gsub_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 }
 
 bool ots_gsub_should_serialise(OpenTypeFile *file) {
-  const bool needed_tables_dropped =
-      (file->gdef && file->gdef->data == NULL) ||
-      (file->gpos && file->gpos->data == NULL);
-  return file->gsub != NULL && file->gsub->data != NULL
-      && !needed_tables_dropped;
+  return file->gsub != NULL && file->gsub->data != NULL;
 }
 
 bool ots_gsub_serialise(OTSStream *out, OpenTypeFile *file) {

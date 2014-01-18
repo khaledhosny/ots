@@ -367,11 +367,7 @@ bool ots_gdef_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 }
 
 bool ots_gdef_should_serialise(OpenTypeFile *file) {
-  const bool needed_tables_dropped =
-      (file->gsub && file->gsub->data == NULL) ||
-      (file->gpos && file->gpos->data == NULL);
-  return file->gdef != NULL && file->gdef->data != NULL &&
-      !needed_tables_dropped;
+  return file->gdef != NULL && file->gdef->data != NULL;
 }
 
 bool ots_gdef_serialise(OTSStream *out, OpenTypeFile *file) {
