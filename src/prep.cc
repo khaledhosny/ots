@@ -5,7 +5,7 @@
 #include "prep.h"
 
 // prep - Control Value Program
-// http://www.microsoft.com/opentype/otspec/prep.htm
+// http://www.microsoft.com/typography/otspec/prep.htm
 
 #define TABLE_NAME "prep"
 

@@ -5,7 +5,7 @@
 #include "vdmx.h"
 
 // VDMX - Vertical Device Metrics
-// http://www.microsoft.com/opentype/otspec/vdmx.htm
+// http://www.microsoft.com/typography/otspec/vdmx.htm
 
 #define TABLE_NAME "VDMX"
 

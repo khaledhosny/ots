@@ -8,7 +8,7 @@
 #include "maxp.h"
 
 // hmtx - Horizontal Metrics
-// http://www.microsoft.com/opentype/otspec/hmtx.htm
+// http://www.microsoft.com/typography/otspec/hmtx.htm
 
 #define TABLE_NAME "hmtx"
 

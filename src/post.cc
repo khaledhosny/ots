@@ -7,7 +7,7 @@
 #include "maxp.h"
 
 // post - PostScript
-// http://www.microsoft.com/opentype/otspec/post.htm
+// http://www.microsoft.com/typography/otspec/post.htm
 
 #define TABLE_NAME "post"
 

@@ -13,7 +13,7 @@
 #include "os2.h"
 
 // cmap - Character To Glyph Index Mapping Table
-// http://www.microsoft.com/opentype/otspec/cmap.htm
+// http://www.microsoft.com/typography/otspec/cmap.htm
 
 #define TABLE_NAME "cmap"
 

@@ -8,7 +8,7 @@
 #include "maxp.h"
 
 // hhea - Horizontal Header
-// http://www.microsoft.com/opentype/otspec/hhea.htm
+// http://www.microsoft.com/typography/otspec/hhea.htm
 
 #define TABLE_NAME "hhea"
 

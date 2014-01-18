@@ -7,7 +7,7 @@
 #include "head.h"
 
 // OS/2 - OS/2 and Windows Metrics
-// http://www.microsoft.com/opentype/otspec/os2.htm
+// http://www.microsoft.com/typography/otspec/os2.htm
 
 #define TABLE_NAME "OS/2"
 

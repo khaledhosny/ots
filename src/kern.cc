@@ -5,7 +5,7 @@
 #include "kern.h"
 
 // kern - Kerning
-// http://www.microsoft.com/opentype/otspec/kern.htm
+// http://www.microsoft.com/typography/otspec/kern.htm
 
 #define TABLE_NAME "kern"
 

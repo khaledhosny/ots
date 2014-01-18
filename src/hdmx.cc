@@ -7,7 +7,7 @@
 #include "maxp.h"
 
 // hdmx - Horizontal Device Metrics
-// http://www.microsoft.com/opentype/otspec/hdmx.htm
+// http://www.microsoft.com/typography/otspec/hdmx.htm
 
 #define TABLE_NAME "hdmx"
 

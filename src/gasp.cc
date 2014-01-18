@@ -5,7 +5,7 @@
 #include "gasp.h"
 
 // gasp - Grid-fitting And Scan-conversion Procedure
-// http://www.microsoft.com/opentype/otspec/gasp.htm
+// http://www.microsoft.com/typography/otspec/gasp.htm
 
 #define TABLE_NAME "gasp"
 

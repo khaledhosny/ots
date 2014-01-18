@@ -12,7 +12,7 @@
 #include "maxp.h"
 
 // glyf - Glyph Data
-// http://www.microsoft.com/opentype/otspec/glyf.htm
+// http://www.microsoft.com/typography/otspec/glyf.htm
 
 #define TABLE_NAME "glyf"
 

@@ -7,7 +7,7 @@
 #include <cstring>
 
 // head - Font Header
-// http://www.microsoft.com/opentype/otspec/head.htm
+// http://www.microsoft.com/typography/otspec/head.htm
 
 #define TABLE_NAME "head"
 

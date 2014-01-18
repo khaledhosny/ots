@@ -8,8 +8,8 @@
 #include "maxp.h"
 
 // OpenType horizontal and vertical common header format
-// http://www.microsoft.com/opentype/otspec/hhea.htm
-// http://www.microsoft.com/opentype/otspec/vhea.htm
+// http://www.microsoft.com/typography/otspec/hhea.htm
+// http://www.microsoft.com/typography/otspec/vhea.htm
 
 #define TABLE_NAME "metrics" // XXX: use individual table names
 

@@ -10,7 +10,7 @@
 #include "cff.h"
 
 // name - Naming Table
-// http://www.microsoft.com/opentype/otspec/name.htm
+// http://www.microsoft.com/typography/otspec/name.htm
 
 #define TABLE_NAME "name"
 

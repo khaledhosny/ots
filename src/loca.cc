@@ -8,7 +8,7 @@
 #include "maxp.h"
 
 // loca - Index to Location
-// http://www.microsoft.com/opentype/otspec/loca.htm
+// http://www.microsoft.com/typography/otspec/loca.htm
 
 #define TABLE_NAME "loca"
 

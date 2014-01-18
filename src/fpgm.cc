@@ -5,7 +5,7 @@
 #include "fpgm.h"
 
 // fpgm - Font Program
-// http://www.microsoft.com/opentype/otspec/fpgm.htm
+// http://www.microsoft.com/typography/otspec/fpgm.htm
 
 #define TABLE_NAME "fpgm"
 

@@ -7,7 +7,7 @@
 #include <vector>
 
 // VORG - Vertical Origin Table
-// http://www.microsoft.com/opentype/otspec/vorg.htm
+// http://www.microsoft.com/typography/otspec/vorg.htm
 
 #define TABLE_NAME "VORG"
 

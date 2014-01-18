@@ -9,7 +9,7 @@
 #include "maxp.h"
 
 // vhea - Vertical Header Table
-// http://www.microsoft.com/opentype/otspec/vhea.htm
+// http://www.microsoft.com/typography/otspec/vhea.htm
 
 #define TABLE_NAME "vhea"
 

@@ -5,7 +5,7 @@
 #include "cvt.h"
 
 // cvt - Control Value Table
-// http://www.microsoft.com/opentype/otspec/cvt.htm
+// http://www.microsoft.com/typography/otspec/cvt.htm
 
 #define TABLE_NAME "cvt"
 

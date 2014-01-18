@@ -9,7 +9,7 @@
 #include "vhea.h"
 
 // vmtx - Vertical Metrics Table
-// http://www.microsoft.com/opentype/otspec/vmtx.htm
+// http://www.microsoft.com/typography/otspec/vmtx.htm
 
 #define TABLE_NAME "vmtx"
 

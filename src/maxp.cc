@@ -5,7 +5,7 @@
 #include "maxp.h"
 
 // maxp - Maximum Profile
-// http://www.microsoft.com/opentype/otspec/maxp.htm
+// http://www.microsoft.com/typography/otspec/maxp.htm
 
 #define TABLE_NAME "maxp"
 
