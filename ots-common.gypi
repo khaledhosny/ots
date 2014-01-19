@@ -25,8 +25,6 @@
       'src/glyf.h',
       'src/gpos.cc',
       'src/gpos.h',
-      'src/graphite.cc',
-      'src/graphite.h',
       'src/gsub.cc',
       'src/gsub.h',
       'src/hdmx.cc',

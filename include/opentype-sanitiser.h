@@ -207,9 +207,6 @@ void DisableDebugOutput();
 // Enable WOFF2 support(experimental).
 void EnableWOFF2();
 
-// Enable Graphite Layout tables support
-void EnableGraphite();
-
 }  // namespace ots
 
 #endif  // OPENTYPE_SANITISER_H_

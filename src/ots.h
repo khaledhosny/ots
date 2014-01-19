@@ -231,12 +231,7 @@ bool IsValidVersionTag(uint32_t tag);
   F(vdmx, VDMX) \
   F(vorg, VORG) \
   F(vhea, VHEA) \
-  F(vmtx, VMTX) \
-  F(silf, SILF) \
-  F(sill, SILL) \
-  F(glat, GLAT) \
-  F(gloc, GLOC) \
-  F(feat, FEAT)
+  F(vmtx, VMTX)
 
 #define F(name, capname) struct OpenType##capname;
 FOR_EACH_TABLE_TYPE
@@ -257,10 +252,6 @@ struct OpenTypeFile {
 
   MessageFunc message_func;
   void        *user_data;
-
-  // This is used to tell the relevant parsers whether to preserve the
-  // Graphite layout tables (currently _without_ any checking)
-  bool preserve_graphite;
 
 #define F(name, capname) OpenType##capname *name;
 FOR_EACH_TABLE_TYPE
