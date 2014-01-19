@@ -11,3 +11,4 @@
 /third_party/brotli/brotli.target.mk
 /third_party/lzma_sdk/
 /validator_checker.target.mk
+*.swp
