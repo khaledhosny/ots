@@ -336,7 +336,8 @@ bool ParseClassDefFormat2(const uint8_t *data, size_t length,
 }
 
 bool ParseCoverageFormat1(const uint8_t *data, size_t length,
-                          const uint16_t num_glyphs) {
+                          const uint16_t num_glyphs,
+                          const uint16_t expected_num_glyphs) {
   ots::Buffer subtable(data, length);
 
   // Skip format field.
@@ -363,11 +364,17 @@ bool ParseCoverageFormat1(const uint8_t *data, size_t length,
     }
   }
 
+  if (expected_num_glyphs && expected_num_glyphs != glyph_count) {
+      OTS_WARNING("unexpected number of glyphs: %u", glyph_count);
+      return OTS_FAILURE();
+  }
+
   return true;
 }
 
 bool ParseCoverageFormat2(const uint8_t *data, size_t length,
-                          const uint16_t num_glyphs) {
+                          const uint16_t num_glyphs,
+                          const uint16_t expected_num_glyphs) {
   ots::Buffer subtable(data, length);
 
   // Skip format field.
@@ -409,6 +416,12 @@ bool ParseCoverageFormat2(const uint8_t *data, size_t length,
     }
     last_end = end;
     last_start_coverage_index += end - start + 1;
+  }
+
+  if (expected_num_glyphs &&
+      expected_num_glyphs != last_start_coverage_index) {
+      OTS_WARNING("unexpected number of glyphs: %u", last_start_coverage_index);
+      return OTS_FAILURE();
   }
 
   return true;
@@ -1335,7 +1348,8 @@ bool ParseClassDefTable(const uint8_t *data, size_t length,
 }
 
 bool ParseCoverageTable(const uint8_t *data, size_t length,
-                        const uint16_t num_glyphs) {
+                        const uint16_t num_glyphs,
+                        const uint16_t expected_num_glyphs) {
   Buffer subtable(data, length);
 
   uint16_t format = 0;
@@ -1343,9 +1357,9 @@ bool ParseCoverageTable(const uint8_t *data, size_t length,
     return OTS_FAILURE();
   }
   if (format == 1) {
-    return ParseCoverageFormat1(data, length, num_glyphs);
+    return ParseCoverageFormat1(data, length, num_glyphs, expected_num_glyphs);
   } else if (format == 2) {
-    return ParseCoverageFormat2(data, length, num_glyphs);
+    return ParseCoverageFormat2(data, length, num_glyphs, expected_num_glyphs);
   }
 
   return OTS_FAILURE();

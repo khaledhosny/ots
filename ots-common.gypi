@@ -45,6 +45,8 @@
       'src/ltsh.h',
       'src/maxp.cc',
       'src/maxp.h',
+      'src/math.cc',
+      'src/math_.h',
       'src/metrics.cc',
       'src/metrics.h',
       'src/name.cc',

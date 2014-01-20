@@ -141,6 +141,8 @@ const struct {
     ots::ots_vhea_should_serialise, ots::ots_vhea_free, false },
   { "vmtx", ots::ots_vmtx_parse, ots::ots_vmtx_serialise,
     ots::ots_vmtx_should_serialise, ots::ots_vmtx_free, false },
+  { "MATH", ots::ots_math_parse, ots::ots_math_serialise,
+    ots::ots_math_should_serialise, ots::ots_math_free, false },
   // TODO(bashi): Support mort, base, and jstf tables.
   { 0, NULL, NULL, NULL, NULL, false },
 };

@@ -199,6 +199,7 @@ bool IsValidVersionTag(uint32_t tag);
   F(kern, KERN) \
   F(loca, LOCA) \
   F(ltsh, LTSH) \
+  F(math, MATH) \
   F(maxp, MAXP) \
   F(name, NAME) \
   F(os2, OS2) \
