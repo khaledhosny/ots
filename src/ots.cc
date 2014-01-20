@@ -158,6 +158,8 @@ const struct {
     ots::ots_glat_should_serialise, ots::ots_glat_free, false },
   { "Feat", ots::ots_feat_parse, ots::ots_feat_serialise,
     ots::ots_feat_should_serialise, ots::ots_feat_free, false },
+  { "MATH", ots::ots_math_parse, ots::ots_math_serialise,
+    ots::ots_math_should_serialise, ots::ots_math_free, false },
   // TODO(bashi): Support mort, base, and jstf tables.
   { 0, NULL, NULL, NULL, NULL, false },
 };

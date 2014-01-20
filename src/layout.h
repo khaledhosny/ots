@@ -48,7 +48,8 @@ bool ParseClassDefTable(const ots::OpenTypeFile *file,
 
 bool ParseCoverageTable(const ots::OpenTypeFile *file,
                         const uint8_t *data, size_t length,
-                        const uint16_t num_glyphs);
+                        const uint16_t num_glyphs,
+                        const uint16_t expected_num_glyphs = 0);
 
 bool ParseDeviceTable(const ots::OpenTypeFile *file,
                       const uint8_t *data, size_t length);

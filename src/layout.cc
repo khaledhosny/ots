@@ -338,7 +338,8 @@ bool ParseClassDefFormat2(const ots::OpenTypeFile *file,
 
 bool ParseCoverageFormat1(const ots::OpenTypeFile *file,
                           const uint8_t *data, size_t length,
-                          const uint16_t num_glyphs) {
+                          const uint16_t num_glyphs,
+                          const uint16_t expected_num_glyphs) {
   ots::Buffer subtable(data, length);
 
   // Skip format field.
@@ -363,12 +364,17 @@ bool ParseCoverageFormat1(const ots::OpenTypeFile *file,
     }
   }
 
+  if (expected_num_glyphs && expected_num_glyphs != glyph_count) {
+      return OTS_FAILURE_MSG("unexpected number of glyphs: %u", glyph_count);
+  }
+
   return true;
 }
 
 bool ParseCoverageFormat2(const ots::OpenTypeFile *file,
                           const uint8_t *data, size_t length,
-                          const uint16_t num_glyphs) {
+                          const uint16_t num_glyphs,
+                          const uint16_t expected_num_glyphs) {
   ots::Buffer subtable(data, length);
 
   // Skip format field.
@@ -407,6 +413,11 @@ bool ParseCoverageFormat2(const ots::OpenTypeFile *file,
     }
     last_end = end;
     last_start_coverage_index += end - start + 1;
+  }
+
+  if (expected_num_glyphs &&
+      expected_num_glyphs != last_start_coverage_index) {
+      return OTS_FAILURE_MSG("unexpected number of glyphs: %u", last_start_coverage_index);
   }
 
   return true;
@@ -1352,7 +1363,8 @@ bool ParseClassDefTable(const ots::OpenTypeFile *file,
 
 bool ParseCoverageTable(const ots::OpenTypeFile *file,
                         const uint8_t *data, size_t length,
-                        const uint16_t num_glyphs) {
+                        const uint16_t num_glyphs,
+                        const uint16_t expected_num_glyphs) {
   Buffer subtable(data, length);
 
   uint16_t format = 0;
@@ -1360,9 +1372,9 @@ bool ParseCoverageTable(const ots::OpenTypeFile *file,
     return OTS_FAILURE_MSG("Failed to read coverage table format");
   }
   if (format == 1) {
-    return ParseCoverageFormat1(file, data, length, num_glyphs);
+    return ParseCoverageFormat1(file, data, length, num_glyphs, expected_num_glyphs);
   } else if (format == 2) {
-    return ParseCoverageFormat2(file, data, length, num_glyphs);
+    return ParseCoverageFormat2(file, data, length, num_glyphs, expected_num_glyphs);
   }
 
   return OTS_FAILURE_MSG("Bad coverage table format %d", format);
