@@ -200,6 +200,21 @@ typedef bool (*MessageFunc)(void *user_data, const char *format, ...)  MSGFUNC_F
 bool Process(OTSStream *output, const uint8_t *input, size_t length,
              MessageFunc message_func = NULL, void *user_data = NULL);
 
+enum TableAction {
+  TABLE_ACTION_DEFAULT,  // Use OTS's default action for that table
+  TABLE_ACTION_SANITIZE, // Sanitize the table, potentially droping it
+  TABLE_ACTION_PASSTHRU, // Serialize the table unchanged
+  TABLE_ACTION_DROP      // Drop the table
+};
+
+// Signature of the function to be provided by the client to decide what action
+// to do for a given table.
+typedef TableAction (*TableActionFunc)(uint32_t tag, void *user_data);
+
+// Set a callback function that will be called when OTS needs to decide what to
+// do for a font table.
+void SetTableActionCallback(TableActionFunc func, void *user_data);
+
 // Force to disable debug output even when the library is compiled with
 // -DOTS_DEBUG.
 void DisableDebugOutput();

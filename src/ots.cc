@@ -24,6 +24,9 @@ namespace {
 bool g_debug_output = true;
 bool g_enable_woff2 = false;
 
+ots::TableActionFunc  g_table_action_func = NULL;
+void                 *g_table_action_user_data = NULL;
+
 // Generate a message with or without a table tag, when 'header' is the OpenTypeFile pointer
 #define OTS_FAILURE_MSG_TAG(msg_,tag_) OTS_FAILURE_MSG_TAG_(header, msg_, tag_)
 #define OTS_FAILURE_MSG_HDR(msg_)      OTS_FAILURE_MSG_(header, msg_)
@@ -413,6 +416,54 @@ bool ProcessWOFF2(ots::OpenTypeFile *header,
   return ProcessTTF(header, output, &decompressed_buffer[0], decompressed_size);
 }
 
+ots::TableAction GetTableAction(uint32_t tag) {
+  ots::TableAction action = ots::TABLE_ACTION_DEFAULT;
+
+  if (g_table_action_func != NULL) {
+    action = g_table_action_func(tag, g_table_action_user_data);
+  }
+
+  if (action == ots::TABLE_ACTION_DEFAULT) {
+    action = ots::TABLE_ACTION_DROP;
+
+    for (unsigned i = 0; ; ++i) {
+      if (table_parsers[i].parse == NULL) break;
+
+      if (Tag(table_parsers[i].tag) == tag) {
+        action = ots::TABLE_ACTION_SANITIZE;
+        break;
+      }
+    }
+  }
+
+  assert(action != ots::TABLE_ACTION_DEFAULT); // Should never return this.
+  return action;
+}
+
+bool GetTableData(const uint8_t *data,
+                  const OpenTypeTable table,
+                  Arena *arena,
+                  size_t *table_length,
+                  const uint8_t **table_data) {
+  if (table.uncompressed_length != table.length) {
+    // Compressed table. Need to uncompress into memory first.
+    *table_length = table.uncompressed_length;
+    *table_data = (*arena).Allocate(*table_length);
+    uLongf dest_len = *table_length;
+    int r = uncompress((Bytef*) *table_data, &dest_len,
+                       data + table.offset, table.length);
+    if (r != Z_OK || dest_len != *table_length) {
+      return false;
+    }
+  } else {
+    // Uncompressed table. We can process directly from memory.
+    *table_data = data + table.offset;
+    *table_length = table.length;
+  }
+
+  return true;
+}
+
 bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
                     ots::OTSStream *output,
                     const uint8_t *data, size_t length,
@@ -531,23 +582,13 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
     const uint8_t* table_data;
     size_t table_length;
 
-    if (it->second.uncompressed_length != it->second.length) {
-      // compressed table. Need to uncompress into memory first.
-      table_length = it->second.uncompressed_length;
-      table_data = arena.Allocate(table_length);
-      uLongf dest_len = table_length;
-      int r = uncompress((Bytef*) table_data, &dest_len,
-                         data + it->second.offset, it->second.length);
-      if (r != Z_OK || dest_len != table_length) {
-        return OTS_FAILURE_MSG_TAG("uncompress failed", table_parsers[i].tag);
-      }
-    } else {
-      // uncompressed table. We can process directly from memory.
-      table_data = data + it->second.offset;
-      table_length = it->second.length;
+    if (!GetTableData(data, it->second, &arena, &table_length, &table_data)) {
+      return OTS_FAILURE_MSG_TAG("uncompress failed", table_parsers[i].tag);
     }
 
-    if (!table_parsers[i].parse(header, table_data, table_length)) {
+    ots::TableAction action = GetTableAction(it->first);
+    if (action == ots::TABLE_ACTION_SANITIZE &&
+        !table_parsers[i].parse(header, table_data, table_length)) {
       // TODO: parsers should generate specific messages detailing the failure;
       // once those are all added, we won't need a generic failure message here
       return OTS_FAILURE_MSG_TAG("failed to parse table", table_parsers[i].tag);
@@ -578,6 +619,14 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
     }
 
     if (table_parsers[i].should_serialise(header)) {
+      num_output_tables++;
+    }
+  }
+
+  for (std::map<uint32_t, OpenTypeTable>::const_iterator it = table_map.begin();
+       it != table_map.end(); ++it) {
+    ots::TableAction action = GetTableAction(it->first);
+    if (action == ots::TABLE_ACTION_PASSTHRU) {
       num_output_tables++;
     }
   }
@@ -646,6 +695,47 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
     out_tables.push_back(out);
   }
 
+  for (std::map<uint32_t, OpenTypeTable>::const_iterator it = table_map.begin();
+       it != table_map.end(); ++it) {
+    ots::TableAction action = GetTableAction(it->first);
+    if (action == ots::TABLE_ACTION_PASSTHRU) {
+      OutputTable out;
+      out.tag = it->second.tag;
+      out.offset = output->Tell();
+
+      output->ResetChecksum();
+      if (it->second.tag == Tag("head")) {
+        head_table_offset = out.offset;
+      }
+
+      const uint8_t* table_data;
+      size_t table_length;
+
+      if (!GetTableData(data, it->second, &arena, &table_length, &table_data)) {
+        return OTS_FAILURE_MSG_HDR("Failed to uncompress table");
+      }
+
+      if (!output->Write(table_data, table_length)) {
+        return OTS_FAILURE_MSG_HDR("Failed to serialize table");
+      }
+
+      const size_t end_offset = output->Tell();
+      if (end_offset <= out.offset) {
+        // paranoid check. |end_offset| is supposed to be greater than the offset,
+        // as long as the Tell() interface is implemented correctly.
+        return OTS_FAILURE_MSG_HDR("error writing output");
+      }
+      out.length = end_offset - out.offset;
+
+      // align tables to four bytes
+      if (!output->Pad((4 - (end_offset & 3)) % 4)) {
+        return OTS_FAILURE_MSG_HDR("error writing output");
+      }
+      out.chksum = output->chksum();
+      out_tables.push_back(out);
+    }
+  }
+
   const size_t end_of_file = output->Tell();
 
   // Need to sort the output tables for inclusion in the file
@@ -709,6 +799,11 @@ void DisableDebugOutput() {
 
 void EnableWOFF2() {
   g_enable_woff2 = true;
+}
+
+void SetTableActionCallback(TableActionFunc func, void *user_data) {
+  g_table_action_func = func;
+  g_table_action_user_data = user_data;
 }
 
 bool Process(OTSStream *output, const uint8_t *data, size_t length,
