@@ -208,8 +208,9 @@ bool ParseFormat4(ots::OpenTypeFile *file, int platform, int encoding,
   }
 
   // The last range must end at 0xffff
-  if (ranges[segcount - 1].end_range != 0xffff) {
-    return OTS_FAILURE_MSG("Final range must end at 0xFFFF (%d)", ranges[segcount-1].end_range);
+  if (ranges[segcount - 1].start_range != 0xffff || ranges[segcount - 1].end_range != 0xffff) {
+    return OTS_FAILURE_MSG("Final segment start and end must be 0xFFFF (0x%04X-0x%04X)",
+                           ranges[segcount - 1].start_range, ranges[segcount - 1].end_range);
   }
 
   // A format 4 CMAP subtable is complex. To be safe we simulate a lookup of
