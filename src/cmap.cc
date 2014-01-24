@@ -679,7 +679,11 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
         + (subtable_headers[i].encoding << 16)
         + subtable_headers[i].language;
     if ((i != 0) && (last_id >= current_id)) {
-      return OTS_FAILURE_MSG("Overlapping subtales ids (%d >= %d) in cmap subtable %d", last_id, current_id, i);
+      return OTS_FAILURE_MSG("subtable %d with platform ID %d, encoding ID %d, language ID %d "
+                             "following subtable with platform ID %d, encoding ID %d, language ID %d",
+                             i,
+                             (uint8_t)(current_id >> 24), (uint8_t)(current_id >> 16), (uint8_t)(current_id),
+                             (uint8_t)(last_id >> 24), (uint8_t)(last_id >> 16), (uint8_t)(last_id));
     }
     last_id = current_id;
   }
