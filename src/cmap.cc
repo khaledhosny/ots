@@ -25,6 +25,7 @@ struct CMAPSubtableHeader {
   uint32_t offset;
   uint16_t format;
   uint32_t length;
+  uint32_t language;
 };
 
 struct Subtable314Range {
@@ -613,7 +614,6 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   const size_t data_offset = table.offset();
 
   // make sure that all the offsets are valid.
-  uint32_t last_id = 0;
   for (unsigned i = 0; i < num_tables; ++i) {
     if (subtable_headers[i].offset > 1024 * 1024 * 1024) {
       return OTS_FAILURE_MSG("Bad subtable offset in cmap subtable %d", i);
@@ -622,14 +622,6 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
         subtable_headers[i].offset >= length) {
       return OTS_FAILURE_MSG("Bad subtable offset (%d) in cmap subtable %d", subtable_headers[i].offset, i);
     }
-
-    // check if the table is sorted first by platform ID, then by encoding ID.
-    uint32_t current_id
-        = (subtable_headers[i].platform << 16) + subtable_headers[i].encoding;
-    if ((i != 0) && (last_id >= current_id)) {
-      return OTS_FAILURE_MSG("Overlapping cubtales ids (%d >= %d) in cmap subtable %d", last_id, current_id, i);
-    }
-    last_id = current_id;
   }
 
   // the format of the table is the first couple of bytes in the table. The
@@ -641,13 +633,18 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     }
 
     uint16_t len = 0;
+    uint16_t lang = 0;
     switch (subtable_headers[i].format) {
       case 0:
       case 4:
         if (!table.ReadU16(&len)) {
           return OTS_FAILURE_MSG("Can't read cmap subtable %d length", i);
         }
+        if (!table.ReadU16(&lang)) {
+          return OTS_FAILURE_MSG("Can't read cmap subtable %d language", i);
+        }
         subtable_headers[i].length = len;
+        subtable_headers[i].language = lang;
         break;
       case 12:
       case 13:
@@ -657,16 +654,34 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
         if (!table.ReadU32(&subtable_headers[i].length)) {
           return OTS_FAILURE_MSG("Can read cmap subtable %d length", i);
         }
+        if (!table.ReadU32(&subtable_headers[i].language)) {
+          return OTS_FAILURE_MSG("Can't read cmap subtable %d language", i);
+        }
         break;
       case 14:
         if (!table.ReadU32(&subtable_headers[i].length)) {
           return OTS_FAILURE_MSG("Can't read cmap subtable %d length", i);
         }
+        subtable_headers[i].language = 0;
         break;
       default:
         subtable_headers[i].length = 0;
+        subtable_headers[i].language = 0;
         break;
     }
+  }
+
+  // check if the table is sorted first by platform ID, then by encoding ID.
+  uint32_t last_id = 0;
+  for (unsigned i = 0; i < num_tables; ++i) {
+    uint32_t current_id
+        = (subtable_headers[i].platform << 24)
+        + (subtable_headers[i].encoding << 16)
+        + subtable_headers[i].language;
+    if ((i != 0) && (last_id >= current_id)) {
+      return OTS_FAILURE_MSG("Overlapping subtales ids (%d >= %d) in cmap subtable %d", last_id, current_id, i);
+    }
+    last_id = current_id;
   }
 
   // Now, verify that all the lengths are sane
@@ -769,7 +784,7 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
         // parse and output the 0-3-12 table as 3-10-12 table.
         if (!Parse31012(file, data + subtable_headers[i].offset,
                         subtable_headers[i].length, num_glyphs)) {
-          return OTS_FAILURE_MSG("Failed to parser format 12 cmap subtable %d", i);
+          return OTS_FAILURE_MSG("Failed to parse format 12 cmap subtable %d", i);
         }
       } else if ((subtable_headers[i].encoding == 5) &&
                  (subtable_headers[i].format == 14)) {
