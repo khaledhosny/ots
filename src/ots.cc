@@ -572,8 +572,9 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
     const std::map<uint32_t, OpenTypeTable>::const_iterator it
         = table_map.find(Tag(table_parsers[i].tag));
 
+    ots::TableAction action = GetTableAction(it->first);
     if (it == table_map.end()) {
-      if (table_parsers[i].required) {
+      if (table_parsers[i].required && action == ots::TABLE_ACTION_SANITIZE) {
         return OTS_FAILURE_MSG_TAG("missing required table", table_parsers[i].tag);
       }
       continue;
@@ -586,7 +587,6 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
       return OTS_FAILURE_MSG_TAG("uncompress failed", table_parsers[i].tag);
     }
 
-    ots::TableAction action = GetTableAction(it->first);
     if (action == ots::TABLE_ACTION_SANITIZE &&
         !table_parsers[i].parse(header, table_data, table_length)) {
       // TODO: parsers should generate specific messages detailing the failure;
