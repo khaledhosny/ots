@@ -272,22 +272,22 @@ bool Parse31012(ots::OpenTypeFile *file,
   // later.
 
   if (!subtable.Skip(8)) {
-    return OTS_FAILURE_MSG("Failed to skip 8 bytes");
+    return OTS_FAILURE_MSG("failed to skip the first 8 bytes of format 12 subtable");
   }
   uint32_t language = 0;
   if (!subtable.ReadU32(&language)) {
-    return OTS_FAILURE_MSG("Can't read cmap subtable language");
+    return OTS_FAILURE_MSG("can't read format 12 subtable language");
   }
   if (language) {
-    return OTS_FAILURE_MSG("Unexpected non zero language encountered (%d)", language);
+    return OTS_FAILURE_MSG("format 12 subtable language should be zero (%d)", language);
   }
 
   uint32_t num_groups = 0;
   if (!subtable.ReadU32(&num_groups)) {
-    return OTS_FAILURE_MSG("Can't read number of groups");
+    return OTS_FAILURE_MSG("can't read number of format 12 subtable groups");
   }
   if (num_groups == 0 || num_groups > kMaxCMAPGroups) {
-    return OTS_FAILURE_MSG("Bad group count %d", num_groups);
+    return OTS_FAILURE_MSG("bad format 12 subtable group count %d", num_groups);
   }
 
   std::vector<ots::OpenTypeCMAPSubtableRange> &groups
@@ -298,48 +298,52 @@ bool Parse31012(ots::OpenTypeFile *file,
     if (!subtable.ReadU32(&groups[i].start_range) ||
         !subtable.ReadU32(&groups[i].end_range) ||
         !subtable.ReadU32(&groups[i].start_glyph_id)) {
-      return OTS_FAILURE_MSG("Can't read group");
+      return OTS_FAILURE_MSG("can't read format 12 subtable group");
     }
 
     if (groups[i].start_range > kUnicodeUpperLimit ||
         groups[i].end_range > kUnicodeUpperLimit ||
         groups[i].start_glyph_id > 0xFFFF) {
-      return OTS_FAILURE_MSG("Bad group (start=%d, end=%d, starting glyph=%d)",
-            groups[i]. start_range, groups[i].end_range, groups[i]. start_glyph_id);
+      return OTS_FAILURE_MSG("bad format 12 subtable group (startCharCode=0x%4X, endCharCode=0x%4X, startGlyphID=%d)",
+                             groups[i].start_range, groups[i].end_range, groups[i].start_glyph_id);
     }
 
     // [0xD800, 0xDFFF] are surrogate code points.
     if (groups[i].start_range >= 0xD800 &&
         groups[i].start_range <= 0xDFFF) {
-      return OTS_FAILURE_MSG("Group start out of range (%d)", groups[i].start_range);
+      return OTS_FAILURE_MSG("format 12 subtable out of range group startCharCode (0x%4X)", groups[i].start_range);
     }
     if (groups[i].end_range >= 0xD800 &&
         groups[i].end_range <= 0xDFFF) {
-      return OTS_FAILURE_MSG("Group end out of range (%d)", groups[i].end_range);
+      return OTS_FAILURE_MSG("format 12 subtable out of range group endCharCode (0x%4X)", groups[i].end_range);
     }
     if (groups[i].start_range < 0xD800 &&
         groups[i].end_range > 0xDFFF) {
-      return OTS_FAILURE_MSG("Bad group start or end (start=%d, end=%d)", groups[i].start_range, groups[i].end_range);
+      return OTS_FAILURE_MSG("bad format 12 subtable group startCharCode (0x%4X) or endCharCode (0x%4X)",
+                             groups[i].start_range, groups[i].end_range);
     }
 
     // We assert that the glyph value is within range. Because of the range
     // limits, above, we don't need to worry about overflow.
     if (groups[i].end_range < groups[i].start_range) {
-      return OTS_FAILURE_MSG("end before start of group (%d < %d)", groups[i].end_range, groups[i].start_range);
+      return OTS_FAILURE_MSG("format 12 subtable group endCharCode before startCharCode (0x%4X < 0x%4X)",
+                             groups[i].end_range, groups[i].start_range);
     }
     if ((groups[i].end_range - groups[i].start_range) +
         groups[i].start_glyph_id > num_glyphs) {
-      return OTS_FAILURE_MSG("Bad glyph offset in group (%d)", groups[i].start_glyph_id);
+      return OTS_FAILURE_MSG("bad format 12 subtable group startGlyphID (%d)", groups[i].start_glyph_id);
     }
   }
 
   // the groups must be sorted by start code and may not overlap
   for (unsigned i = 1; i < num_groups; ++i) {
     if (groups[i].start_range <= groups[i - 1].start_range) {
-      return OTS_FAILURE_MSG("Out of order group start (%d <= %d)", groups[i].start_range, groups[i-1].start_range);
+      return OTS_FAILURE_MSG("out of order format 12 subtable group (startCharCode=0x%4X <= startCharCode=0x%4X of previous group)",
+                             groups[i].start_range, groups[i-1].start_range);
     }
     if (groups[i].start_range <= groups[i - 1].end_range) {
-      return OTS_FAILURE_MSG("Out of order group end (%d <= %d)", groups[i].start_range, groups[i-1].end_range);
+      return OTS_FAILURE_MSG("overlapping format 12 subtable groups (startCharCode=0x%4X <= endCharCode=0x%4X of previous group)",
+                             groups[i].start_range, groups[i-1].end_range);
     }
   }
 
