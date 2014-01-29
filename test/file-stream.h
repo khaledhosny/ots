@@ -17,10 +17,12 @@ class FILEStream : public OTSStream {
   }
 
   ~FILEStream() {
+    if (file_)
+      fclose(file_);
   }
 
   bool WriteRaw(const void *data, size_t length) {
-    if (::fwrite(data, length, 1, file_) == 1) {
+    if (!file_ || ::fwrite(data, length, 1, file_) == 1) {
       position_ += length;
       return true;
     }
@@ -29,12 +31,12 @@ class FILEStream : public OTSStream {
 
   bool Seek(off_t position) {
 #if defined(_WIN32)
-    if (!::_fseeki64(file_, position, SEEK_SET)) {
+    if (!file_ || !::_fseeki64(file_, position, SEEK_SET)) {
       position_ = position;
       return true;
     }
 #else
-    if (!::fseeko(file_, position, SEEK_SET)) {
+    if (!file_ || !::fseeko(file_, position, SEEK_SET)) {
       position_ = position;
       return true;
     }

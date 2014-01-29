@@ -29,7 +29,7 @@
 namespace {
 
 int Usage(const char *argv0) {
-  std::fprintf(stderr, "Usage: %s ttf_file > dest_ttf_file\n", argv0);
+  std::fprintf(stderr, "Usage: %s ttf_file [dest_ttf_file]\n", argv0);
   return 1;
 }
 
@@ -64,8 +64,7 @@ ots::TableAction TableActionCallback(uint32_t tag, void *user_data) {
 }  // namespace
 
 int main(int argc, char **argv) {
-  if (argc != 2) return Usage(argv[0]);
-  if (::isatty(1)) return Usage(argv[0]);
+  if (argc < 2 || argc > 3) return Usage(argv[0]);
 
   ots::EnableWOFF2();
 
@@ -87,10 +86,11 @@ int main(int argc, char **argv) {
 
   ots::SetTableActionCallback(&TableActionCallback, NULL);
 
-  ots::FILEStream output(stdout);
-#if defined(_WIN32)
-  ::setmode(fileno(stdout), O_BINARY);
-#endif
+  FILE* out = NULL;
+  if (argc == 3)
+    out = fopen(argv[2], "wb");
+
+  ots::FILEStream output(out);
   const bool result = ots::Process(&output, data, st.st_size, &Message);
 
   if (!result) {
