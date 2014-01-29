@@ -88,6 +88,8 @@ const char *Type2CharStringOperatorToString(ots::Type2CharStringOperator op) {
     return "VHCurveTo";
   case ots::kHVCurveTo:
     return "HVCurveTo";
+  case ots::kDotSection:
+    return "DotSection";
   case ots::kAnd:
     return "And";
   case ots::kOr:
@@ -525,6 +527,13 @@ bool ExecuteType2CharStringOperator(int32_t op,
       argument_stack->pop();
     return successful ? true : OTS_FAILURE();
   }
+
+  case ots::kDotSection:
+    // Deprecated operator but harmless, we probably should drop it some how.
+    if (stack_size != 0) {
+      return OTS_FAILURE();
+    }
+    return true;
 
   case ots::kAnd:
   case ots::kOr:
