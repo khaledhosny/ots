@@ -24,7 +24,7 @@ typedef unsigned __int64 uint64_t;
 #include <stdint.h>
 #endif
 
-#include <algorithm>  // for std::min
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstring>

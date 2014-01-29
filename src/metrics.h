@@ -5,7 +5,7 @@
 #ifndef OTS_METRICS_H_
 #define OTS_METRICS_H_
 
-#include <utility>  // std::pair
+#include <utility>
 #include <vector>
 
 #include "ots.h"

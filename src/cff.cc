@@ -5,7 +5,7 @@
 #include "cff.h"
 
 #include <cstring>
-#include <utility>  // std::pair
+#include <utility>
 #include <vector>
 
 #include "cff_type2_charstring.h"
