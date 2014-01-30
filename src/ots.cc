@@ -423,7 +423,7 @@ ots::TableAction GetTableAction(uint32_t tag) {
   ots::TableAction action = ots::TABLE_ACTION_DEFAULT;
 
   if (g_table_action_func != NULL) {
-    action = g_table_action_func(tag, g_table_action_user_data);
+    action = g_table_action_func(htonl(tag), g_table_action_user_data);
   }
 
   if (action == ots::TABLE_ACTION_DEFAULT) {
