@@ -5,6 +5,7 @@
 #ifndef OTS_GASP_H_
 #define OTS_GASP_H_
 
+#include <new>
 #include <utility>
 #include <vector>
 
