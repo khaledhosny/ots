@@ -24,6 +24,9 @@ namespace {
 bool g_debug_output = true;
 bool g_enable_woff2 = false;
 
+ots::MessageFunc  g_message_func = NULL;
+void             *g_message_user_data = NULL;
+
 ots::TableActionFunc  g_table_action_func = NULL;
 void                 *g_table_action_user_data = NULL;
 
@@ -801,17 +804,21 @@ void EnableWOFF2() {
   g_enable_woff2 = true;
 }
 
+void SetMessageCallback(MessageFunc func, void *user_data) {
+  g_message_func = func;
+  g_message_user_data = user_data;
+}
+
 void SetTableActionCallback(TableActionFunc func, void *user_data) {
   g_table_action_func = func;
   g_table_action_user_data = user_data;
 }
 
-bool Process(OTSStream *output, const uint8_t *data, size_t length,
-             MessageFunc message_func, void *user_data) {
+bool Process(OTSStream *output, const uint8_t *data, size_t length) {
   OpenTypeFile header;
 
-  header.message_func = message_func;
-  header.user_data = user_data;
+  header.message_func = g_message_func;
+  header.user_data = g_message_user_data;
 
   if (length < 4) {
     return OTS_FAILURE_MSG_(&header, "file less than 4 bytes");

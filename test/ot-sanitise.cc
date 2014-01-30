@@ -84,6 +84,7 @@ int main(int argc, char **argv) {
   }
   ::close(fd);
 
+  ots::SetMessageCallback(&Message, NULL);
   ots::SetTableActionCallback(&TableActionCallback, NULL);
 
   FILE* out = NULL;
@@ -91,7 +92,7 @@ int main(int argc, char **argv) {
     out = fopen(argv[2], "wb");
 
   ots::FILEStream output(out);
-  const bool result = ots::Process(&output, data, st.st_size, &Message);
+  const bool result = ots::Process(&output, data, st.st_size);
 
   if (!result) {
     std::fprintf(stderr, "Failed to sanitise file!\n");

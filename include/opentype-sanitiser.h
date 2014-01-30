@@ -177,6 +177,16 @@ class OTSStream {
   unsigned chksum_buffer_offset_;
 };
 
+// -----------------------------------------------------------------------------
+// Process a given OpenType file and write out a sanitised version
+//   output: a pointer to an object implementing the OTSStream interface. The
+//     sanitisied output will be written to this. In the even of a failure,
+//     partial output may have been written.
+//   input: the OpenType file
+//   length: the size, in bytes, of |input|
+// -----------------------------------------------------------------------------
+bool Process(OTSStream *output, const uint8_t *input, size_t length);
+
 // Signature of the function to be provided by the client in order to report errors.
 // The return type is a boolean so that it can be used within an expression,
 // but the actual value is ignored. (Suggested convention is to always return 'false'.)
@@ -187,18 +197,8 @@ class OTSStream {
 #endif
 typedef bool (*MessageFunc)(void *user_data, const char *format, ...)  MSGFUNC_FMT_ATTR;
 
-// -----------------------------------------------------------------------------
-// Process a given OpenType file and write out a sanitised version
-//   output: a pointer to an object implementing the OTSStream interface. The
-//     sanitisied output will be written to this. In the even of a failure,
-//     partial output may have been written.
-//   input: the OpenType file
-//   length: the size, in bytes, of |input|
-//   message_func: if non-NULL, pointer to an error-message callback
-//   user_data: pointer passed as user_data to the error-message callback
-// -----------------------------------------------------------------------------
-bool Process(OTSStream *output, const uint8_t *input, size_t length,
-             MessageFunc message_func = NULL, void *user_data = NULL);
+// Set a callback function that will be called when OTS is reporting an error.
+void SetMessageCallback(MessageFunc func, void *user_data);
 
 enum TableAction {
   TABLE_ACTION_DEFAULT,  // Use OTS's default action for that table
