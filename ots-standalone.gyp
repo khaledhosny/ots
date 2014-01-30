@@ -8,6 +8,7 @@
       '-ggdb',
       '-W',
       '-Wall',
+      '-Wshadow',
       '-Werror',
       '-Wno-unused-parameter',
       '-fPIE',
