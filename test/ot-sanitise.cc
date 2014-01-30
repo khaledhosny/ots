@@ -44,21 +44,19 @@ bool Message(void *aUserData, const char *format, ...) {
   return false;
 }
 
-uint32_t Tag(const char *tag_str) {
-  uint32_t ret;
-  std::memcpy(&ret, tag_str, 4);
-  return ret;
-}
+#define TAG(a, b, c, d) ((a) << 24 | (b) << 16 | (c) << 8 | (d))
 
 ots::TableAction TableActionCallback(uint32_t tag, void *user_data) {
-  if (tag == Tag("Silf") ||
-      tag == Tag("Sill") ||
-      tag == Tag("Gloc") ||
-      tag == Tag("Glat") ||
-      tag == Tag("Feat")) {
-    return ots::TABLE_ACTION_PASSTHRU;
+  switch (tag) {
+    case TAG('S','i','l','f'):
+    case TAG('S','i','l','l'):
+    case TAG('G','l','o','c'):
+    case TAG('G','l','a','t'):
+    case TAG('F','e','a','t'):
+      return ots::TABLE_ACTION_PASSTHRU;
+    default:
+      return ots::TABLE_ACTION_DEFAULT;
   }
-  return ots::TABLE_ACTION_DEFAULT;
 }
 
 }  // namespace
