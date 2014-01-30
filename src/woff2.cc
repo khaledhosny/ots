@@ -604,14 +604,14 @@ bool ReconstructGlyf(const uint8_t* data, size_t data_size,
       }
       Store16(glyf_dst, 0, n_contours);
       ComputeBbox(points, glyf_dst);
-      size_t offset = kEndPtsOfContoursOffset;
+      size_t endpts_offset = kEndPtsOfContoursOffset;
       int end_point = -1;
       for (unsigned int contour_ix = 0; contour_ix < n_contours; ++contour_ix) {
         end_point += n_points_vec.at(contour_ix);
         if (end_point >= 65536) {
           return OTS_FAILURE();
         }
-        offset = Store16(glyf_dst, offset, end_point);
+        endpts_offset = Store16(glyf_dst, endpts_offset, end_point);
       }
       if (!flag_stream.Skip(flag_size)) {
         return OTS_FAILURE();
