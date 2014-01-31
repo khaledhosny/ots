@@ -211,6 +211,8 @@ enum TableAction {
 
 // Signature of the function to be provided by the client to decide what action
 // to do for a given table.
+//   tag: table tag as an integer in big-endian byte order, independent of platform endianness
+//   user_data: user defined data that are passed to SetTableActionCallback()
 typedef TableAction (*TableActionFunc)(uint32_t tag, void *user_data);
 
 // Set a callback function that will be called when OTS needs to decide what to
