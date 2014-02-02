@@ -72,7 +72,8 @@
           },
         },
         'include_dirs': [
-          'third_party/zlib'
+          'third_party/zlib',
+          '.'
         ],
         'defines': [
           'NOMINMAX', # To suppress max/min macro definition.
