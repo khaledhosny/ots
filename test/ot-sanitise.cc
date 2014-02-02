@@ -82,15 +82,16 @@ int main(int argc, char **argv) {
   }
   ::close(fd);
 
-  ots::SetMessageCallback(&Message, NULL);
-  ots::SetTableActionCallback(&TableActionCallback, NULL);
+  ots::OTSContext context;
+  context.SetMessageCallback(&Message, NULL);
+  context.SetTableActionCallback(&TableActionCallback, NULL);
 
   FILE* out = NULL;
   if (argc == 3)
     out = fopen(argv[2], "wb");
 
   ots::FILEStream output(out);
-  const bool result = ots::Process(&output, data, st.st_size);
+  const bool result = ots::Process(&output, data, st.st_size, &context);
 
   if (!result) {
     std::fprintf(stderr, "Failed to sanitise file!\n");
