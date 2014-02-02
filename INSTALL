@@ -1,9 +1,3 @@
-How to build (using scons, on Linux):
-
- $ cd ots/test/
- $ sudo apt-get install scons g++ libfreetype6-dev
- $ scons
-
 How to build (using gyp):
 
   (Note: test programs which require gtest can't build with gyp for now)

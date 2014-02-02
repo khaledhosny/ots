@@ -15,10 +15,7 @@ privilege.
 Thus, the OpenType Sanitiser (OTS) is designed to parse and serialise OpenType
 files, validating them and sanitising them as it goes.
 
-Building:
 
-The included ots.gyp file is for building within the Chromium only. In the
-test/ directory you'll find a SConstruct file which can be used with scons to
-build a standalone version.
+See INSTALL for build instructions.
 
 [1] http://www.w3.org/TR/CSS2/fonts.html#font-descriptions
