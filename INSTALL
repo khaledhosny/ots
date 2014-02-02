@@ -2,12 +2,13 @@ How to build (using gyp):
 
   (Note: test programs which require gtest can't build with gyp for now)
 
-  1. If you are building OTS on Windows, download zlib from
-     http://www.zlib.net/ and put them in third_party/zlib.
+  1. If you are building OTS on Windows, download both the source
+     code and compiled driver for zlib from http://www.zlib.net/
+     and put them in third_party/zlib.
 
   2. Run gyp_ots
 
-    $ ./gyp_ots
+    $ python gyp_ots
 
     This will fetch gyp and generate build files. By default, following
     files will be generated:
@@ -17,12 +18,12 @@ How to build (using gyp):
 
     If you want to generate Makefile on Mac, you can use -f option:
 
-    $ ./gyp_ots -f make
+    $ python gyp_ots -f make
 
   3. Build OTS
 
     Using MSVS:
-      Open ots-standalone.sln and build targets.
+      Open ots-standalone.sln and build the solution.
 
     Using Xcode:
       $ xcodebuild -target ots-standalone.xcodeproj -target all
