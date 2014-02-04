@@ -360,8 +360,8 @@ bool Parse31013(ots::OpenTypeFile *file,
   if (!subtable.Skip(8)) {
     return OTS_FAILURE_MSG("Bad cmap subtable length");
   }
-  uint16_t language = 0;
-  if (!subtable.ReadU16(&language)) {
+  uint32_t language = 0;
+  if (!subtable.ReadU32(&language)) {
     return OTS_FAILURE_MSG("Can't read cmap subtable language");
   }
   if (language) {
@@ -1005,7 +1005,7 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
         = file->cmap->subtable_3_10_13;
     const unsigned num_groups = groups.size();
     if (!out->WriteU16(13) ||
-        !out->WriteU16(0) ||
+        !out->WriteU32(0) ||
         !out->WriteU32(num_groups * 12 + 14) ||
         !out->WriteU32(0) ||
         !out->WriteU32(num_groups)) {
