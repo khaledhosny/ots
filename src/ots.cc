@@ -802,14 +802,15 @@ void EnableWOFF2() {
   g_enable_woff2 = true;
 }
 
-bool Process(OTSStream *output, const uint8_t *data, size_t length,
-             OTSContext *context) {
+bool OTSContext::Process(OTSStream *output,
+                         const uint8_t *data,
+                         size_t length) {
   OpenTypeFile header;
 
-  if (context != NULL) {
-    header.message_user_data = context->GetMessageCallback(&header.message_func);
-    header.table_action_user_data = context->GetTableActionCallback(&header.table_action_func);
-  }
+  header.message_func = message_func;
+  header.message_user_data = message_user_data;
+  header.table_action_func = table_action_func;
+  header.table_action_user_data = table_action_user_data;
 
   if (length < 4) {
     return OTS_FAILURE_MSG_(&header, "file less than 4 bytes");

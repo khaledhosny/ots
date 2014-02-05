@@ -62,7 +62,8 @@ int main(int argc, char **argv) {
   ::gettimeofday(&start, 0);
   for (int i = 0; i < num_repeat; ++i) {
     ots::MemoryStream output(result, st.st_size + kPadLen);
-    bool r = ots::Process(&output, data, st.st_size);
+    ots::OTSContext context;
+    bool r = context.Process(&output, data, st.st_size);
     if (!r) {
       std::fprintf(stderr, "Failed to sanitise file!\n");
       return 1;

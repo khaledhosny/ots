@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
     out = fopen(argv[2], "wb");
 
   ots::FILEStream output(out);
-  const bool result = ots::Process(&output, data, st.st_size, &context);
+  const bool result = context.Process(&output, data, st.st_size);
 
   if (!result) {
     std::fprintf(stderr, "Failed to sanitise file!\n");

@@ -172,7 +172,9 @@ int main(int argc, char **argv) {
   uint8_t *result = new uint8_t[file_size * 8];
   ots::MemoryStream output(result, file_size * 8);
 
-  bool r = ots::Process(&output, data, file_size);
+  ots::OTSContext context;
+
+  bool r = context.Process(&output, data, file_size);
   if (!r) {
     std::fprintf(stderr, "Failed to sanitise file!\n");
     return 1;
@@ -182,7 +184,7 @@ int main(int argc, char **argv) {
 
   uint8_t *result2 = new uint8_t[result_len];
   ots::MemoryStream output2(result2, result_len);
-  r = ots::Process(&output2, result, result_len);
+  r = context.Process(&output2, result, result_len);
   if (!r) {
     std::fprintf(stderr, "Failed to sanitise previous output!\n");
     return 1;

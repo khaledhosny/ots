@@ -202,9 +202,6 @@ enum TableAction {
 //   user_data: user defined data that are passed to SetTableActionCallback()
 typedef TableAction (*TableActionFunc)(uint32_t tag, void *user_data);
 
-// -----------------------------------------------------------------------------
-// Context that holds various OTS settings, to be passed to ots::Process().
-// -----------------------------------------------------------------------------
 class OTSContext {
   public:
     OTSContext()
@@ -216,15 +213,19 @@ class OTSContext {
 
     ~OTSContext() {}
 
+    // Process a given OpenType file and write out a sanitised version
+    //   output: a pointer to an object implementing the OTSStream interface. The
+    //     sanitisied output will be written to this. In the even of a failure,
+    //     partial output may have been written.
+    //   input: the OpenType file
+    //   length: the size, in bytes, of |input|
+    //   context: optional context that holds various OTS settings like user callbacks
+    bool Process(OTSStream *output, const uint8_t *input, size_t length);
+
     // Set a callback function that will be called when OTS is reporting an error.
     void SetMessageCallback(MessageFunc func, void *user_data) {
       message_func = func;
       message_user_data = user_data;
-    }
-
-    void* GetMessageCallback(MessageFunc *func) {
-      *func = message_func;
-      return message_user_data;
     }
 
     // Set a callback function that will be called when OTS needs to decide what to
@@ -234,29 +235,12 @@ class OTSContext {
       table_action_user_data = user_data;
     }
 
-    void* GetTableActionCallback(TableActionFunc *func) {
-      *func = table_action_func;
-      return table_action_user_data;
-    }
-
   private:
     MessageFunc      message_func;
     void            *message_user_data;
     TableActionFunc  table_action_func;
     void            *table_action_user_data;
 };
-
-// -----------------------------------------------------------------------------
-// Process a given OpenType file and write out a sanitised version
-//   output: a pointer to an object implementing the OTSStream interface. The
-//     sanitisied output will be written to this. In the even of a failure,
-//     partial output may have been written.
-//   input: the OpenType file
-//   length: the size, in bytes, of |input|
-//   context: optional context that holds various OTS settings like user callbacks
-// -----------------------------------------------------------------------------
-bool Process(OTSStream *output, const uint8_t *input, size_t length,
-             OTSContext *context = NULL);
 
 // Force to disable debug output even when the library is compiled with
 // -DOTS_DEBUG.

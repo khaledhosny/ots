@@ -161,8 +161,9 @@ int main(int argc, char **argv) {
   static const size_t kBigPadLen = 1024 * 1024;  // 1MB
   uint8_t *trans_font = new uint8_t[orig_len + kBigPadLen];
   ots::MemoryStream output(trans_font, orig_len + kBigPadLen);
+  ots::OTSContext context;
 
-  bool result = ots::Process(&output, orig_font, orig_len);
+  bool result = context.Process(&output, orig_font, orig_len);
   if (!result) {
     std::fprintf(stderr, "OK: the malicious font was filtered: %s\n", argv[1]);
     return 0;
