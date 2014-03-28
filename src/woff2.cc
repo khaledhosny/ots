@@ -769,7 +769,6 @@ bool Woff2Uncompress(uint8_t* dst_buf, size_t dst_size,
 
 bool ReadShortDirectory(ots::Buffer* file, std::vector<Table>* tables,
     size_t num_tables) {
-  uint32_t last_compression_type = 0;
   for (size_t i = 0; i < num_tables; ++i) {
     Table* table = &tables->at(i);
     uint8_t flag_byte;
@@ -787,19 +786,15 @@ bool ReadShortDirectory(ots::Buffer* file, std::vector<Table>* tables,
       }
       tag = kKnownTags[flag_byte & 0x1f];
     }
-    uint32_t flags = flag_byte >> 6;
-    if (flags == kShortFlagsContinue) {
-      flags = last_compression_type | kWoff2FlagsContinueStream;
-    } else {
-      if (flags == kCompressionTypeNone ||
-          flags == kCompressionTypeGzip ||
-          flags == kCompressionTypeBrotli) {
-        last_compression_type = flags;
-      } else {
-        return OTS_FAILURE();
-      }
+    // Bits 5 and 6 are reserved and must be 0.
+    if ((flag_byte & 0x60) != 0) {
+      return OTS_FAILURE();
     }
-    if ((flag_byte & 0x20) != 0) {
+    uint32_t flags = kCompressionTypeBrotli;
+    if (i > 0) {
+      flags |= kWoff2FlagsContinueStream;
+    }
+    if ((flag_byte & 0x80) != 0) {
       flags |= kWoff2FlagsTransform;
     }
     uint32_t dst_length;
@@ -812,26 +807,13 @@ bool ReadShortDirectory(ots::Buffer* file, std::vector<Table>* tables,
         return OTS_FAILURE();
       }
     }
-    uint32_t src_length = transform_length;
-    if ((flag_byte >> 6) == 1 || (flag_byte >> 6) == 2) {
-      if (!ReadBase128(file, &src_length)) {
-        return OTS_FAILURE();
-      }
-    } else if (static_cast<uint32_t>(flag_byte >> 6) == kShortFlagsContinue) {
-      // The compressed data for this table is in a previuos table, so we set
-      // the src_length to zero.
-      src_length = 0;
-    }
     // Disallow huge numbers (> 1GB) for sanity.
-    if (src_length > 1024 * 1024 * 1024 ||
-        transform_length > 1024 * 1024 * 1024 ||
+    if (transform_length > 1024 * 1024 * 1024 ||
         dst_length > 1024 * 1024 * 1024) {
       return OTS_FAILURE();
     }
-
     table->tag = tag;
     table->flags = flags;
-    table->src_length = src_length;
     table->transform_length = transform_length;
     table->dst_length = dst_length;
   }
@@ -880,10 +862,18 @@ bool ConvertWOFF2ToTTF(uint8_t* result, size_t result_length,
   // We don't care about these fields of the header:
   //   uint16_t reserved
   //   uint32_t total_sfnt_size
+  if (!file.Skip(6)) {
+    return OTS_FAILURE();
+  }
+  uint32_t compressed_length;
+  if (!file.ReadU32(&compressed_length)) {
+    return OTS_FAILURE();
+  }
+  // We don't care about these fields of the header:
   //   uint16_t major_version, minor_version
   //   uint32_t meta_offset, meta_length, meta_orig_length
   //   uint32_t priv_offset, priv_length
-  if (!file.Skip(30)) {
+  if (!file.Skip(24)) {
     return OTS_FAILURE();
   }
   std::vector<Table> tables(num_tables);
@@ -897,6 +887,7 @@ bool ConvertWOFF2ToTTF(uint8_t* result, size_t result_length,
   for (uint16_t i = 0; i < num_tables; ++i) {
     Table* table = &tables.at(i);
     table->src_offset = src_offset;
+    table->src_length = (i == 0 ? compressed_length : 0);
     src_offset += table->src_length;
     if (src_offset > std::numeric_limits<uint32_t>::max()) {
       return OTS_FAILURE();
@@ -983,7 +974,7 @@ bool ConvertWOFF2ToTTF(uint8_t* result, size_t result_length,
       }
       uncompressed_buf.resize(total_size);
       if (!Woff2Uncompress(&uncompressed_buf[0], total_size,
-          src_buf, table->src_length, compression_type)) {
+          src_buf, compressed_length, compression_type)) {
         return OTS_FAILURE();
       }
       transform_buf = &uncompressed_buf[0];
