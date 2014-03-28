@@ -55,10 +55,6 @@ const uint32_t kCompressionTypeNone = 0;
 const uint32_t kCompressionTypeGzip = 1;
 const uint32_t kCompressionTypeBrotli = 2;
 
-// This is a special value for the short format only, as described in
-// "Design for compressed header format" in draft doc.
-const uint32_t kShortFlagsContinue = 3;
-
 const uint32_t kKnownTags[] = {
   TAG('c', 'm', 'a', 'p'),  // 0
   TAG('h', 'e', 'a', 'd'),  // 1
