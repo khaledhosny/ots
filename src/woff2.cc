@@ -85,6 +85,40 @@ const uint32_t kKnownTags[] = {
   TAG('G', 'D', 'E', 'F'),  // 26
   TAG('G', 'P', 'O', 'S'),  // 27
   TAG('G', 'S', 'U', 'B'),  // 28
+  TAG('E', 'B', 'S', 'C'),  // 29
+  TAG('J', 'S', 'T', 'F'),  // 30
+  TAG('M', 'A', 'T', 'H'),  // 31
+  TAG('C', 'B', 'D', 'T'),  // 32
+  TAG('C', 'B', 'L', 'C'),  // 33
+  TAG('C', 'O', 'L', 'R'),  // 34
+  TAG('C', 'P', 'A', 'L'),  // 35
+  TAG('S', 'V', 'G', ' '),  // 36
+  TAG('s', 'b', 'i', 'x'),  // 37
+  TAG('a', 'c', 'n', 't'),  // 38
+  TAG('a', 'v', 'a', 'r'),  // 39
+  TAG('b', 'd', 'a', 't'),  // 40
+  TAG('b', 'l', 'o', 'c'),  // 41
+  TAG('b', 's', 'l', 'n'),  // 42
+  TAG('c', 'v', 'a', 'r'),  // 43
+  TAG('f', 'd', 's', 'c'),  // 44
+  TAG('f', 'e', 'a', 't'),  // 45
+  TAG('f', 'm', 't', 'x'),  // 46
+  TAG('f', 'v', 'a', 'r'),  // 47
+  TAG('g', 'v', 'a', 'r'),  // 48
+  TAG('h', 's', 't', 'y'),  // 49
+  TAG('j', 'u', 's', 't'),  // 50
+  TAG('l', 'c', 'a', 'r'),  // 51
+  TAG('m', 'o', 'r', 't'),  // 52
+  TAG('m', 'o', 'r', 'x'),  // 53
+  TAG('o', 'p', 'b', 'd'),  // 54
+  TAG('p', 'r', 'o', 'p'),  // 55
+  TAG('t', 'r', 'a', 'k'),  // 56
+  TAG('Z', 'a', 'p', 'f'),  // 57
+  TAG('S', 'i', 'l', 'f'),  // 58
+  TAG('G', 'l', 'a', 't'),  // 59
+  TAG('G', 'l', 'o', 'c'),  // 60
+  TAG('F', 'e', 'a', 't'),  // 61
+  TAG('S', 'i', 'l', 'l'),  // 62
 };
 
 struct Point {
@@ -772,25 +806,24 @@ bool ReadShortDirectory(ots::Buffer* file, std::vector<Table>* tables,
       return OTS_FAILURE();
     }
     uint32_t tag;
-    if ((flag_byte & 0x1f) == 0x1f) {
+    if ((flag_byte & 0x3f) == 0x3f) {
       if (!file->ReadU32(&tag)) {
         return OTS_FAILURE();
       }
     } else {
-      if ((flag_byte & 0x1f) >= arraysize(kKnownTags)) {
-        return OTS_FAILURE();
-      }
-      tag = kKnownTags[flag_byte & 0x1f];
+      tag = kKnownTags[flag_byte & 0x3f];
     }
-    // Bits 5 and 6 are reserved and must be 0.
-    if ((flag_byte & 0x60) != 0) {
+    // Bits 6 and 7 are reserved and must be 0.
+    if ((flag_byte & 0xc0) != 0) {
       return OTS_FAILURE();
     }
     uint32_t flags = kCompressionTypeBrotli;
     if (i > 0) {
       flags |= kWoff2FlagsContinueStream;
     }
-    if ((flag_byte & 0x80) != 0) {
+    // Always transform the glyf and loca tables
+    if (tag == TAG('g', 'l', 'y', 'f') ||
+        tag == TAG('l', 'o', 'c', 'a')) {
       flags |= kWoff2FlagsTransform;
     }
     uint32_t dst_length;
