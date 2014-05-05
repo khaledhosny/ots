@@ -25,6 +25,9 @@
     'ots-common.gypi',
   ],
   'target_defaults': {
+    'include_dirs': [
+      '.',
+    ],
     'conditions': [
       ['OS=="linux"', {
         'cflags': [
@@ -40,9 +43,6 @@
         'link_settings': {
           'libraries': ['-lz'],
         },
-        'include_dirs': [
-          '.'
-        ],
       }],
       ['OS=="mac"', {
         'xcode_settings': {
@@ -73,7 +73,6 @@
         },
         'include_dirs': [
           'third_party/zlib',
-          '.'
         ],
         'defines': [
           'NOMINMAX', # To suppress max/min macro definition.
