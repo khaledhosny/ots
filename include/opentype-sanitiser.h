@@ -192,7 +192,11 @@ bool Process(OTSStream *output, const uint8_t *input, size_t length);
 void DisableDebugOutput();
 
 // Enable WOFF2 support(experimental).
+// TODO(bashi): Remove WOFF2 from OTS.
 void EnableWOFF2();
+
+// Force to disable dropping CBDT/CBLC tables.
+void DoNotDropColorBitmapTables();
 
 }  // namespace ots
 

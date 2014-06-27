@@ -183,6 +183,8 @@ template<typename T> T Round2(T value) {
 bool IsValidVersionTag(uint32_t tag);
 
 #define FOR_EACH_TABLE_TYPE \
+  F(cbdt, CBDT) \
+  F(cblc, CBLC) \
   F(cff, CFF) \
   F(cmap, CMAP) \
   F(cvt, CVT) \

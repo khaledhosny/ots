@@ -848,9 +848,12 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
   const off_t table_start = out->Tell();
 
   // Some fonts don't have 3-0-4 MS Symbol nor 3-1-4 Unicode BMP tables
-  // (e.g., old fonts for Mac). We don't support them.
+  // (e.g., old fonts for Mac). We don't support them except for color bitmap
+  // fonts.
   if (!have_304 && !have_314 && !have_034) {
-    return OTS_FAILURE();
+    if (!(file->cbdt && file->cblc)) {
+      return OTS_FAILURE();
+    }
   }
 
   if (!out->WriteU16(0) ||

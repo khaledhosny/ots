@@ -7,6 +7,10 @@
     'ots_sources': [
       'include/ots-memory-stream.h',
       'include/opentype-sanitiser.h',
+      'src/cbdt.cc',
+      'src/cbdt.h',
+      'src/cblc.cc',
+      'src/cblc.h',
       'src/cff.cc',
       'src/cff.h',
       'src/cff_type2_charstring.cc',

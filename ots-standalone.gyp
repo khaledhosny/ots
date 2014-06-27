@@ -83,6 +83,9 @@
       'sources': [
         '<@(ots_sources)',
       ],
+      'defines': [
+        'OTS_DEBUG',
+      ],
       'dependencies': [
         'third_party/lzma_sdk/lzma_sdk.gyp:ots_lzma_sdk',
       ],

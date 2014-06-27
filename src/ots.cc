@@ -143,6 +143,10 @@ const struct {
     ots::ots_vmtx_should_serialise, ots::ots_vmtx_free, false },
   { "MATH", ots::ots_math_parse, ots::ots_math_serialise,
     ots::ots_math_should_serialise, ots::ots_math_free, false },
+  { "CBDT", ots::ots_cbdt_parse, ots::ots_cbdt_serialise,
+    ots::ots_cbdt_should_serialise, ots::ots_cbdt_free, false },
+  { "CBLC", ots::ots_cblc_parse, ots::ots_cblc_serialise,
+    ots::ots_cblc_should_serialise, ots::ots_cblc_free, false },
   // TODO(bashi): Support mort, base, and jstf tables.
   { 0, NULL, NULL, NULL, NULL, false },
 };
@@ -557,9 +561,8 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
       return OTS_FAILURE();
     }
   } else {
-    if (!header->glyf || !header->loca) {
-      // No TrueType glyph found.
-      // Note: bitmap-only fonts are not supported.
+    if ((!header->glyf || !header->loca) && (!header->cbdt || !header->cblc)) {
+      // No TrueType glyph or color bitmap found.
       return OTS_FAILURE();
     }
   }
@@ -685,6 +688,8 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
 
 namespace ots {
 
+bool g_drop_color_bitmap_tables = true;
+
 bool IsValidVersionTag(uint32_t tag) {
   return tag == Tag("\x00\x01\x00\x00") ||
          // OpenType fonts with CFF data have 'OTTO' tag.
@@ -700,6 +705,10 @@ void DisableDebugOutput() {
 
 void EnableWOFF2() {
   g_enable_woff2 = true;
+}
+
+void DoNotDropColorBitmapTables() {
+  g_drop_color_bitmap_tables = false;
 }
 
 bool Process(OTSStream *output, const uint8_t *data, size_t length) {
