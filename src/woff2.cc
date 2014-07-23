@@ -801,7 +801,7 @@ bool ReadShortDirectory(ots::Buffer* file, std::vector<Table>* tables,
     size_t num_tables) {
   for (size_t i = 0; i < num_tables; ++i) {
     Table* table = &tables->at(i);
-    uint8_t flag_byte;
+    uint8_t flag_byte = 0;
     if (!file->ReadU8(&flag_byte)) {
       return OTS_FAILURE();
     }
