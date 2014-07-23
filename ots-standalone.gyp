@@ -9,7 +9,6 @@
       '-W',
       '-Wall',
       '-Wshadow',
-      '-Werror',
       '-Wno-unused-parameter',
       '-fPIE',
       '-fstack-protector',
