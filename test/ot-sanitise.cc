@@ -33,31 +33,32 @@ int Usage(const char *argv0) {
   return 1;
 }
 
-bool Message(void *aUserData, const char *format, ...) {
-  va_list va;
+class Context: public ots::OTSContext {
+ public:
+  virtual void Message(const char *format, ...) {
+    va_list va;
 
-  va_start(va, format);
-  std::vfprintf(stderr, format, va);
-  std::fprintf(stderr, "\n");
-  va_end(va);
-
-  return false;
-}
-
-#define TAG(a, b, c, d) ((a) << 24 | (b) << 16 | (c) << 8 | (d))
-
-ots::TableAction TableActionCallback(uint32_t tag, void *user_data) {
-  switch (tag) {
-    case TAG('S','i','l','f'):
-    case TAG('S','i','l','l'):
-    case TAG('G','l','o','c'):
-    case TAG('G','l','a','t'):
-    case TAG('F','e','a','t'):
-      return ots::TABLE_ACTION_PASSTHRU;
-    default:
-      return ots::TABLE_ACTION_DEFAULT;
+    va_start(va, format);
+    std::vfprintf(stderr, format, va);
+    std::fprintf(stderr, "\n");
+    va_end(va);
   }
-}
+
+  virtual ots::TableAction GetTableAction(uint32_t tag) {
+#define TAG(a, b, c, d) ((a) << 24 | (b) << 16 | (c) << 8 | (d))
+    switch (tag) {
+      case TAG('S','i','l','f'):
+      case TAG('S','i','l','l'):
+      case TAG('G','l','o','c'):
+      case TAG('G','l','a','t'):
+      case TAG('F','e','a','t'):
+        return ots::TABLE_ACTION_PASSTHRU;
+      default:
+        return ots::TABLE_ACTION_DEFAULT;
+    }
+#undef TAG
+  }
+};
 
 }  // namespace
 
@@ -82,9 +83,7 @@ int main(int argc, char **argv) {
   }
   ::close(fd);
 
-  ots::OTSContext context;
-  context.SetMessageCallback(&Message, NULL);
-  context.SetTableActionCallback(&TableActionCallback, NULL);
+  Context context;
 
   FILE* out = NULL;
   if (argc == 3)
