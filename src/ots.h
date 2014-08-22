@@ -52,10 +52,12 @@ void Warning(const char *f, int l, const char *format, ...)
 
 // Generate a simple message
 #define OTS_FAILURE_MSG_(otf_,...) \
+  OTS_FAILURE(), \
   ((otf_)->context->Message(__VA_ARGS__), false)
 
 // Generate a message with an associated table tag
 #define OTS_FAILURE_MSG_TAG_(otf_,msg_,tag_) \
+  OTS_FAILURE(), \
   ((otf_)->context->Message("%4.4s: %s", tag_, msg_), false)
 
 // Convenience macro for use in files that only handle a single table tag,
