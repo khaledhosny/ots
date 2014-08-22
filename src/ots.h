@@ -29,21 +29,6 @@ namespace ots {
 bool Failure(const char *f, int l, const char *fn);
 #endif
 
-#if defined(_MSC_VER)
-// MSVC supports C99 style variadic macros.
-#define OTS_WARNING(format, ...)
-#else
-// GCC
-#if defined(OTS_DEBUG)
-#define OTS_WARNING(format, args...) \
-    ots::Warning(__FILE__, __LINE__, format, ##args)
-void Warning(const char *f, int l, const char *format, ...)
-     __attribute__((format(printf, 3, 4)));
-#else
-#define OTS_WARNING(format, args...)
-#endif
-#endif
-
 // All OTS_FAILURE_* macros ultimately evaluate to 'false', just like the original
 // message-less OTS_FAILURE(), so that the current parser will return 'false' as
 // its result (indicating a failure).
@@ -64,6 +49,8 @@ void Warning(const char *f, int l, const char *format, ...)
 // defined as TABLE_NAME at the top of the file; the 'file' variable is
 // expected to be the current OpenTypeFile pointer.
 #define OTS_FAILURE_MSG(...) OTS_FAILURE_MSG_(file, TABLE_NAME ": " __VA_ARGS__)
+
+#define OTS_WARNING OTS_FAILURE_MSG
 
 // Define OTS_NO_TRANSCODE_HINTS (i.e., g++ -DOTS_NO_TRANSCODE_HINTS) if you
 // want to omit TrueType hinting instructions and variables in glyf, fpgm, prep,
