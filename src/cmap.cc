@@ -771,9 +771,9 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     if (subtable_headers[i].platform == 0) {
       // Unicode platform
 
-      if ((subtable_headers[i].encoding == 0) &&
+      if ((subtable_headers[i].encoding == 0 || subtable_headers[i].encoding == 1) &&
           (subtable_headers[i].format == 4)) {
-        // parse and output the 0-0-4 table as 3-1-4 table. Sometimes the 0-0-4
+        // parse and output the 0-0-4 and 0-1-4 tables as 3-1-4 table. Sometimes the 0-0-4
         // table actually points to MS symbol data and thus should be parsed as
         // 3-0-4 table (e.g., marqueem.ttf and quixotic.ttf). This error will be
         // recovered in ots_cmap_serialise().
