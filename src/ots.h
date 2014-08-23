@@ -32,8 +32,6 @@ bool Failure(const char *f, int l, const char *fn);
 // All OTS_FAILURE_* macros ultimately evaluate to 'false', just like the original
 // message-less OTS_FAILURE(), so that the current parser will return 'false' as
 // its result (indicating a failure).
-// If a message_func pointer has been provided, this will be called before returning
-// the 'false' status.
 
 // Generate a simple message
 #define OTS_FAILURE_MSG_(otf_,...) \
