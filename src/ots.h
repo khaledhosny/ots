@@ -33,15 +33,22 @@ bool Failure(const char *f, int l, const char *fn);
 // message-less OTS_FAILURE(), so that the current parser will return 'false' as
 // its result (indicating a failure).
 
+#if defined(_MSC_VER) || !defined(OTS_DEBUG)
+#define OTS_MESSAGE_(otf_,...) \
+  (otf_)->context->Message(__VA_ARGS__)
+#else
+#define OTS_MESSAGE_(otf_,...) \
+  OTS_FAILURE(), \
+  (otf_)->context->Message(__VA_ARGS__)
+#endif
+
 // Generate a simple message
 #define OTS_FAILURE_MSG_(otf_,...) \
-  OTS_FAILURE(), \
-  ((otf_)->context->Message(__VA_ARGS__), false)
+  (OTS_MESSAGE_(otf_,__VA_ARGS__), false)
 
 // Generate a message with an associated table tag
 #define OTS_FAILURE_MSG_TAG_(otf_,msg_,tag_) \
-  OTS_FAILURE(), \
-  ((otf_)->context->Message("%4.4s: %s", tag_, msg_), false)
+  (OTS_MESSAGE_(otf_,"%4.4s: %s", tag_, msg_), false)
 
 // Convenience macro for use in files that only handle a single table tag,
 // defined as TABLE_NAME at the top of the file; the 'file' variable is
