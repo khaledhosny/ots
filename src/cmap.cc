@@ -877,7 +877,7 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
   // Some fonts don't have 3-0-4 MS Symbol nor 3-1-4 Unicode BMP tables
   // (e.g., old fonts for Mac). We don't support them.
   if (!have_304 && !have_314 && !have_034 && !have_31012 && !have_31013) {
-    return OTS_FAILURE();
+    return OTS_FAILURE_MSG("no supported subtables were found");
   }
 
   if (!out->WriteU16(0) ||
