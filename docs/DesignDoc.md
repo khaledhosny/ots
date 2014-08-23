@@ -78,14 +78,13 @@ The following 9 formats are supported:
 * "MS UCS-4" (platform 3 encoding 10 format 12)
 * "MS UCS-4 fallback" (platform 3 encoding 10 format 13)
 * "MS Symbol" (platform 3 encoding 0 format 4)
-
 * "Mac Roman" (platform 1 encoding 0 format 0)
     * 1-0-0 format is supported while 1-0-6 is not.
-
 * "Unicode default" format (platform 0 encoding 0 format 4)
     * treated as 3-1-4 format
-* "Unicode 2.0+" format (platform 0 encoding 3 format 4)
+* "Unicode 1.1" format (platform 0 encoding 1 format 4)
     * ditto
+* "Unicode 2.0+" format (platform 0 encoding 3 format 4)
 * "Unicode UCS-4" format (platform 0 encoding 4 format 12)
     * treated as 3-10-12 format
 * Unicode Variation Sequences (platform 0 encoding 5 format 14)

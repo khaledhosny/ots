@@ -748,6 +748,7 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   // the UCS-4 table for non-BMP glyphs. We'll pass the following subtables:
   //   Platform ID   Encoding ID  Format
   //   0             0            4       (Unicode Default)
+  //   0             1            4       (Unicode 1.1)
   //   0             3            4       (Unicode BMP)
   //   0             3            12      (Unicode UCS-4)
   //   0             5            14      (Unicode Variation Sequences)
@@ -758,8 +759,8 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   //   3             10           13      (MS UCS-4 Fallback mapping)
   //
   // Note:
-  //  * 0-0-4 table is (usually) written as a 3-1-4 table. If 3-1-4 table
-  //    also exists, the 0-0-4 table is ignored.
+  //  * 0-0-4 and 0-1-4 tables are (usually) written as a 3-1-4 table. If 3-1-4 table
+  //    also exists, the 0-0-4 or 0-1-4 tables are ignored.
   //  * Unlike 0-0-4 table, 0-3-4 table is written as a 0-3-4 table.
   //    Some fonts which include 0-5-14 table seems to be required 0-3-4
   //    table. The 0-3-4 table will be wriiten even if 3-1-4 table also exists.
