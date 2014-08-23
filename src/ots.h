@@ -52,15 +52,6 @@ bool Failure(const char *f, int l, const char *fn);
 
 #define OTS_WARNING OTS_FAILURE_MSG
 
-// Define OTS_NO_TRANSCODE_HINTS (i.e., g++ -DOTS_NO_TRANSCODE_HINTS) if you
-// want to omit TrueType hinting instructions and variables in glyf, fpgm, prep,
-// and cvt tables.
-#if defined(OTS_NO_TRANSCODE_HINTS)
-const bool g_transcode_hints = false;
-#else
-const bool g_transcode_hints = true;
-#endif
-
 // -----------------------------------------------------------------------------
 // Buffer helper class
 //
