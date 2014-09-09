@@ -9,5 +9,6 @@
 /side_by_side.target.mk
 /third_party/brotli/brotli.Makefile
 /third_party/brotli/brotli.target.mk
+/third_party/gyp
 /validator_checker.target.mk
 *.swp
