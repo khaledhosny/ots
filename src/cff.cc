@@ -996,7 +996,8 @@ bool ots_cff_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 
   // Check if all charstrings (font hinting code for each glyph) are valid.
   for (size_t i = 0; i < file->cff->char_strings_array.size(); ++i) {
-    if (!ValidateType2CharStringIndex(*(file->cff->char_strings_array.at(i)),
+    if (!ValidateType2CharStringIndex(file,
+                                      *(file->cff->char_strings_array.at(i)),
                                       global_subrs_index,
                                       file->cff->fd_select,
                                       file->cff->local_subrs_per_font,
