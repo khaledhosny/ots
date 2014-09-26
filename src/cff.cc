@@ -476,7 +476,7 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
 
     FONT_FORMAT font_format = FORMAT_UNKNOWN;
     bool have_ros = false;
-    size_t charstring_glyphs = 0;
+    uint16_t charstring_glyphs = 0;
     size_t charset_offset = 0;
 
     while (table.offset() < dict_length) {
@@ -700,7 +700,7 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
             return OTS_FAILURE();
           }
           if (format == 0) {
-            for (size_t j = 0; j < glyphs; ++j) {
+            for (uint16_t j = 0; j < glyphs; ++j) {
               uint8_t fd_index = 0;
               if (!cff_table.ReadU8(&fd_index)) {
                 return OTS_FAILURE();
@@ -844,7 +844,7 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
       }
       switch (format) {
         case 0:
-          for (unsigned j = 1 /* .notdef is omitted */; j < glyphs; ++j) {
+          for (uint16_t j = 1 /* .notdef is omitted */; j < glyphs; ++j) {
             uint16_t sid = 0;
             if (!cff_table.ReadU16(&sid)) {
               return OTS_FAILURE();

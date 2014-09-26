@@ -852,12 +852,14 @@ bool ValidateType2CharStringIndex(
     const std::vector<CFFIndex *> &local_subrs_per_font,
     const CFFIndex *local_subrs,
     Buffer* cff_table) {
-  if (char_strings_index.offsets.size() == 0) {
+  const uint16_t num_offsets =
+      static_cast<uint16_t>(char_strings_index.offsets.size());
+  if (num_offsets != char_strings_index.offsets.size() || num_offsets == 0) {
     return OTS_FAILURE();  // no charstring.
   }
 
   // For each glyph, validate the corresponding charstring.
-  for (unsigned i = 1; i < char_strings_index.offsets.size(); ++i) {
+  for (uint16_t i = 1; i < num_offsets; ++i) {
     // Prepare a Buffer object, |char_string|, which contains the charstring
     // for the |i|-th glyph.
     const size_t length =
@@ -873,7 +875,7 @@ bool ValidateType2CharStringIndex(
     Buffer char_string(cff_table->buffer() + offset, length);
 
     // Get a local subrs for the glyph.
-    const unsigned glyph_index = i - 1;  // index in the map is 0-origin.
+    const uint16_t glyph_index = i - 1;  // index in the map is 0-origin.
     const CFFIndex *local_subrs_to_use = NULL;
     if (!SelectLocalSubr(fd_select,
                          local_subrs_per_font,
