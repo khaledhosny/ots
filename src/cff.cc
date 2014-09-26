@@ -462,7 +462,7 @@ bool ParsePrivateDictData(
 }
 
 bool ParseDictData(const uint8_t *data, size_t table_length,
-                   const ots::CFFIndex &index, size_t glyphs,
+                   const ots::CFFIndex &index, uint16_t glyphs,
                    size_t sid_max, DICT_DATA_TYPE type,
                    ots::OpenTypeCFF *out_cff) {
   for (unsigned i = 1; i < index.offsets.size(); ++i) {
@@ -967,7 +967,7 @@ bool ots_cff_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     return OTS_FAILURE();
   }
 
-  const size_t num_glyphs = file->maxp->num_glyphs;
+  const uint16_t num_glyphs = file->maxp->num_glyphs;
   const size_t sid_max = string_index.count + kNStdString;
   // string_index.count == 0 is allowed.
 
