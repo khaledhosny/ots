@@ -1006,8 +1006,8 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
         = file->cmap->subtable_3_10_13;
     const unsigned num_groups = groups.size();
     if (!out->WriteU16(13) ||
-        !out->WriteU32(0) ||
-        !out->WriteU32(num_groups * 12 + 14) ||
+        !out->WriteU16(0) ||
+        !out->WriteU32(num_groups * 12 + 16) ||
         !out->WriteU32(0) ||
         !out->WriteU32(num_groups)) {
       return OTS_FAILURE();
