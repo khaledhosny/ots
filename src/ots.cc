@@ -831,6 +831,12 @@ bool OTSContext::Process(OTSStream *output,
   return result;
 }
 
+// For backward compatibility
+bool Process(OTSStream *output, const uint8_t *data, size_t length) {
+  static OTSContext context;
+  return context.Process(output, data, length);
+}
+
 #if !defined(_MSC_VER) && defined(OTS_DEBUG)
 bool Failure(const char *f, int l, const char *fn) {
   if (g_debug_output) {
