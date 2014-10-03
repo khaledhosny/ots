@@ -207,7 +207,10 @@ class OTSContext {
     bool Process(OTSStream *output, const uint8_t *input, size_t length);
 
     // This function will be called when OTS is reporting an error.
-    virtual void Message(const char *format, ...) MSGFUNC_FMT_ATTR {}
+    //   level: the severity of the generated message:
+    //     0: error messages in case OTS fails to sanitize the font.
+    //     1: warning messages about issue OTS fixed in the sanitized font.
+    virtual void Message(int level, const char *format, ...) MSGFUNC_FMT_ATTR {}
 
     // This function will be called when OTS needs to decide what to do for a
     // font table.

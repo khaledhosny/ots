@@ -35,9 +35,13 @@ int Usage(const char *argv0) {
 
 class Context: public ots::OTSContext {
  public:
-  virtual void Message(const char *format, ...) {
+  virtual void Message(int level, const char *format, ...) {
     va_list va;
 
+    if (level == 0)
+      std::fprintf(stderr, "ERROR: ");
+    else
+      std::fprintf(stderr, "WARNING: ");
     va_start(va, format);
     std::vfprintf(stderr, format, va);
     std::fprintf(stderr, "\n");
