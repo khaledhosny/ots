@@ -195,7 +195,7 @@ enum TableAction {
 class OTSContext {
   public:
     OTSContext() {}
-    ~OTSContext() {}
+    virtual ~OTSContext() {}
 
     // Process a given OpenType file and write out a sanitised version
     //   output: a pointer to an object implementing the OTSStream interface. The
