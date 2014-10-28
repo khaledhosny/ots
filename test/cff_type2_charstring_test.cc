@@ -1540,13 +1540,6 @@ TEST(ValidateTest, TestStackOverflow) {
 TEST(ValidateTest, TestDeprecatedOperators) {
   {
     const int char_string[] = {
-      kOpPrefix, (12 << 8) + 0,  // dotsection operator, which is not supported.
-      kOpPrefix, ots::kEndChar,
-    };
-    EXPECT_FALSE(ValidateCharStrings(char_string, ARRAYSIZE(char_string)));
-  }
-  {
-    const int char_string[] = {
       kOpPrefix, 16,  // 'blend'.
       kOpPrefix, ots::kEndChar,
     };
