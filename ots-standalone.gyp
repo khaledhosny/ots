@@ -183,6 +183,23 @@
             'ots',
           ],
         },
+        {
+          'target_name': 'cff_type2_charstring_test',
+          'type': 'executable',
+          'sources': [
+            'test/cff_type2_charstring_test.cc',
+          ],
+          'dependencies': [
+            'ots',
+          ],
+          'libraries': [
+            '-lgtest',
+            '-lgtest_main',
+          ],
+          'include_dirs': [
+            'src',
+          ],
+        },
       ],
     }],
     ['OS=="linux"', {
