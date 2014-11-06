@@ -26,6 +26,7 @@
   'target_defaults': {
     'include_dirs': [
       '.',
+      'third_party/brotli/dec',
     ],
     'conditions': [
       ['OS=="linux"', {
@@ -88,7 +89,7 @@
         '<@(ots_sources)',
       ],
       'dependencies': [
-        'third_party/brotli/brotli.gyp:brotli',
+        'third_party/brotli.gyp:brotli',
       ],
       'include_dirs': [
         '<@(ots_include_dirs)',
