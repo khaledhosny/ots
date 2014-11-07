@@ -238,11 +238,11 @@ class TestStream : public ots::MemoryStream {
   uint8_t* data() { return data_; }
   size_t size() const { return size_; }
 
-  virtual bool WriteRaw(const void *data, size_t length) {
+  virtual bool WriteRaw(const void *d, size_t length) {
     if (Tell() + length > size_) {
       size_ = Tell() + length;
     }
-    return ots::MemoryStream::WriteRaw(data, length);
+    return ots::MemoryStream::WriteRaw(d, length);
   }
 
  private:
@@ -250,22 +250,35 @@ class TestStream : public ots::MemoryStream {
   uint8_t data_[4096];
 };
 
-class ScriptListTableTest : public ::testing::Test {
+class TableTest : public ::testing::Test {
  protected:
 
+  virtual void SetUp() {
+    file = new ots::OpenTypeFile();
+    file->context = new ots::OTSContext();
+  }
+
   TestStream out;
-  ots::OpenTypeFile file;
+  ots::OpenTypeFile *file;
 };
 
-class FeatureListTableTest : public ::testing::Test {
+class ScriptListTableTest : public TableTest { };
+class DeviceTableTest : public TableTest { };
+class CoverageTableTest : public TableTest { };
+class CoverageFormat1Test : public TableTest { };
+class CoverageFormat2Test : public TableTest { };
+class ClassDefTableTest : public TableTest { };
+class ClassDefFormat1Test : public TableTest { };
+class ClassDefFormat2Test : public TableTest { };
+class LookupSubtableParserTest : public TableTest { };
+
+class FeatureListTableTest : public TableTest {
  protected:
 
   virtual void SetUp() {
     num_features = 0;
   }
 
-  TestStream out;
-  ots::OpenTypeFile file;
   uint16_t num_features;
 };
 
@@ -301,7 +314,7 @@ const ots::LookupSubtableParser FakeLookupParserReturnsFalse = {
   1, 1, TypeParsersReturnFalse
 };
 
-class LookupListTableTest : public ::testing::Test {
+class LookupListTableTest : public TableTest {
  protected:
 
   virtual void SetUp() {
@@ -309,13 +322,11 @@ class LookupListTableTest : public ::testing::Test {
   }
 
   bool Parse() {
-    return ots::ParseLookupListTable(&file, out.data(), out.size(),
+    return ots::ParseLookupListTable(file, out.data(), out.size(),
                                      &FakeLookupParserReturnsTrue,
                                      &num_lookups);
   }
 
-  TestStream out;
-  ots::OpenTypeFile file;
   uint16_t num_lookups;
 };
 
@@ -323,7 +334,7 @@ class LookupListTableTest : public ::testing::Test {
 
 TEST_F(ScriptListTableTest, TestSuccess) {
   BuildFakeScriptListTable(&out, 1, 1, 1);
-  EXPECT_TRUE(ots::ParseScriptListTable(out.data(), out.size(), 1));
+  EXPECT_TRUE(ots::ParseScriptListTable(file, out.data(), out.size(), 1));
 }
 
 TEST_F(ScriptListTableTest, TestBadScriptCount) {
@@ -331,7 +342,7 @@ TEST_F(ScriptListTableTest, TestBadScriptCount) {
   // Set too large script count.
   out.Seek(0);
   out.WriteU16(2);
-  EXPECT_FALSE(ots::ParseScriptListTable(out.data(), out.size(), 1));
+  EXPECT_FALSE(ots::ParseScriptListTable(file, out.data(), out.size(), 1));
 }
 
 TEST_F(ScriptListTableTest, TestScriptRecordOffsetUnderflow) {
@@ -339,7 +350,7 @@ TEST_F(ScriptListTableTest, TestScriptRecordOffsetUnderflow) {
   // Set bad offset to ScriptRecord[0].
   out.Seek(6);
   out.WriteU16(0);
-  EXPECT_FALSE(ots::ParseScriptListTable(out.data(), out.size(), 1));
+  EXPECT_FALSE(ots::ParseScriptListTable(file, out.data(), out.size(), 1));
 }
 
 TEST_F(ScriptListTableTest, TestScriptRecordOffsetOverflow) {
@@ -347,7 +358,7 @@ TEST_F(ScriptListTableTest, TestScriptRecordOffsetOverflow) {
   // Set bad offset to ScriptRecord[0].
   out.Seek(6);
   out.WriteU16(out.size());
-  EXPECT_FALSE(ots::ParseScriptListTable(out.data(), out.size(), 1));
+  EXPECT_FALSE(ots::ParseScriptListTable(file, out.data(), out.size(), 1));
 }
 
 TEST_F(ScriptListTableTest, TestBadLangSysCount) {
@@ -355,7 +366,7 @@ TEST_F(ScriptListTableTest, TestBadLangSysCount) {
   // Set too large langsys count.
   out.Seek(10);
   out.WriteU16(2);
-  EXPECT_FALSE(ots::ParseScriptListTable(out.data(), out.size(), 1));
+  EXPECT_FALSE(ots::ParseScriptListTable(file, out.data(), out.size(), 1));
 }
 
 TEST_F(ScriptListTableTest, TestLangSysRecordOffsetUnderflow) {
@@ -363,7 +374,7 @@ TEST_F(ScriptListTableTest, TestLangSysRecordOffsetUnderflow) {
   // Set bad offset to LangSysRecord[0].
   out.Seek(16);
   out.WriteU16(0);
-  EXPECT_FALSE(ots::ParseScriptListTable(out.data(), out.size(), 1));
+  EXPECT_FALSE(ots::ParseScriptListTable(file, out.data(), out.size(), 1));
 }
 
 TEST_F(ScriptListTableTest, TestLangSysRecordOffsetOverflow) {
@@ -371,7 +382,7 @@ TEST_F(ScriptListTableTest, TestLangSysRecordOffsetOverflow) {
   // Set bad offset to LangSysRecord[0].
   out.Seek(16);
   out.WriteU16(out.size());
-  EXPECT_FALSE(ots::ParseScriptListTable(out.data(), out.size(), 1));
+  EXPECT_FALSE(ots::ParseScriptListTable(file, out.data(), out.size(), 1));
 }
 
 TEST_F(ScriptListTableTest, TestBadReqFeatureIndex) {
@@ -379,7 +390,7 @@ TEST_F(ScriptListTableTest, TestBadReqFeatureIndex) {
   // Set too large feature index to ReqFeatureIndex of LangSysTable[0].
   out.Seek(20);
   out.WriteU16(2);
-  EXPECT_FALSE(ots::ParseScriptListTable(out.data(), out.size(), 1));
+  EXPECT_FALSE(ots::ParseScriptListTable(file, out.data(), out.size(), 1));
 }
 
 TEST_F(ScriptListTableTest, TestBadFeatureCount) {
@@ -387,7 +398,7 @@ TEST_F(ScriptListTableTest, TestBadFeatureCount) {
   // Set too large feature count to LangSysTable[0].
   out.Seek(22);
   out.WriteU16(2);
-  EXPECT_FALSE(ots::ParseScriptListTable(out.data(), out.size(), 1));
+  EXPECT_FALSE(ots::ParseScriptListTable(file, out.data(), out.size(), 1));
 }
 
 TEST_F(ScriptListTableTest, TestBadFeatureIndex) {
@@ -395,19 +406,19 @@ TEST_F(ScriptListTableTest, TestBadFeatureIndex) {
   // Set too large feature index to ReatureIndex[0] of LangSysTable[0].
   out.Seek(24);
   out.WriteU16(2);
-  EXPECT_FALSE(ots::ParseScriptListTable(out.data(), out.size(), 1));
+  EXPECT_FALSE(ots::ParseScriptListTable(file, out.data(), out.size(), 1));
 }
 
 TEST_F(FeatureListTableTest, TestSuccess) {
   BuildFakeFeatureListTable(&out, 1, 1);
-  EXPECT_TRUE(ots::ParseFeatureListTable(out.data(), out.size(), 1,
+  EXPECT_TRUE(ots::ParseFeatureListTable(file, out.data(), out.size(), 1,
                                          &num_features));
   EXPECT_EQ(num_features, 1);
 }
 
 TEST_F(FeatureListTableTest, TestSuccess2) {
   BuildFakeFeatureListTable(&out, 5, 1);
-  EXPECT_TRUE(ots::ParseFeatureListTable(out.data(), out.size(), 1,
+  EXPECT_TRUE(ots::ParseFeatureListTable(file, out.data(), out.size(), 1,
                                          &num_features));
   EXPECT_EQ(num_features, 5);
 }
@@ -417,7 +428,7 @@ TEST_F(FeatureListTableTest, TestBadFeatureCount) {
   // Set too large feature count.
   out.Seek(0);
   out.WriteU16(2);
-  EXPECT_FALSE(ots::ParseFeatureListTable(out.data(), out.size(), 1,
+  EXPECT_FALSE(ots::ParseFeatureListTable(file, out.data(), out.size(), 1,
                                           &num_features));
 }
 
@@ -426,7 +437,7 @@ TEST_F(FeatureListTableTest, TestOffsetFeatureUnderflow) {
   // Set bad offset to FeatureRecord[0].
   out.Seek(6);
   out.WriteU16(0);
-  EXPECT_FALSE(ots::ParseFeatureListTable(out.data(), out.size(), 1,
+  EXPECT_FALSE(ots::ParseFeatureListTable(file, out.data(), out.size(), 1,
                                           &num_features));
 }
 
@@ -435,7 +446,7 @@ TEST_F(FeatureListTableTest, TestOffsetFeatureOverflow) {
   // Set bad offset to FeatureRecord[0].
   out.Seek(6);
   out.WriteU16(out.size());
-  EXPECT_FALSE(ots::ParseFeatureListTable(out.data(), out.size(), 1,
+  EXPECT_FALSE(ots::ParseFeatureListTable(file, out.data(), out.size(), 1,
                                           &num_features));
 }
 
@@ -444,7 +455,7 @@ TEST_F(FeatureListTableTest, TestBadLookupCount) {
   // Set too large lookup count to FeatureTable[0].
   out.Seek(10);
   out.WriteU16(2);
-  EXPECT_FALSE(ots::ParseFeatureListTable(out.data(), out.size(), 1,
+  EXPECT_FALSE(ots::ParseFeatureListTable(file, out.data(), out.size(), 1,
                                           &num_features));
 }
 
@@ -524,265 +535,227 @@ TEST_F(LookupListTableTest, TesBadSubtableCount) {
   EXPECT_FALSE(Parse());
 }
 
-TEST(CoverageTableTest, TestSuccessFormat1) {
-  TestStream out;
+TEST_F(CoverageTableTest, TestSuccessFormat1) {
   BuildFakeCoverageFormat1(&out, 1);
-  EXPECT_TRUE(ots::ParseCoverageTable(out.data(), out.size(), 1));
+  EXPECT_TRUE(ots::ParseCoverageTable(file, out.data(), out.size(), 1));
 }
 
-TEST(CoverageTableTest, TestSuccessFormat2) {
-  TestStream out;
+TEST_F(CoverageTableTest, TestSuccessFormat2) {
   BuildFakeCoverageFormat2(&out, 1);
-  EXPECT_TRUE(ots::ParseCoverageTable(out.data(), out.size(), 1));
+  EXPECT_TRUE(ots::ParseCoverageTable(file, out.data(), out.size(), 1));
 }
 
-TEST(CoverageTableTest, TestBadFormat) {
-  TestStream out;
+TEST_F(CoverageTableTest, TestBadFormat) {
   BuildFakeCoverageFormat1(&out, 1);
   // Set bad format.
   out.Seek(0);
   out.WriteU16(3);
-  EXPECT_FALSE(ots::ParseCoverageTable(out.data(), out.size(), 1));
+  EXPECT_FALSE(ots::ParseCoverageTable(file, out.data(), out.size(), 1));
 }
 
-TEST(CoverageFormat1Test, TestBadGlyphCount) {
-  TestStream out;
+TEST_F(CoverageFormat1Test, TestBadGlyphCount) {
   BuildFakeCoverageFormat1(&out, 1);
   // Set too large glyph count.
   out.Seek(2);
   out.WriteU16(2);
-  EXPECT_FALSE(ots::ParseCoverageTable(out.data(), out.size(), 1));
+  EXPECT_FALSE(ots::ParseCoverageTable(file, out.data(), out.size(), 1));
 }
 
-TEST(CoverageFormat1Test, TestBadGlyphId) {
-  TestStream out;
+TEST_F(CoverageFormat1Test, TestBadGlyphId) {
   BuildFakeCoverageFormat1(&out, 1);
   // Set too large glyph id.
   out.Seek(4);
   out.WriteU16(2);
-  EXPECT_FALSE(ots::ParseCoverageTable(out.data(), out.size(), 1));
+  EXPECT_FALSE(ots::ParseCoverageTable(file, out.data(), out.size(), 1));
 }
 
-TEST(CoverageFormat2Test, TestBadRangeCount) {
-  TestStream out;
+TEST_F(CoverageFormat2Test, TestBadRangeCount) {
   BuildFakeCoverageFormat2(&out, 1);
   // Set too large range count.
   out.Seek(2);
   out.WriteU16(2);
-  EXPECT_FALSE(ots::ParseCoverageTable(out.data(), out.size(), 1));
+  EXPECT_FALSE(ots::ParseCoverageTable(file, out.data(), out.size(), 1));
 }
 
-TEST(CoverageFormat2Test, TestBadRange) {
-  TestStream out;
+TEST_F(CoverageFormat2Test, TestBadRange) {
   BuildFakeCoverageFormat2(&out, 1);
   // Set reverse order glyph id to start/end fields.
   out.Seek(4);
   out.WriteU16(2);
   out.WriteU16(1);
-  EXPECT_FALSE(ots::ParseCoverageTable(out.data(), out.size(), 1));
+  EXPECT_FALSE(ots::ParseCoverageTable(file, out.data(), out.size(), 1));
 }
 
-TEST(CoverageFormat2Test, TestRangeOverlap) {
-  TestStream out;
+TEST_F(CoverageFormat2Test, TestRangeOverlap) {
   BuildFakeCoverageFormat2(&out, 2);
   // Set overlapping glyph id to an end field.
   out.Seek(12);
   out.WriteU16(1);
-  EXPECT_FALSE(ots::ParseCoverageTable(out.data(), out.size(), 2));
+  EXPECT_FALSE(ots::ParseCoverageTable(file, out.data(), out.size(), 2));
 }
 
-TEST(CoverageFormat2Test, TestRangeOverlap2) {
-  TestStream out;
+TEST_F(CoverageFormat2Test, TestRangeOverlap2) {
   BuildFakeCoverageFormat2(&out, 2);
   // Set overlapping range.
   out.Seek(10);
   out.WriteU16(1);
   out.WriteU16(2);
-  EXPECT_FALSE(ots::ParseCoverageTable(out.data(), out.size(), 2));
+  EXPECT_FALSE(ots::ParseCoverageTable(file, out.data(), out.size(), 2));
 }
 
-TEST(ClassDefTableTest, TestSuccessFormat1) {
-  TestStream out;
+TEST_F(ClassDefTableTest, TestSuccessFormat1) {
   BuildFakeClassDefFormat1(&out, 1);
-  EXPECT_TRUE(ots::ParseClassDefTable(out.data(), out.size(), 1, 1));
+  EXPECT_TRUE(ots::ParseClassDefTable(file, out.data(), out.size(), 1, 1));
 }
 
-TEST(ClassDefTableTest, TestSuccessFormat2) {
-  TestStream out;
+TEST_F(ClassDefTableTest, TestSuccessFormat2) {
   BuildFakeClassDefFormat2(&out, 1);
-  EXPECT_TRUE(ots::ParseClassDefTable(out.data(), out.size(), 1, 1));
+  EXPECT_TRUE(ots::ParseClassDefTable(file, out.data(), out.size(), 1, 1));
 }
 
-TEST(ClassDefTableTest, TestBadFormat) {
-  TestStream out;
+TEST_F(ClassDefTableTest, TestBadFormat) {
   BuildFakeClassDefFormat1(&out, 1);
   // Set bad format.
   out.Seek(0);
   out.WriteU16(3);
-  EXPECT_FALSE(ots::ParseClassDefTable(out.data(), out.size(), 1, 1));
+  EXPECT_FALSE(ots::ParseClassDefTable(file, out.data(), out.size(), 1, 1));
 }
 
-TEST(ClassDefFormat1Test, TestBadStartGlyph) {
-  TestStream out;
+TEST_F(ClassDefFormat1Test, TestBadStartGlyph) {
   BuildFakeClassDefFormat1(&out, 1);
   // Set too large start glyph id.
   out.Seek(2);
   out.WriteU16(2);
-  EXPECT_FALSE(ots::ParseClassDefTable(out.data(), out.size(), 1, 1));
+  EXPECT_FALSE(ots::ParseClassDefTable(file, out.data(), out.size(), 1, 1));
 }
 
-TEST(ClassDefFormat1Test, TestBadGlyphCount) {
-  TestStream out;
+TEST_F(ClassDefFormat1Test, TestBadGlyphCount) {
   BuildFakeClassDefFormat1(&out, 1);
   // Set too large glyph count.
   out.Seek(4);
   out.WriteU16(2);
-  EXPECT_FALSE(ots::ParseClassDefTable(out.data(), out.size(), 1, 1));
+  EXPECT_FALSE(ots::ParseClassDefTable(file, out.data(), out.size(), 1, 1));
 }
 
-TEST(ClassDefFormat1Test, TestBadClassValue) {
-  TestStream out;
+TEST_F(ClassDefFormat1Test, TestBadClassValue) {
   BuildFakeClassDefFormat1(&out, 1);
   // Set too large class value.
   out.Seek(6);
   out.WriteU16(2);
-  EXPECT_FALSE(ots::ParseClassDefTable(out.data(), out.size(), 1, 1));
+  EXPECT_FALSE(ots::ParseClassDefTable(file, out.data(), out.size(), 1, 1));
 }
 
-TEST(ClassDefFormat2Test, TestBadRangeCount) {
-  TestStream out;
+TEST_F(ClassDefFormat2Test, TestBadRangeCount) {
   BuildFakeClassDefFormat2(&out, 1);
   // Set too large range count.
   out.Seek(2);
   out.WriteU16(2);
-  EXPECT_FALSE(ots::ParseClassDefTable(out.data(), out.size(), 1, 1));
+  EXPECT_FALSE(ots::ParseClassDefTable(file, out.data(), out.size(), 1, 1));
 }
 
-TEST(ClassDefFormat2Test, TestRangeOverlap) {
-  TestStream out;
+TEST_F(ClassDefFormat2Test, TestRangeOverlap) {
   BuildFakeClassDefFormat2(&out, 2);
   // Set overlapping glyph id to an end field.
   out.Seek(12);
   out.WriteU16(1);
-  EXPECT_FALSE(ots::ParseClassDefTable(out.data(), out.size(), 1, 1));
+  EXPECT_FALSE(ots::ParseClassDefTable(file, out.data(), out.size(), 1, 1));
 }
 
-TEST(ClassDefFormat2Test, TestRangeOverlap2) {
-  TestStream out;
+TEST_F(ClassDefFormat2Test, TestRangeOverlap2) {
   BuildFakeClassDefFormat2(&out, 2);
   // Set overlapping range.
   out.Seek(10);
   out.WriteU16(1);
   out.WriteU16(2);
-  EXPECT_FALSE(ots::ParseClassDefTable(out.data(), out.size(), 1, 1));
+  EXPECT_FALSE(ots::ParseClassDefTable(file, out.data(), out.size(), 1, 1));
 }
 
-TEST(DeviceTableTest, TestDeltaFormat1Success) {
-  {
-    TestStream out;
-    BuildFakeDeviceTable(&out, 1, 8, 1);
-    EXPECT_TRUE(ots::ParseDeviceTable(out.data(), out.size()));
-  }
-  {
-    TestStream out;
-    BuildFakeDeviceTable(&out, 1, 9, 1);
-    EXPECT_TRUE(ots::ParseDeviceTable(out.data(), out.size()));
-  }
+TEST_F(DeviceTableTest, TestDeltaFormat1Success) {
+  BuildFakeDeviceTable(&out, 1, 8, 1);
+  EXPECT_TRUE(ots::ParseDeviceTable(file, out.data(), out.size()));
 }
 
-TEST(DeviceTableTest, TestDeltaFormat1Fail) {
+TEST_F(DeviceTableTest, TestDeltaFormat1Success2) {
+  BuildFakeDeviceTable(&out, 1, 9, 1);
+  EXPECT_TRUE(ots::ParseDeviceTable(file, out.data(), out.size()));
+}
+
+TEST_F(DeviceTableTest, TestDeltaFormat1Fail) {
   // Pass shorter length than expected.
-  {
-    TestStream out;
-    BuildFakeDeviceTable(&out, 1, 8, 1);
-    EXPECT_FALSE(ots::ParseDeviceTable(out.data(), out.size() - 1));
-  }
-  {
-    TestStream out;
-    BuildFakeDeviceTable(&out, 1, 9, 1);
-    EXPECT_FALSE(ots::ParseDeviceTable(out.data(), out.size() - 1));
-  }
+  BuildFakeDeviceTable(&out, 1, 8, 1);
+  EXPECT_FALSE(ots::ParseDeviceTable(file, out.data(), out.size() - 1));
 }
 
-TEST(DeviceTableTest, TestDeltaFormat2Success) {
-  {
-    TestStream out;
-    BuildFakeDeviceTable(&out, 1, 1, 2);
-    EXPECT_TRUE(ots::ParseDeviceTable(out.data(), out.size()));
-  }
-  {
-    TestStream out;
-    BuildFakeDeviceTable(&out, 1, 8, 2);
-    EXPECT_TRUE(ots::ParseDeviceTable(out.data(), out.size()));
-  }
-}
-
-TEST(DeviceTableTest, TestDeltaFormat2Fail) {
+TEST_F(DeviceTableTest, TestDeltaFormat1Fail2) {
   // Pass shorter length than expected.
-  {
-    TestStream out;
-    BuildFakeDeviceTable(&out, 1, 8, 2);
-    EXPECT_FALSE(ots::ParseDeviceTable(out.data(), out.size() - 1));
-  }
-  {
-    TestStream out;
-    BuildFakeDeviceTable(&out, 1, 9, 2);
-    EXPECT_FALSE(ots::ParseDeviceTable(out.data(), out.size() - 1));
-  }
+  BuildFakeDeviceTable(&out, 1, 9, 1);
+  EXPECT_FALSE(ots::ParseDeviceTable(file, out.data(), out.size() - 1));
 }
 
-TEST(DeviceTableTest, TestDeltaFormat3Success) {
-  {
-    TestStream out;
-    BuildFakeDeviceTable(&out, 1, 1, 3);
-    EXPECT_TRUE(ots::ParseDeviceTable(out.data(), out.size()));
-  }
-  {
-    TestStream out;
-    BuildFakeDeviceTable(&out, 1, 8, 3);
-    EXPECT_TRUE(ots::ParseDeviceTable(out.data(), out.size()));
-  }
+TEST_F(DeviceTableTest, TestDeltaFormat2Success) {
+  BuildFakeDeviceTable(&out, 1, 1, 2);
+  EXPECT_TRUE(ots::ParseDeviceTable(file, out.data(), out.size()));
 }
 
-TEST(DeviceTableTest, TestDeltaFormat3Fail) {
+TEST_F(DeviceTableTest, TestDeltaFormat2Success2) {
+  BuildFakeDeviceTable(&out, 1, 8, 2);
+  EXPECT_TRUE(ots::ParseDeviceTable(file, out.data(), out.size()));
+}
+
+TEST_F(DeviceTableTest, TestDeltaFormat2Fail) {
   // Pass shorter length than expected.
+  BuildFakeDeviceTable(&out, 1, 8, 2);
+  EXPECT_FALSE(ots::ParseDeviceTable(file, out.data(), out.size() - 1));
+}
+
+TEST_F(DeviceTableTest, TestDeltaFormat2Fail2) {
+  // Pass shorter length than expected.
+  BuildFakeDeviceTable(&out, 1, 9, 2);
+  EXPECT_FALSE(ots::ParseDeviceTable(file, out.data(), out.size() - 1));
+}
+
+TEST_F(DeviceTableTest, TestDeltaFormat3Success) {
+  BuildFakeDeviceTable(&out, 1, 1, 3);
+  EXPECT_TRUE(ots::ParseDeviceTable(file, out.data(), out.size()));
+}
+
+TEST_F(DeviceTableTest, TestDeltaFormat3Success2) {
+  BuildFakeDeviceTable(&out, 1, 8, 3);
+  EXPECT_TRUE(ots::ParseDeviceTable(file, out.data(), out.size()));
+}
+
+TEST_F(DeviceTableTest, TestDeltaFormat3Fail) {
+  // Pass shorter length than expected.
+  BuildFakeDeviceTable(&out, 1, 8, 3);
+  EXPECT_FALSE(ots::ParseDeviceTable(file, out.data(), out.size() - 1));
+}
+
+TEST_F(DeviceTableTest, TestDeltaFormat3Fail2) {
+  // Pass shorter length than expected.
+  BuildFakeDeviceTable(&out, 1, 9, 3);
+  EXPECT_FALSE(ots::ParseDeviceTable(file, out.data(), out.size() - 1));
+}
+
+TEST_F(LookupSubtableParserTest, TestSuccess) {
   {
-    TestStream out;
-    BuildFakeDeviceTable(&out, 1, 8, 3);
-    EXPECT_FALSE(ots::ParseDeviceTable(out.data(), out.size() - 1));
+    EXPECT_TRUE(FakeLookupParserReturnsTrue.Parse(file, 0, 0, 1));
   }
   {
-    TestStream out;
-    BuildFakeDeviceTable(&out, 1, 9, 3);
-    EXPECT_FALSE(ots::ParseDeviceTable(out.data(), out.size() - 1));
+    EXPECT_TRUE(FakeLookupParserReturnsTrue.Parse(file, 0, 0, 5));
   }
 }
 
-TEST(LookupSubtableParserTest, TestSuccess) {
+TEST_F(LookupSubtableParserTest, TestFail) {
   {
-    ots::OpenTypeFile file;
-    EXPECT_TRUE(FakeLookupParserReturnsTrue.Parse(&file, 0, 0, 1));
-  }
-  {
-    ots::OpenTypeFile file;
-    EXPECT_TRUE(FakeLookupParserReturnsTrue.Parse(&file, 0, 0, 5));
-  }
-}
-
-TEST(LookupSubtableParserTest, TestFail) {
-  {
-    ots::OpenTypeFile file;
     // Pass bad lookup type which less than the smallest type.
-    EXPECT_FALSE(FakeLookupParserReturnsTrue.Parse(&file, 0, 0, 0));
+    EXPECT_FALSE(FakeLookupParserReturnsTrue.Parse(file, 0, 0, 0));
   }
   {
-    ots::OpenTypeFile file;
     // Pass bad lookup type which greater than the maximum type.
-    EXPECT_FALSE(FakeLookupParserReturnsTrue.Parse(&file, 0, 0, 6));
+    EXPECT_FALSE(FakeLookupParserReturnsTrue.Parse(file, 0, 0, 6));
   }
   {
-    ots::OpenTypeFile file;
     // Check the type parser failure.
-    EXPECT_FALSE(FakeLookupParserReturnsFalse.Parse(&file, 0, 0, 1));
+    EXPECT_FALSE(FakeLookupParserReturnsFalse.Parse(file, 0, 0, 1));
   }
 }

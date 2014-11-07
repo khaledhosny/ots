@@ -201,6 +201,23 @@
             'src',
           ],
         },
+        {
+          'target_name': 'layout_common_table_test',
+          'type': 'executable',
+          'sources': [
+            'test/layout_common_table_test.cc',
+          ],
+          'dependencies': [
+            'ots',
+          ],
+          'libraries': [
+            '-lgtest',
+            '-lgtest_main',
+          ],
+          'include_dirs': [
+            'src',
+          ],
+        },
       ],
     }],
     ['OS=="linux"', {
