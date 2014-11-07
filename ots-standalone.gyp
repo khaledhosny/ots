@@ -218,6 +218,23 @@
             'src',
           ],
         },
+        {
+          'target_name': 'table_dependencies_test',
+          'type': 'executable',
+          'sources': [
+            'test/table_dependencies_test.cc',
+          ],
+          'dependencies': [
+            'ots',
+          ],
+          'libraries': [
+            '-lgtest',
+            '-lgtest_main',
+          ],
+          'include_dirs': [
+            'src',
+          ],
+        },
       ],
     }],
     ['OS=="linux"', {
