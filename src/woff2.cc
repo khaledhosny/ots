@@ -18,6 +18,8 @@
 #include "ots.h"
 #include "woff2.h"
 
+#define TABLE_NAME "WOFF2"
+
 namespace {
 
 // simple glyph flags
@@ -797,25 +799,26 @@ bool Woff2Uncompress(uint8_t* dst_buf, size_t dst_size,
   return OTS_FAILURE();
 }
 
-bool ReadShortDirectory(ots::Buffer* file, std::vector<Table>* tables,
+bool ReadShortDirectory(ots::OpenTypeFile* file,
+    ots::Buffer* buffer, std::vector<Table>* tables,
     size_t num_tables) {
   for (size_t i = 0; i < num_tables; ++i) {
     Table* table = &tables->at(i);
     uint8_t flag_byte;
-    if (!file->ReadU8(&flag_byte)) {
-      return OTS_FAILURE();
+    if (!buffer->ReadU8(&flag_byte)) {
+      return OTS_FAILURE_MSG("Failed to read the flags of table directory entry %d", i);
     }
     uint32_t tag;
     if ((flag_byte & 0x3f) == 0x3f) {
-      if (!file->ReadU32(&tag)) {
-        return OTS_FAILURE();
+      if (!buffer->ReadU32(&tag)) {
+        return OTS_FAILURE_MSG("Failed to read the tag of table directory entry %d", i);
       }
     } else {
       tag = kKnownTags[flag_byte & 0x3f];
     }
     // Bits 6 and 7 are reserved and must be 0.
     if ((flag_byte & 0xc0) != 0) {
-      return OTS_FAILURE();
+      return OTS_FAILURE_MSG("Bits 6 and 7 are not 0 for table directory entry %d", i);
     }
     uint32_t flags = kCompressionTypeBrotli;
     if (i > 0) {
@@ -827,19 +830,19 @@ bool ReadShortDirectory(ots::Buffer* file, std::vector<Table>* tables,
       flags |= kWoff2FlagsTransform;
     }
     uint32_t dst_length;
-    if (!ReadBase128(file, &dst_length)) {
-      return OTS_FAILURE();
+    if (!ReadBase128(buffer, &dst_length)) {
+      return OTS_FAILURE_MSG("Failed to read \"origLength\" for table %4.4s", (char*)&tag);
     }
     uint32_t transform_length = dst_length;
     if ((flags & kWoff2FlagsTransform) != 0) {
-      if (!ReadBase128(file, &transform_length)) {
-        return OTS_FAILURE();
+      if (!ReadBase128(buffer, &transform_length)) {
+        return OTS_FAILURE_MSG("Failed to read \"transform_length\" for table %4.4s", (char*)&tag);
       }
     }
     // Disallow huge numbers (> 1GB) for sanity.
     if (transform_length > 1024 * 1024 * 1024 ||
         dst_length > 1024 * 1024 * 1024) {
-      return OTS_FAILURE();
+      return OTS_FAILURE_MSG("\"origLength\" or \"transform_length\" > 1GB");
     }
     table->tag = tag;
     table->flags = flags;
@@ -864,52 +867,53 @@ size_t ComputeWOFF2FinalSize(const uint8_t* data, size_t length) {
   return total_length;
 }
 
-bool ConvertWOFF2ToTTF(uint8_t* result, size_t result_length,
+bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
+                       uint8_t* result, size_t result_length,
                        const uint8_t* data, size_t length) {
   static const uint32_t kWoff2Signature = 0x774f4632;  // "wOF2"
-  ots::Buffer file(data, length);
+  ots::Buffer buffer(data, length);
 
   uint32_t signature;
   uint32_t flavor = 0;
-  if (!file.ReadU32(&signature) || signature != kWoff2Signature ||
-      !file.ReadU32(&flavor)) {
-    return OTS_FAILURE();
+  if (!buffer.ReadU32(&signature) || signature != kWoff2Signature ||
+      !buffer.ReadU32(&flavor)) {
+    return OTS_FAILURE_MSG("Failed to read \"signature\" or \"flavor\", or not WOFF2 signature");
   }
 
   if (!IsValidVersionTag(ntohl(flavor))) {
-    return OTS_FAILURE();
+    return OTS_FAILURE_MSG("Invalid \"flavor\"");
   }
 
   uint32_t reported_length;
-  if (!file.ReadU32(&reported_length) || length != reported_length) {
-    return OTS_FAILURE();
+  if (!buffer.ReadU32(&reported_length) || length != reported_length) {
+    return OTS_FAILURE_MSG("Failed to read \"length\" or it does not match the actual file size");
   }
   uint16_t num_tables;
-  if (!file.ReadU16(&num_tables) || !num_tables) {
-    return OTS_FAILURE();
+  if (!buffer.ReadU16(&num_tables) || !num_tables) {
+    return OTS_FAILURE_MSG("Failed to read \"numTables\"");
   }
   // We don't care about these fields of the header:
   //   uint16_t reserved
   //   uint32_t total_sfnt_size
-  if (!file.Skip(6)) {
-    return OTS_FAILURE();
+  if (!buffer.Skip(6)) {
+    return OTS_FAILURE_MSG("Failed to read \"reserve\" or \"totalSfntSize\"");
   }
   uint32_t compressed_length;
-  if (!file.ReadU32(&compressed_length)) {
-    return OTS_FAILURE();
+  if (!buffer.ReadU32(&compressed_length)) {
+    return OTS_FAILURE_MSG("Failed to read \"totalCompressedSize\"");
   }
   // We don't care about these fields of the header:
   //   uint16_t major_version, minor_version
   //   uint32_t meta_offset, meta_length, meta_orig_length
   //   uint32_t priv_offset, priv_length
-  if (!file.Skip(24)) {
+  if (!buffer.Skip(24)) {
     return OTS_FAILURE();
   }
   std::vector<Table> tables(num_tables);
-  if (!ReadShortDirectory(&file, &tables, num_tables)) {
+  if (!ReadShortDirectory(file, &buffer, &tables, num_tables)) {
     return OTS_FAILURE();
   }
-  uint64_t src_offset = file.offset();
+  uint64_t src_offset = buffer.offset();
   uint64_t dst_offset = kSfntHeaderSize +
       kSfntEntrySize * static_cast<uint64_t>(num_tables);
   uint64_t uncompressed_sum = 0;
@@ -1041,3 +1045,5 @@ bool ConvertWOFF2ToTTF(uint8_t* result, size_t result_length,
 }
 
 }  // namespace ots
+
+#undef TABLE_NAME
