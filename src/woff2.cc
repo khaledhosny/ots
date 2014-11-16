@@ -911,7 +911,7 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
   }
   std::vector<Table> tables(num_tables);
   if (!ReadShortDirectory(file, &buffer, &tables, num_tables)) {
-    return OTS_FAILURE();
+    return OTS_FAILURE_MSG("Failed to read table directory");
   }
   uint64_t src_offset = buffer.offset();
   uint64_t dst_offset = kSfntHeaderSize +
@@ -941,7 +941,7 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
   }
   // Enforce same 30M limit on uncompressed tables as OTS
   if (uncompressed_sum > 30 * 1024 * 1024) {
-    return OTS_FAILURE();
+    return OTS_FAILURE_MSG("Uncompressed tables > 30MB");
   }
   if (src_offset > length || dst_offset > result_length) {
     return OTS_FAILURE();
