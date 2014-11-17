@@ -874,6 +874,10 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
   if (!buffer.ReadU32(&compressed_length)) {
     return OTS_FAILURE_MSG("Failed to read \"totalCompressedSize\"");
   }
+  if (compressed_length > std::numeric_limits<uint32_t>::max()) {
+    return OTS_FAILURE();
+  }
+
   // We don't care about these fields of the header:
   //   uint16_t major_version, minor_version
   //   uint32_t meta_offset, meta_length, meta_orig_length
@@ -891,7 +895,6 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
   }
   uint64_t dst_offset = kSfntHeaderSize +
       kSfntEntrySize * static_cast<uint64_t>(num_tables);
-  uint64_t uncompressed_sum = 0;
   for (uint16_t i = 0; i < num_tables; ++i) {
     Table* table = &tables.at(i);
     table->dst_offset = static_cast<uint32_t>(dst_offset);
@@ -900,17 +903,6 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
       return OTS_FAILURE();
     }
     dst_offset = ots::Round4(dst_offset);
-    uncompressed_sum += (i == 0 ? compressed_length : 0);
-    if (uncompressed_sum > std::numeric_limits<uint32_t>::max()) {
-      return OTS_FAILURE();
-    }
-  }
-  // Enforce same 30M limit on uncompressed tables as OTS
-  //
-  // The above comment does not make much sense, as uncompressed_sum (despite
-  // its name) is actually the size of the compressed data!
-  if (uncompressed_sum > 30 * 1024 * 1024) {
-    return OTS_FAILURE_MSG("Uncompressed tables > 30MB");
   }
   if (ots::Round4(compressed_offset + compressed_length) > length || dst_offset > result_length) {
     return OTS_FAILURE();
