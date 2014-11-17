@@ -816,13 +816,13 @@ bool ReadShortDirectory(ots::OpenTypeFile* file,
     uint32_t transform_length = dst_length;
     if ((flags & kWoff2FlagsTransform) != 0) {
       if (!ReadBase128(buffer, &transform_length)) {
-        return OTS_FAILURE_MSG("Failed to read \"transform_length\" for table %4.4s", (char*)&tag);
+        return OTS_FAILURE_MSG("Failed to read \"transformLength\" for table %4.4s", (char*)&tag);
       }
     }
     // Disallow huge numbers (> 1GB) for sanity.
     if (transform_length > 1024 * 1024 * 1024 ||
         dst_length > 1024 * 1024 * 1024) {
-      return OTS_FAILURE_MSG("\"origLength\" or \"transform_length\" > 1GB");
+      return OTS_FAILURE_MSG("\"origLength\" or \"transformLength\" > 1GB");
     }
     table->tag = tag;
     table->flags = flags;
