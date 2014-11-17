@@ -774,7 +774,7 @@ bool Woff2Uncompress(uint8_t* dst_buf, size_t dst_size,
   return true;
 }
 
-bool ReadShortDirectory(ots::OpenTypeFile* file,
+bool ReadTableDirectory(ots::OpenTypeFile* file,
     ots::Buffer* buffer, std::vector<Table>* tables,
     size_t num_tables) {
   for (size_t i = 0; i < num_tables; ++i) {
@@ -886,7 +886,7 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
     return OTS_FAILURE();
   }
   std::vector<Table> tables(num_tables);
-  if (!ReadShortDirectory(file, &buffer, &tables, num_tables)) {
+  if (!ReadTableDirectory(file, &buffer, &tables, num_tables)) {
     return OTS_FAILURE_MSG("Failed to read table directory");
   }
   uint64_t compressed_offset = buffer.offset();
