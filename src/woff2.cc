@@ -9,8 +9,6 @@
 #include <cstdlib>
 #include <vector>
 
-#include <zlib.h>
-
 #include "decode.h"
 
 #include "opentype-sanitiser.h"
@@ -50,12 +48,6 @@ const size_t kCompositeGlyphBegin = 10;
 
 const unsigned int kWoff2FlagsContinueStream = 1 << 4;
 const unsigned int kWoff2FlagsTransform = 1 << 5;
-
-// Compression type values common to both short and long formats
-const uint32_t kCompressionTypeMask = 0xf;
-const uint32_t kCompressionTypeNone = 0;
-const uint32_t kCompressionTypeGzip = 1;
-const uint32_t kCompressionTypeBrotli = 2;
 
 const uint32_t kKnownTags[] = {
   TAG('c', 'm', 'a', 'p'),  // 0
@@ -777,26 +769,14 @@ bool FixChecksums(const std::vector<Table>& tables, uint8_t* dst) {
 }
 
 bool Woff2Uncompress(uint8_t* dst_buf, size_t dst_size,
-    const uint8_t* src_buf, size_t src_size, uint32_t compression_type) {
-  if (compression_type == kCompressionTypeGzip) {
-    uLongf uncompressed_length = dst_size;
-    int r = uncompress(reinterpret_cast<Bytef *>(dst_buf), &uncompressed_length,
-        src_buf, src_size);
-    if (r != Z_OK || uncompressed_length != dst_size) {
-      return OTS_FAILURE();
-    }
-    return true;
-  } else if (compression_type == kCompressionTypeBrotli) {
-    size_t uncompressed_size = dst_size;
-    int ok = BrotliDecompressBuffer(src_size, src_buf,
-                                    &uncompressed_size, dst_buf);
-    if (!ok || uncompressed_size != dst_size) {
-      return OTS_FAILURE();
-    }
-    return true;
+    const uint8_t* src_buf, size_t src_size) {
+  size_t uncompressed_size = dst_size;
+  int ok = BrotliDecompressBuffer(src_size, src_buf,
+                                  &uncompressed_size, dst_buf);
+  if (!ok || uncompressed_size != dst_size) {
+    return OTS_FAILURE();
   }
-  // Unknown compression type
-  return OTS_FAILURE();
+  return true;
 }
 
 bool ReadShortDirectory(ots::OpenTypeFile* file,
@@ -820,7 +800,7 @@ bool ReadShortDirectory(ots::OpenTypeFile* file,
     if ((flag_byte & 0xc0) != 0) {
       return OTS_FAILURE_MSG("Bits 6 and 7 are not 0 for table directory entry %d", i);
     }
-    uint32_t flags = kCompressionTypeBrotli;
+    uint32_t flags = 0;
     if (i > 0) {
       flags |= kWoff2FlagsContinueStream;
     }
@@ -932,11 +912,9 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
       return OTS_FAILURE();
     }
     dst_offset = ots::Round4(dst_offset);
-    if ((table->flags & kCompressionTypeMask) != kCompressionTypeNone) {
-      uncompressed_sum += table->src_length;
-      if (uncompressed_sum > std::numeric_limits<uint32_t>::max()) {
-        return OTS_FAILURE();
-      }
+    uncompressed_sum += table->src_length;
+    if (uncompressed_sum > std::numeric_limits<uint32_t>::max()) {
+      return OTS_FAILURE();
     }
   }
   // Enforce same 30M limit on uncompressed tables as OTS
@@ -978,19 +956,12 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
     const Table* table = &tables.at(i);
     uint32_t flags = table->flags;
     const uint8_t* src_buf = data + table->src_offset;
-    uint32_t compression_type = flags & kCompressionTypeMask;
     size_t transform_length = table->transform_length;
     if ((flags & kWoff2FlagsContinueStream) != 0) {
       if (!continue_valid) {
         return OTS_FAILURE();
       }
-    } else if (compression_type == kCompressionTypeNone) {
-      if (transform_length != table->src_length) {
-        return OTS_FAILURE();
-      }
-      transform_buf = src_buf;
-      continue_valid = false;
-    } else if ((flags & kWoff2FlagsContinueStream) == 0) {
+    } else {
       uint64_t total_size = transform_length;
       for (uint16_t j = i + 1; j < num_tables; ++j) {
         if ((tables.at(j).flags & kWoff2FlagsContinueStream) == 0) {
@@ -1008,13 +979,11 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
       const size_t total_size_size_t = static_cast<size_t>(total_size);
       uncompressed_buf.resize(total_size_size_t);
       if (!Woff2Uncompress(&uncompressed_buf[0], total_size_size_t,
-          src_buf, compressed_length, compression_type)) {
+          src_buf, compressed_length)) {
         return OTS_FAILURE();
       }
       transform_buf = &uncompressed_buf[0];
       continue_valid = true;
-    } else {
-      return OTS_FAILURE();
     }
 
     if ((flags & kWoff2FlagsTransform) == 0) {
