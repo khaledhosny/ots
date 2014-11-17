@@ -46,7 +46,6 @@ const size_t kCompositeGlyphBegin = 10;
 // Note that the byte order is big-endian, not the same as ots.cc
 #define TAG(a, b, c, d) ((a << 24) | (b << 16) | (c << 8) | d)
 
-const unsigned int kWoff2FlagsContinueStream = 1 << 4;
 const unsigned int kWoff2FlagsTransform = 1 << 5;
 
 const uint32_t kKnownTags[] = {
@@ -124,8 +123,6 @@ struct Point {
 struct Table {
   uint32_t tag;
   uint32_t flags;
-  uint32_t src_offset;
-  uint32_t src_length;
 
   uint32_t transform_length;
 
@@ -135,8 +132,6 @@ struct Table {
   Table()
       : tag(0),
         flags(0),
-        src_offset(0),
-        src_length(0),
         transform_length(0),
         dst_offset(0),
         dst_length(0) {}
@@ -801,9 +796,6 @@ bool ReadShortDirectory(ots::OpenTypeFile* file,
       return OTS_FAILURE_MSG("Bits 6 and 7 are not 0 for table directory entry %d", i);
     }
     uint32_t flags = 0;
-    if (i > 0) {
-      flags |= kWoff2FlagsContinueStream;
-    }
     // Always transform the glyf and loca tables
     if (tag == TAG('g', 'l', 'y', 'f') ||
         tag == TAG('l', 'o', 'c', 'a')) {
@@ -893,35 +885,34 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
   if (!ReadShortDirectory(file, &buffer, &tables, num_tables)) {
     return OTS_FAILURE_MSG("Failed to read table directory");
   }
-  uint64_t src_offset = buffer.offset();
+  uint64_t compressed_offset = buffer.offset();
+  if (compressed_offset > std::numeric_limits<uint32_t>::max()) {
+    return OTS_FAILURE();
+  }
   uint64_t dst_offset = kSfntHeaderSize +
       kSfntEntrySize * static_cast<uint64_t>(num_tables);
   uint64_t uncompressed_sum = 0;
   for (uint16_t i = 0; i < num_tables; ++i) {
     Table* table = &tables.at(i);
-    table->src_offset = static_cast<uint32_t>(src_offset);
-    table->src_length = (i == 0 ? compressed_length : 0);
-    src_offset += table->src_length;
-    if (src_offset > std::numeric_limits<uint32_t>::max()) {
-      return OTS_FAILURE();
-    }
-    src_offset = ots::Round4(src_offset);
     table->dst_offset = static_cast<uint32_t>(dst_offset);
     dst_offset += table->dst_length;
     if (dst_offset > std::numeric_limits<uint32_t>::max()) {
       return OTS_FAILURE();
     }
     dst_offset = ots::Round4(dst_offset);
-    uncompressed_sum += table->src_length;
+    uncompressed_sum += (i == 0 ? compressed_length : 0);
     if (uncompressed_sum > std::numeric_limits<uint32_t>::max()) {
       return OTS_FAILURE();
     }
   }
   // Enforce same 30M limit on uncompressed tables as OTS
+  //
+  // The above comment does not make much sense, as uncompressed_sum (despite
+  // its name) is actually the size of the compressed data!
   if (uncompressed_sum > 30 * 1024 * 1024) {
     return OTS_FAILURE_MSG("Uncompressed tables > 30MB");
   }
-  if (src_offset > length || dst_offset > result_length) {
+  if (ots::Round4(compressed_offset + compressed_length) > length || dst_offset > result_length) {
     return OTS_FAILURE();
   }
 
@@ -950,41 +941,32 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
     offset = StoreU32(result, offset, table->dst_length);
   }
   std::vector<uint8_t> uncompressed_buf;
-  bool continue_valid = false;
   const uint8_t* transform_buf = NULL;
+  uint64_t total_size = 0;
+
+  for (uint16_t i = 0; i < num_tables; ++i) {
+    total_size += tables.at(i).transform_length;
+    if (total_size > std::numeric_limits<uint32_t>::max()) {
+      return OTS_FAILURE();
+    }
+  }
+  // Enforce same 30M limit on uncompressed tables as OTS
+  if (total_size > 30 * 1024 * 1024) {
+    return OTS_FAILURE();
+  }
+  const size_t total_size_size_t = static_cast<size_t>(total_size);
+  uncompressed_buf.resize(total_size_size_t);
+  const uint8_t* src_buf = data + compressed_offset;
+  if (!Woff2Uncompress(&uncompressed_buf[0], total_size_size_t,
+      src_buf, compressed_length)) {
+    return OTS_FAILURE();
+  }
+  transform_buf = &uncompressed_buf[0];
+
   for (uint16_t i = 0; i < num_tables; ++i) {
     const Table* table = &tables.at(i);
     uint32_t flags = table->flags;
-    const uint8_t* src_buf = data + table->src_offset;
     size_t transform_length = table->transform_length;
-    if ((flags & kWoff2FlagsContinueStream) != 0) {
-      if (!continue_valid) {
-        return OTS_FAILURE();
-      }
-    } else {
-      uint64_t total_size = transform_length;
-      for (uint16_t j = i + 1; j < num_tables; ++j) {
-        if ((tables.at(j).flags & kWoff2FlagsContinueStream) == 0) {
-          break;
-        }
-        total_size += tables.at(j).transform_length;
-        if (total_size > std::numeric_limits<uint32_t>::max()) {
-          return OTS_FAILURE();
-        }
-      }
-      // Enforce same 30M limit on uncompressed tables as OTS
-      if (total_size > 30 * 1024 * 1024) {
-        return OTS_FAILURE();
-      }
-      const size_t total_size_size_t = static_cast<size_t>(total_size);
-      uncompressed_buf.resize(total_size_size_t);
-      if (!Woff2Uncompress(&uncompressed_buf[0], total_size_size_t,
-          src_buf, compressed_length)) {
-        return OTS_FAILURE();
-      }
-      transform_buf = &uncompressed_buf[0];
-      continue_valid = true;
-    }
 
     if ((flags & kWoff2FlagsTransform) == 0) {
       if (transform_length != table->dst_length) {
@@ -1002,11 +984,10 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
         return OTS_FAILURE();
       }
     }
-    if (continue_valid) {
-      transform_buf += transform_length;
-      if (transform_buf > &uncompressed_buf[0] + uncompressed_buf.size()) {
-        return OTS_FAILURE();
-      }
+
+    transform_buf += transform_length;
+    if (transform_buf > &uncompressed_buf[0] + uncompressed_buf.size()) {
+      return OTS_FAILURE();
     }
   }
 
