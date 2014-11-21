@@ -132,8 +132,6 @@ int OpenAndLoadChars(
 }  // namespace
 
 int main(int argc, char **argv) {
-  ots::DisableDebugOutput();  // turn off ERROR and WARNING outputs.
-
   if (argc != 2) {
     std::fprintf(stderr, "Usage: %s ttf_or_otf_filename\n", argv[0]);
     return 1;

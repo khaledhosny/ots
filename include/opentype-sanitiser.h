@@ -222,10 +222,6 @@ class OTSContext {
 // For backward compatibility - remove once Chrome switches over to the new API.
 bool Process(OTSStream *output, const uint8_t *input, size_t length);
 
-// Force to disable debug output even when the library is compiled with
-// -DOTS_DEBUG.
-void DisableDebugOutput();
-
 }  // namespace ots
 
 #endif  // OPENTYPE_SANITISER_H_

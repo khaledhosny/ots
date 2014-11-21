@@ -21,8 +21,6 @@
 
 namespace {
 
-bool g_debug_output = true;
-
 // Generate a message with or without a table tag, when 'header' is the OpenTypeFile pointer
 #define OTS_FAILURE_MSG_TAG(msg_,tag_) OTS_FAILURE_MSG_TAG_(header, msg_, tag_)
 #define OTS_FAILURE_MSG_HDR(msg_)      OTS_FAILURE_MSG_(header, msg_)
@@ -787,10 +785,6 @@ bool IsValidVersionTag(uint32_t tag) {
          tag == Tag("typ1");
 }
 
-void DisableDebugOutput() {
-  g_debug_output = false;
-}
-
 bool OTSContext::Process(OTSStream *output,
                          const uint8_t *data,
                          size_t length) {
@@ -826,10 +820,8 @@ bool Process(OTSStream *output, const uint8_t *data, size_t length) {
 
 #if !defined(_MSC_VER) && defined(OTS_DEBUG)
 bool Failure(const char *f, int l, const char *fn) {
-  if (g_debug_output) {
-    std::fprintf(stderr, "ERROR at %s:%d (%s)\n", f, l, fn);
-    std::fflush(stderr);
-  }
+  std::fprintf(stderr, "ERROR at %s:%d (%s)\n", f, l, fn);
+  std::fflush(stderr);
   return false;
 }
 #endif

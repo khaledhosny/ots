@@ -25,8 +25,6 @@ int Usage(const char *argv0) {
 }  // namespace
 
 int main(int argc, char **argv) {
-  ots::DisableDebugOutput();  // turn off ERROR and WARNING outputs.
-
   if (argc != 2) return Usage(argv[0]);
 
   const int fd = ::open(argv[1], O_RDONLY);
