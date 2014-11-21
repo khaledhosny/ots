@@ -69,8 +69,6 @@ class Context: public ots::OTSContext {
 int main(int argc, char **argv) {
   if (argc < 2 || argc > 3) return Usage(argv[0]);
 
-  ots::EnableWOFF2();
-
   const int fd = ::open(argv[1], O_RDONLY | ADDITIONAL_OPEN_FLAGS);
   if (fd < 0) {
     ::perror("open");

@@ -14,9 +14,7 @@
 #include <map>
 #include <vector>
 
-#ifndef OTS_DISABLE_WOFF2
 #include "woff2.h"
-#endif
 
 // The OpenType Font File
 // http://www.microsoft.com/typography/otspec/cmap.htm
@@ -24,7 +22,6 @@
 namespace {
 
 bool g_debug_output = true;
-bool g_enable_woff2 = false;
 
 // Generate a message with or without a table tag, when 'header' is the OpenTypeFile pointer
 #define OTS_FAILURE_MSG_TAG(msg_,tag_) OTS_FAILURE_MSG_TAG_(header, msg_, tag_)
@@ -396,7 +393,6 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
   return ProcessGeneric(header, woff_tag, output, data, length, tables, file);
 }
 
-#ifndef OTS_DISABLE_WOFF2
 bool ProcessWOFF2(ots::OpenTypeFile *header,
                   ots::OTSStream *output, const uint8_t *data, size_t length) {
   size_t decompressed_size = ots::ComputeWOFF2FinalSize(data, length);
@@ -415,7 +411,6 @@ bool ProcessWOFF2(ots::OpenTypeFile *header,
   }
   return ProcessTTF(header, output, &decompressed_buffer[0], decompressed_size);
 }
-#endif
 
 ots::TableAction GetTableAction(ots::OpenTypeFile *header, uint32_t tag) {
   ots::TableAction action = ots::TABLE_ACTION_DEFAULT;
@@ -796,10 +791,6 @@ void DisableDebugOutput() {
   g_debug_output = false;
 }
 
-void EnableWOFF2() {
-  g_enable_woff2 = true;
-}
-
 bool OTSContext::Process(OTSStream *output,
                          const uint8_t *data,
                          size_t length) {
@@ -814,12 +805,8 @@ bool OTSContext::Process(OTSStream *output,
   bool result;
   if (data[0] == 'w' && data[1] == 'O' && data[2] == 'F' && data[3] == 'F') {
     result = ProcessWOFF(&header, output, data, length);
-#ifndef OTS_DISABLE_WOFF2
-  } else if (g_enable_woff2 &&
-             data[0] == 'w' && data[1] == 'O' && data[2] == 'F' &&
-             data[3] == '2') {
+  } else if (data[0] == 'w' && data[1] == 'O' && data[2] == 'F' && data[3] == '2') {
     result = ProcessWOFF2(&header, output, data, length);
-#endif
   } else {
     result = ProcessTTF(&header, output, data, length);
   }
