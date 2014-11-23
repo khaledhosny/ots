@@ -25,8 +25,12 @@ namespace ots {
 #if defined(_MSC_VER) || !defined(OTS_DEBUG)
 #define OTS_FAILURE() false
 #else
-#define OTS_FAILURE() ots::Failure(__FILE__, __LINE__, __PRETTY_FUNCTION__)
-bool Failure(const char *f, int l, const char *fn);
+#define OTS_FAILURE() \
+  (\
+    std::fprintf(stderr, "ERROR at %s:%d (%s)\n", \
+                 __FILE__, __LINE__, __PRETTY_FUNCTION__) \
+    && false\
+  )
 #endif
 
 // All OTS_FAILURE_* macros ultimately evaluate to 'false', just like the original

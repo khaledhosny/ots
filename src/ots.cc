@@ -818,12 +818,4 @@ bool Process(OTSStream *output, const uint8_t *data, size_t length) {
   return context.Process(output, data, length);
 }
 
-#if !defined(_MSC_VER) && defined(OTS_DEBUG)
-bool Failure(const char *f, int l, const char *fn) {
-  std::fprintf(stderr, "ERROR at %s:%d (%s)\n", f, l, fn);
-  std::fflush(stderr);
-  return false;
-}
-#endif
-
 }  // namespace ots
