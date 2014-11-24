@@ -182,7 +182,7 @@ bool ReadBase128(ots::Buffer* buf, uint32_t* value) {
       return OTS_FAILURE();
     }
     // If any of the top seven bits are set then we're about to overflow.
-    if (result & 0xe0000000U) {
+    if (result & 0xfe000000U) {
       return OTS_FAILURE();
     }
     result = (result << 7) | (code & 0x7f);
