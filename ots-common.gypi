@@ -11,10 +11,10 @@
       'src/cff.h',
       'src/cff_type2_charstring.cc',
       'src/cff_type2_charstring.h',
-      'src/cbdt.cc'
-      'src/cbdt.h'
-      'src/cblc.cc'
-      'src/cblc.h'
+      'src/cbdt.cc',
+      'src/cbdt.h',
+      'src/cblc.cc',
+      'src/cblc.h',
       'src/cmap.cc',
       'src/cmap.h',
       'src/cvt.cc',

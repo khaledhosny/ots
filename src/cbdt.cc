@@ -12,7 +12,7 @@ namespace ots {
 
 extern bool g_drop_color_bitmap_tables;
 
-bool ots_cbdt_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
+bool ots_cbdt_parse(ots::OpenTypeFile *file, const uint8_t *data, size_t length) {
   if (g_drop_color_bitmap_tables) {
     return OTS_FAILURE();
   }
