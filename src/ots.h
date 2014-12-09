@@ -219,7 +219,9 @@ bool IsValidVersionTag(uint32_t tag);
   F(vdmx, VDMX) \
   F(vorg, VORG) \
   F(vhea, VHEA) \
-  F(vmtx, VMTX)
+  F(vmtx, VMTX) \
+  F(cblc, CBLC) \
+  F(cbdt, CBDT)
 
 #define F(name, capname) struct OpenType##capname;
 FOR_EACH_TABLE_TYPE
