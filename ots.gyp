@@ -33,6 +33,7 @@
       'msvs_disabled_warnings': [
         4267,
         4334,
+        4800,
       ],      
     },
   ],
