@@ -56,6 +56,8 @@ class Context: public ots::OTSContext {
       case TAG('G','l','o','c'):
       case TAG('G','l','a','t'):
       case TAG('F','e','a','t'):
+      case TAG('C','B','D','T'):
+      case TAG('C','B','L','C'):
         return ots::TABLE_ACTION_PASSTHRU;
       default:
         return ots::TABLE_ACTION_DEFAULT;
