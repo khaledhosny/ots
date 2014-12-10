@@ -599,7 +599,8 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
   } else {
     if (!header->glyf || !header->loca) {
       // No TrueType glyph found.
-#define PASSTHRU_TABLE(TAG) (GetTableAction(header, Tag(TAG)) == ots::TABLE_ACTION_PASSTHRU)
+#define PASSTHRU_TABLE(TAG) (table_map.find(Tag(TAG)) != table_map.end() && \
+                             GetTableAction(header, Tag(TAG)) == ots::TABLE_ACTION_PASSTHRU)
       // We don't sanitise bitmap table, but don't reject bitmap-only fonts if
       // we keep the tables.
       if (!PASSTHRU_TABLE("CBDT") || !PASSTHRU_TABLE("CBLC")) {
