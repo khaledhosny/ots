@@ -599,8 +599,13 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
   } else {
     if (!header->glyf || !header->loca) {
       // No TrueType glyph found.
-      // Note: bitmap-only fonts are not supported.
-      return OTS_FAILURE_MSG_HDR("neither PS nor TT glyphs present");
+#define PASSTHRU_TABLE(TAG) (GetTableAction(header, Tag(TAG)) == ots::TABLE_ACTION_PASSTHRU)
+      // We don't sanitise bitmap table, but don't reject bitmap-only fonts if
+      // we keep the tables.
+      if (!PASSTHRU_TABLE("CBDT") || !PASSTHRU_TABLE("CBLC")) {
+        return OTS_FAILURE_MSG_HDR("no supported glyph shapes table(s) present");
+      }
+#undef PASSTHRU_TABLE
     }
   }
 
