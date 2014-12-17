@@ -2,13 +2,17 @@ How to build (using gyp):
 
   (Note: test programs which require gtest can't build with gyp for now)
 
-  1. If you are building from cloned Git repository, make sure to update the
+  1. If you are building OTS on Windows, download both the source
+     code and compiled driver for zlib from http://www.zlib.net/
+     and put them in third_party/zlib.
+
+  2. If you are building from cloned Git repository, make sure to update the
      submodules as well:
 
      $ git submodule init
      $ git submodule update
 
-  2. Run gyp_ots
+  3. Run gyp_ots
 
     $ python gyp_ots
 
@@ -22,7 +26,7 @@ How to build (using gyp):
 
     $ python gyp_ots -f make
 
-  3. Build OTS
+  4. Build OTS
 
     Using MSVS:
       Open ots-standalone.sln and build the solution.
