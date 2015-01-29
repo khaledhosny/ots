@@ -45,6 +45,7 @@ const size_t kCompositeGlyphBegin = 10;
 
 // Note that the byte order is big-endian, not the same as ots.cc
 #define TAG(a, b, c, d) ((a << 24) | (b << 16) | (c << 8) | d)
+#define CHR(t)           (t >> 24),  (t >> 16),  (t >> 8), (t >> 0)
 
 const unsigned int kWoff2FlagsTransform = 1 << 5;
 
@@ -519,26 +520,28 @@ bool ReconstructGlyf(ots::OpenTypeFile* file,
   std::vector<std::pair<const uint8_t*, size_t> > substreams(kNumSubStreams);
 
   if (!buffer.ReadU32(&version)) {
-    return OTS_FAILURE();
+    return OTS_FAILURE_MSG("Failed to read 'version' of transformed 'glyf' table");
   }
   uint16_t num_glyphs;
+  if (!buffer.ReadU16(&num_glyphs)) {
+    return OTS_FAILURE_MSG("Failed to read 'numGlyphs' from transformed 'glyf' table");
+  }
   uint16_t index_format;
-  if (!buffer.ReadU16(&num_glyphs) ||
-      !buffer.ReadU16(&index_format)) {
-    return OTS_FAILURE();
+  if (!buffer.ReadU16(&index_format)) {
+    return OTS_FAILURE_MSG("Failed to read 'indexFormat' from transformed 'glyf' table");
   }
   unsigned int offset = (2 + kNumSubStreams) * 4;
   if (offset > data_size) {
-    return OTS_FAILURE();
+    return OTS_FAILURE_MSG("Size of transformed 'glyf' table is too small to fit its data");
   }
   // Invariant from here on: data_size >= offset
   for (int i = 0; i < kNumSubStreams; ++i) {
     uint32_t substream_size;
     if (!buffer.ReadU32(&substream_size)) {
-      return OTS_FAILURE();
+      return OTS_FAILURE_MSG("Failed to read substream size %d of transformed 'glyf' table", i);
     }
     if (substream_size > data_size - offset) {
-      return OTS_FAILURE();
+      return OTS_FAILURE_MSG("Size of substream %d of transformed 'glyf' table does not fit in table size");
     }
     substreams.at(i) = std::make_pair(data + offset, substream_size);
     offset += substream_size;
@@ -561,7 +564,7 @@ bool ReconstructGlyf(ots::OpenTypeFile* file,
     size_t glyph_size = 0;
     uint16_t n_contours = 0;
     if (!n_contour_stream.ReadU16(&n_contours)) {
-      return OTS_FAILURE();
+      return OTS_FAILURE_MSG("Filed to read 'numberOfContours' of glyph %d from transformed 'glyf' table", i);
     }
     uint8_t* glyf_dst = dst + loca_offset;
     size_t glyf_dst_size = dst_size - loca_offset;
@@ -571,20 +574,20 @@ bool ReconstructGlyf(ots::OpenTypeFile* file,
       uint16_t instruction_size = 0;
       if (!ProcessComposite(&composite_stream, glyf_dst, glyf_dst_size,
             &glyph_size, &have_instructions)) {
-        return OTS_FAILURE();
+        return OTS_FAILURE_MSG("Filed to process composite glyph %d from transformed 'glyf' table", i);
       }
       if (have_instructions) {
         if (!Read255UShort(&glyph_stream, &instruction_size)) {
-          return OTS_FAILURE();
+          return OTS_FAILURE_MSG("Failed to read 'instructionLength' of glyph %d from transformed 'glyf' table", i);
         }
         // No integer overflow here (instruction_size < 2^16).
         if (instruction_size + 2U > glyf_dst_size - glyph_size) {
-          return OTS_FAILURE();
+          return OTS_FAILURE_MSG("'instructionLength' of glyph %d from transformed 'glyf' table does not fit in the destination glyph size", i);
         }
         StoreU16(glyf_dst, glyph_size, instruction_size);
         if (!instruction_stream.Read(glyf_dst + glyph_size + 2,
               instruction_size)) {
-          return OTS_FAILURE();
+          return OTS_FAILURE_MSG("Filed to read instructions of glyph %d from transformed 'glyf' table", i);
         }
         glyph_size += instruction_size + 2;
       }
@@ -596,11 +599,11 @@ bool ReconstructGlyf(ots::OpenTypeFile* file,
       uint16_t n_points_contour;
       for (uint32_t j = 0; j < n_contours; ++j) {
         if (!Read255UShort(&n_points_stream, &n_points_contour)) {
-          return OTS_FAILURE();
+          return OTS_FAILURE_MSG("Filed to read number of points of contour %d of glyph %d from transformed 'glyf' table", j, i);
         }
         n_points_vec.push_back(n_points_contour);
         if (total_n_points + n_points_contour < total_n_points) {
-          return OTS_FAILURE();
+          return OTS_FAILURE_MSG("Negative number of points of contour %d of glyph %d from transformed 'glyf' table", j, i);
         }
         total_n_points += n_points_contour;
       }
@@ -655,7 +658,7 @@ bool ReconstructGlyf(ots::OpenTypeFile* file,
       }
       if (!StorePoints(points, n_contours, instruction_size,
             glyf_dst, glyf_dst_size, &glyph_size)) {
-        return OTS_FAILURE();
+        return OTS_FAILURE_MSG("Failed to store points of glyph %d from the transformed 'glyf' table", i);
       }
     } else {
       glyph_size = 0;
@@ -676,7 +679,7 @@ bool ReconstructGlyf(ots::OpenTypeFile* file,
   assert(loca_values.size() == static_cast<size_t>(num_glyphs + 1));
   if (!ProcessBboxStream(&bbox_stream, num_glyphs, loca_values,
           dst, dst_size)) {
-    return OTS_FAILURE();
+    return OTS_FAILURE_MSG("Filed to process 'bboxStream' from the transformed 'glyf' table");
   }
   return StoreLoca(loca_values, index_format, loca_buf, loca_size);
 }
@@ -805,18 +808,18 @@ bool ReadTableDirectory(ots::OpenTypeFile* file,
     }
     uint32_t dst_length;
     if (!ReadBase128(buffer, &dst_length)) {
-      return OTS_FAILURE_MSG("Failed to read \"origLength\" for table %4.4s", (char*)&tag);
+      return OTS_FAILURE_MSG("Failed to read 'origLength' for table '%c%c%c%c'", CHR(tag));
     }
     uint32_t transform_length = dst_length;
     if ((flags & kWoff2FlagsTransform) != 0) {
       if (!ReadBase128(buffer, &transform_length)) {
-        return OTS_FAILURE_MSG("Failed to read \"transformLength\" for table %4.4s", (char*)&tag);
+        return OTS_FAILURE_MSG("Failed to read 'transformLength' for table '%c%c%c%c'", CHR(tag));
       }
     }
     // Disallow huge numbers (> 1GB) for sanity.
     if (transform_length > 1024 * 1024 * 1024 ||
         dst_length > 1024 * 1024 * 1024) {
-      return OTS_FAILURE_MSG("\"origLength\" or \"transformLength\" > 1GB");
+      return OTS_FAILURE_MSG("'origLength' or 'transformLength' > 1GB");
     }
     table->tag = tag;
     table->flags = flags;
@@ -851,30 +854,30 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
   uint32_t flavor = 0;
   if (!buffer.ReadU32(&signature) || signature != kWoff2Signature ||
       !buffer.ReadU32(&flavor)) {
-    return OTS_FAILURE_MSG("Failed to read \"signature\" or \"flavor\", or not WOFF2 signature");
+    return OTS_FAILURE_MSG("Failed to read 'signature' or 'flavor', or not WOFF2 signature");
   }
 
   if (!IsValidVersionTag(ntohl(flavor))) {
-    return OTS_FAILURE_MSG("Invalid \"flavor\"");
+    return OTS_FAILURE_MSG("Invalid 'flavor'");
   }
 
   uint32_t reported_length;
   if (!buffer.ReadU32(&reported_length) || length != reported_length) {
-    return OTS_FAILURE_MSG("Failed to read \"length\" or it does not match the actual file size");
+    return OTS_FAILURE_MSG("Failed to read 'length' or it does not match the actual file size");
   }
   uint16_t num_tables;
   if (!buffer.ReadU16(&num_tables) || !num_tables) {
-    return OTS_FAILURE_MSG("Failed to read \"numTables\"");
+    return OTS_FAILURE_MSG("Failed to read 'numTables'");
   }
   // We don't care about these fields of the header:
   //   uint16_t reserved
   //   uint32_t total_sfnt_size
   if (!buffer.Skip(6)) {
-    return OTS_FAILURE_MSG("Failed to read \"reserve\" or \"totalSfntSize\"");
+    return OTS_FAILURE_MSG("Failed to read 'reserve' or 'totalSfntSize'");
   }
   uint32_t compressed_length;
   if (!buffer.ReadU32(&compressed_length)) {
-    return OTS_FAILURE_MSG("Failed to read \"totalCompressedSize\"");
+    return OTS_FAILURE_MSG("Failed to read 'totalCompressedSize'");
   }
   if (compressed_length > std::numeric_limits<uint32_t>::max()) {
     return OTS_FAILURE();
@@ -975,7 +978,7 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
     } else {
       if (!ReconstructTransformed(file, tables, table->tag,
             transform_buf, transform_length, result, result_length)) {
-        return OTS_FAILURE();
+        return OTS_FAILURE_MSG("Failed to reconstruct '%c%c%c%c' table", CHR(table->tag));
       }
     }
 
