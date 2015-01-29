@@ -509,21 +509,22 @@ bool StoreLoca(const std::vector<uint32_t>& loca_values, int index_format,
 }
 
 // Reconstruct entire glyf table based on transformed original
-bool ReconstructGlyf(const uint8_t* data, size_t data_size,
+bool ReconstructGlyf(ots::OpenTypeFile* file,
+    const uint8_t* data, size_t data_size,
     uint8_t* dst, size_t dst_size,
     uint8_t* loca_buf, size_t loca_size) {
   static const int kNumSubStreams = 7;
-  ots::Buffer file(data, data_size);
+  ots::Buffer buffer(data, data_size);
   uint32_t version;
   std::vector<std::pair<const uint8_t*, size_t> > substreams(kNumSubStreams);
 
-  if (!file.ReadU32(&version)) {
+  if (!buffer.ReadU32(&version)) {
     return OTS_FAILURE();
   }
   uint16_t num_glyphs;
   uint16_t index_format;
-  if (!file.ReadU16(&num_glyphs) ||
-      !file.ReadU16(&index_format)) {
+  if (!buffer.ReadU16(&num_glyphs) ||
+      !buffer.ReadU16(&index_format)) {
     return OTS_FAILURE();
   }
   unsigned int offset = (2 + kNumSubStreams) * 4;
@@ -533,7 +534,7 @@ bool ReconstructGlyf(const uint8_t* data, size_t data_size,
   // Invariant from here on: data_size >= offset
   for (int i = 0; i < kNumSubStreams; ++i) {
     uint32_t substream_size;
-    if (!file.ReadU32(&substream_size)) {
+    if (!buffer.ReadU32(&substream_size)) {
       return OTS_FAILURE();
     }
     if (substream_size > data_size - offset) {
@@ -693,7 +694,8 @@ const Table* FindTable(const std::vector<Table>& tables, uint32_t tag) {
   return NULL;
 }
 
-bool ReconstructTransformed(const std::vector<Table>& tables, uint32_t tag,
+bool ReconstructTransformed(ots::OpenTypeFile* file,
+    const std::vector<Table>& tables, uint32_t tag,
     const uint8_t* transformed_buf, size_t transformed_size,
     uint8_t* dst, size_t dst_length) {
   if (tag == TAG('g', 'l', 'y', 'f')) {
@@ -710,7 +712,7 @@ bool ReconstructTransformed(const std::vector<Table>& tables, uint32_t tag,
         dst_length) {
       return OTS_FAILURE();
     }
-    return ReconstructGlyf(transformed_buf, transformed_size,
+    return ReconstructGlyf(file, transformed_buf, transformed_size,
         dst + glyf_table->dst_offset, glyf_table->dst_length,
         dst + loca_table->dst_offset, loca_table->dst_length);
   } else if (tag == TAG('l', 'o', 'c', 'a')) {
@@ -971,7 +973,7 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
       std::memcpy(result + table->dst_offset, transform_buf,
           transform_length);
     } else {
-      if (!ReconstructTransformed(tables, table->tag,
+      if (!ReconstructTransformed(file, tables, table->tag,
             transform_buf, transform_length, result, result_length)) {
         return OTS_FAILURE();
       }
