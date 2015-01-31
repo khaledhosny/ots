@@ -869,11 +869,16 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
   if (!buffer.ReadU16(&num_tables) || !num_tables) {
     return OTS_FAILURE_MSG("Failed to read 'numTables'");
   }
+
+  uint16_t reserved_value;
+  if (!buffer.ReadU16(&reserved_value) || reserved_value) {
+    return OTS_FAILURE_MSG("Error in 'reserved' field");
+  }
+
   // We don't care about these fields of the header:
-  //   uint16_t reserved
   //   uint32_t total_sfnt_size, the caller already passes it as result_length
-  if (!buffer.Skip(6)) {
-    return OTS_FAILURE_MSG("Failed to read 'reserve' or 'totalSfntSize'");
+  if (!buffer.Skip(4)) {
+    return OTS_FAILURE_MSG("Failed to read 'totalSfntSize'");
   }
   uint32_t compressed_length;
   if (!buffer.ReadU32(&compressed_length)) {
