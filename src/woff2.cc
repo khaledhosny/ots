@@ -871,7 +871,7 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
   }
   // We don't care about these fields of the header:
   //   uint16_t reserved
-  //   uint32_t total_sfnt_size
+  //   uint32_t total_sfnt_size, the caller already passes it as result_length
   if (!buffer.Skip(6)) {
     return OTS_FAILURE_MSG("Failed to read 'reserve' or 'totalSfntSize'");
   }
@@ -909,8 +909,8 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
     }
     dst_offset = ots::Round4(dst_offset);
   }
-  if (ots::Round4(compressed_offset + compressed_length) > length || dst_offset > result_length) {
-    return OTS_FAILURE();
+  if (ots::Round4(compressed_offset + compressed_length) > length || dst_offset != result_length) {
+    return OTS_FAILURE_MSG("Uncompressed sfnt size mismatch");
   }
 
   const uint32_t sfnt_header_and_table_directory_size = 12 + 16 * num_tables;
