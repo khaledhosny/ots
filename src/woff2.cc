@@ -961,7 +961,7 @@ bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
   const uint8_t* src_buf = data + compressed_offset;
   if (!Woff2Uncompress(&uncompressed_buf[0], total_size_size_t,
       src_buf, compressed_length)) {
-    return OTS_FAILURE();
+    return OTS_FAILURE_MSG("Failed to uncompress font data");
   }
   transform_buf = &uncompressed_buf[0];
 
