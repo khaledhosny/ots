@@ -871,8 +871,8 @@ bool ConvertWOFF2ToSFNT(ots::OpenTypeFile* file,
   }
 
   uint16_t reserved_value;
-  if (!buffer.ReadU16(&reserved_value) || reserved_value) {
-    return OTS_FAILURE_MSG("Error in 'reserved' field");
+  if (!buffer.ReadU16(&reserved_value)) {
+    return OTS_FAILURE_MSG("Failed to read 'reserved' field");
   }
 
   // We don't care about these fields of the header:
