@@ -403,8 +403,8 @@ bool ProcessWOFF2(ots::OpenTypeFile *header,
   }
 
   std::vector<uint8_t> decompressed_buffer(decompressed_size);
-  if (!ots::ConvertWOFF2ToTTF(header, &decompressed_buffer[0], decompressed_size,
-                              data, length)) {
+  if (!ots::ConvertWOFF2ToSFNT(header, &decompressed_buffer[0], decompressed_size,
+                               data, length)) {
     return OTS_FAILURE_MSG_HDR("Failed to convert WOFF 2.0 font to SFNT");
   }
   return ProcessTTF(header, output, &decompressed_buffer[0], decompressed_size);

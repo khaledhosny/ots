@@ -844,9 +844,9 @@ size_t ComputeWOFF2FinalSize(const uint8_t* data, size_t length) {
   return total_length;
 }
 
-bool ConvertWOFF2ToTTF(ots::OpenTypeFile* file,
-                       uint8_t* result, size_t result_length,
-                       const uint8_t* data, size_t length) {
+bool ConvertWOFF2ToSFNT(ots::OpenTypeFile* file,
+                        uint8_t* result, size_t result_length,
+                        const uint8_t* data, size_t length) {
   static const uint32_t kWoff2Signature = 0x774f4632;  // "wOF2"
   ots::Buffer buffer(data, length);
 
