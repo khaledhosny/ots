@@ -284,7 +284,7 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
   // We don't care about these fields of the header:
   //   uint16_t major_version, minor_version
   if (!file.Skip(2 * 2)) {
-    return OTS_FAILURE_MSG_HDR("error skipping WOFF header fields");
+    return OTS_FAILURE_MSG_HDR("Failed to read 'majorVersion' or 'minorVersion'");
   }
 
   // Checks metadata block size.
@@ -294,11 +294,11 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
   if (!file.ReadU32(&meta_offset) ||
       !file.ReadU32(&meta_length) ||
       !file.ReadU32(&meta_length_orig)) {
-    return OTS_FAILURE_MSG_HDR("error reading WOFF header fields");
+    return OTS_FAILURE_MSG_HDR("Failed to read header metadata block fields");
   }
   if (meta_offset) {
     if (meta_offset >= length || length - meta_offset < meta_length) {
-      return OTS_FAILURE_MSG_HDR("invalid metadata block location/size");
+      return OTS_FAILURE_MSG_HDR("Invalid metadata block offset or length");
     }
   }
 
@@ -307,11 +307,11 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
   uint32_t priv_length;
   if (!file.ReadU32(&priv_offset) ||
       !file.ReadU32(&priv_length)) {
-    return OTS_FAILURE_MSG_HDR("error reading WOFF header fields");
+    return OTS_FAILURE_MSG_HDR("Failed to read header private block fields");
   }
   if (priv_offset) {
     if (priv_offset >= length || length - priv_offset < priv_length) {
-      return OTS_FAILURE_MSG_HDR("invalid private block location/size");
+      return OTS_FAILURE_MSG_HDR("Invalid private block offset or length");
     }
   }
 
@@ -366,26 +366,26 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
   }
   if (meta_offset) {
     if (block_end != meta_offset) {
-      return OTS_FAILURE_MSG_HDR("invalid metadata block location");
+      return OTS_FAILURE_MSG_HDR("Invalid metadata block offset");
     }
     block_end = ots::Round4(static_cast<uint64_t>(meta_offset) +
                             static_cast<uint64_t>(meta_length));
     if (block_end > std::numeric_limits<uint32_t>::max()) {
-      return OTS_FAILURE_MSG_HDR("invalid metadata block size");
+      return OTS_FAILURE_MSG_HDR("Invalid metadata block length");
     }
   }
   if (priv_offset) {
     if (block_end != priv_offset) {
-      return OTS_FAILURE_MSG_HDR("invalid private block location");
+      return OTS_FAILURE_MSG_HDR("Invalid private block offset");
     }
     block_end = ots::Round4(static_cast<uint64_t>(priv_offset) +
                             static_cast<uint64_t>(priv_length));
     if (block_end > std::numeric_limits<uint32_t>::max()) {
-      return OTS_FAILURE_MSG_HDR("invalid private block size");
+      return OTS_FAILURE_MSG_HDR("Invalid private block length");
     }
   }
   if (block_end != ots::Round4(length)) {
-    return OTS_FAILURE_MSG_HDR("file length mismatch (trailing junk?)");
+    return OTS_FAILURE_MSG_HDR("File length mismatch (trailing junk?)");
   }
 
   return ProcessGeneric(header, woff_tag, output, data, length, tables, file);
