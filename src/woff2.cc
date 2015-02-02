@@ -890,11 +890,38 @@ bool ConvertWOFF2ToSFNT(ots::OpenTypeFile* file,
 
   // We don't care about these fields of the header:
   //   uint16_t major_version, minor_version
-  //   uint32_t meta_offset, meta_length, meta_orig_length
-  //   uint32_t priv_offset, priv_length
-  if (!buffer.Skip(24)) {
-    return OTS_FAILURE();
+  if (!buffer.Skip(2 * 2)) {
+    return OTS_FAILURE_MSG("Failed to read 'majorVersion' or 'minorVersion'");
   }
+
+  // Checks metadata block size.
+  uint32_t meta_offset;
+  uint32_t meta_length;
+  uint32_t meta_length_orig;
+  if (!buffer.ReadU32(&meta_offset) ||
+      !buffer.ReadU32(&meta_length) ||
+      !buffer.ReadU32(&meta_length_orig)) {
+    return OTS_FAILURE_MSG("Failed to read header metadata block fields");
+  }
+  if (meta_offset) {
+    if (meta_offset >= length || length - meta_offset < meta_length) {
+      return OTS_FAILURE_MSG("Invalid metadata block offset or length");
+    }
+  }
+
+  // Checks private data block size.
+  uint32_t priv_offset;
+  uint32_t priv_length;
+  if (!buffer.ReadU32(&priv_offset) ||
+      !buffer.ReadU32(&priv_length)) {
+    return OTS_FAILURE_MSG("Failed to read header private block fields");
+  }
+  if (priv_offset) {
+    if (priv_offset >= length || length - priv_offset < priv_length) {
+      return OTS_FAILURE_MSG("Invalid private block offset or length");
+    }
+  }
+
   std::vector<Table> tables(num_tables);
   if (!ReadTableDirectory(file, &buffer, &tables, num_tables)) {
     return OTS_FAILURE_MSG("Failed to read table directory");
@@ -914,13 +941,41 @@ bool ConvertWOFF2ToSFNT(ots::OpenTypeFile* file,
     }
     dst_offset = ots::Round4(dst_offset);
   }
-  if (ots::Round4(compressed_offset + compressed_length) > length || dst_offset != result_length) {
+
+  uint64_t block_end = ots::Round4(compressed_offset + compressed_length);
+  if (block_end > length || dst_offset != result_length) {
     return OTS_FAILURE_MSG("Uncompressed sfnt size mismatch");
   }
 
   const uint32_t sfnt_header_and_table_directory_size = 12 + 16 * num_tables;
   if (sfnt_header_and_table_directory_size > result_length) {
     return OTS_FAILURE();
+  }
+
+  if (meta_offset) {
+    if (block_end != meta_offset) {
+      return OTS_FAILURE_MSG("Invalid metadata block offset");
+    }
+    block_end = ots::Round4(static_cast<uint64_t>(meta_offset) +
+                            static_cast<uint64_t>(meta_length));
+    if (block_end > std::numeric_limits<uint32_t>::max()) {
+      return OTS_FAILURE_MSG("Invalid metadata block length");
+    }
+  }
+
+  if (priv_offset) {
+    if (block_end != priv_offset) {
+      return OTS_FAILURE_MSG("Invalid private block offset");
+    }
+    block_end = ots::Round4(static_cast<uint64_t>(priv_offset) +
+                            static_cast<uint64_t>(priv_length));
+    if (block_end > std::numeric_limits<uint32_t>::max()) {
+      return OTS_FAILURE_MSG("Invalid private block length");
+    }
+  }
+
+  if (block_end != ots::Round4(length)) {
+    return OTS_FAILURE_MSG("File length mismatch (trailing junk?)");
   }
 
   // Start building the font
