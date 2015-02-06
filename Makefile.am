@@ -112,3 +112,5 @@ AM_CPPFLAGS = \
   -I$(top_srcdir)/include \
   -I$(top_srcdir)/third_party/brotli/dec/ \
   $(NULL)
+
+-include $(top_srcdir)/git.mk

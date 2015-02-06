@@ -1,6 +1,0 @@
-*.Makefile
-*.swp
-*.target.mk
-/Makefile
-/out/
-/third_party/gyp
