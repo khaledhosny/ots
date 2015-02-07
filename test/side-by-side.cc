@@ -20,7 +20,7 @@
 namespace {
 
 void DumpBitmap(const FT_Bitmap *bitmap) {
-  for (int i = 0; i < bitmap->rows * bitmap->width; ++i) {
+  for (unsigned int i = 0; i < bitmap->rows * bitmap->width; ++i) {
     if (bitmap->buffer[i] > 192) {
       std::fprintf(stderr, "#");
     } else if (bitmap->buffer[i] > 128) {
@@ -44,7 +44,7 @@ int CompareBitmaps(const FT_Bitmap *orig, const FT_Bitmap *trans) {
 
   if (orig->width == trans->width &&
       orig->rows == trans->rows) {
-    for (int i = 0; i < orig->rows * orig->width; ++i) {
+    for (unsigned int i = 0; i < orig->rows * orig->width; ++i) {
       if (orig->buffer[i] != trans->buffer[i]) {
         std::fprintf(stderr, "bitmap data doesn't match!\n");
         ret = 1;
