@@ -106,8 +106,8 @@ libbrotli_a_SOURCES = \
   $(NULL)
 
 ot_sanitise_SOURCES = \
-  test/ot-sanitise.cc \
-  test/file-stream.h \
+  util/ot-sanitise.cc \
+  util/file-stream.h \
   $(NULL)
 
 ot_sanitise_LDADD = \
@@ -117,7 +117,7 @@ ot_sanitise_LDADD = \
   $(NULL)
 
 idempotent_SOURCES = \
-  test/idempotent.cc \
+  util/idempotent.cc \
   $(NULL)
 
 idempotent_LDADD = \
@@ -128,7 +128,7 @@ idempotent_LDADD = \
   $(NULL)
 
 validator_checker_SOURCES = \
-  test/validator-checker.cc \
+  util/validator-checker.cc \
   $(NULL)
 
 validator_checker_LDADD = \
@@ -139,7 +139,7 @@ validator_checker_LDADD = \
   $(NULL)
 
 side_by_side_SOURCES = \
-  test/side-by-side.cc \
+  util/side-by-side.cc \
   $(NULL)
 
 side_by_side_LDADD = \
