@@ -4,6 +4,14 @@ bin_PROGRAMS = \
   ot-sanitise \
   $(NULL)
 
+if HAVE_FREETYPE
+bin_PROGRAMS += \
+  idempotent \
+  validator-checker \
+  side-by-side \
+  $(NULL)
+endif
+
 lib_LIBRARIES = \
   libots.a \
   libbrotli.a \
@@ -108,9 +116,43 @@ ot_sanitise_LDADD = \
   -lz \
   $(NULL)
 
+idempotent_SOURCES = \
+  test/idempotent.cc \
+  $(NULL)
+
+idempotent_LDADD = \
+  libots.a \
+  libbrotli.a \
+  -lz \
+  $(FREETYPE_LIBS) \
+  $(NULL)
+
+validator_checker_SOURCES = \
+  test/validator-checker.cc \
+  $(NULL)
+
+validator_checker_LDADD = \
+  libots.a \
+  libbrotli.a \
+  -lz \
+  $(FREETYPE_LIBS) \
+  $(NULL)
+
+side_by_side_SOURCES = \
+  test/side-by-side.cc \
+  $(NULL)
+
+side_by_side_LDADD = \
+  libots.a \
+  libbrotli.a \
+  -lz \
+  $(FREETYPE_LIBS) \
+  $(NULL)
+
 AM_CPPFLAGS = \
   -I$(top_srcdir)/include \
   -I$(top_srcdir)/third_party/brotli/dec/ \
+  $(FREETYPE_CFLAGS) \
   $(NULL)
 
 -include $(top_srcdir)/git.mk
