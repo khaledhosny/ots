@@ -136,6 +136,10 @@ struct Table {
         transform_length(0),
         dst_offset(0),
         dst_length(0) {}
+
+  bool operator<(const Table& other) const {
+    return tag < other.tag;
+  }
 };
 
 // Based on section 6.1.1 of MicroType Express draft spec
@@ -990,8 +994,13 @@ bool ConvertWOFF2ToSFNT(ots::OpenTypeFile* file,
   offset = StoreU16(result, offset, output_search_range);
   offset = StoreU16(result, offset, max_pow2);
   offset = StoreU16(result, offset, (num_tables << 4) - output_search_range);
+
+  // sort tags in the table directory in ascending alphabetical order
+  std::vector<Table> sorted_tables(tables);
+  std::sort(sorted_tables.begin(), sorted_tables.end());
+
   for (uint16_t i = 0; i < num_tables; ++i) {
-    const Table* table = &tables.at(i);
+    const Table* table = &sorted_tables.at(i);
     offset = StoreU32(result, offset, table->tag);
     offset = StoreU32(result, offset, 0);  // checksum, to fill in later
     offset = StoreU32(result, offset, table->dst_offset);
@@ -1048,7 +1057,7 @@ bool ConvertWOFF2ToSFNT(ots::OpenTypeFile* file,
     }
   }
 
-  return FixChecksums(tables, result);
+  return FixChecksums(sorted_tables, result);
 }
 
 }  // namespace ots
