@@ -111,59 +111,33 @@ ot_sanitise_SOURCES = \
   util/file-stream.h \
   $(NULL)
 
-ot_sanitise_LDADD = \
-  libots.a \
-  libbrotli.a \
-  -lz \
-  $(NULL)
-
 perf_SOURCES = \
   util/perf.cc \
-  $(NULL)
-
-perf_LDADD = \
-  libots.a \
-  libbrotli.a \
-  -lz \
   $(NULL)
 
 idempotent_SOURCES = \
   util/idempotent.cc \
   $(NULL)
 
-idempotent_LDADD = \
-  libots.a \
-  libbrotli.a \
-  -lz \
-  $(FREETYPE_LIBS) \
-  $(NULL)
-
 validator_checker_SOURCES = \
   util/validator-checker.cc \
-  $(NULL)
-
-validator_checker_LDADD = \
-  libots.a \
-  libbrotli.a \
-  -lz \
-  $(FREETYPE_LIBS) \
   $(NULL)
 
 side_by_side_SOURCES = \
   util/side-by-side.cc \
   $(NULL)
 
-side_by_side_LDADD = \
-  libots.a \
-  libbrotli.a \
-  -lz \
-  $(FREETYPE_LIBS) \
-  $(NULL)
-
 AM_CPPFLAGS = \
   -I$(top_srcdir)/include \
   -I$(top_srcdir)/third_party/brotli/dec/ \
   $(FREETYPE_CFLAGS) \
+  $(NULL)
+
+LDADD = \
+  libots.a \
+  libbrotli.a \
+  -lz \
+  $(FREETYPE_LIBS) \
   $(NULL)
 
 -include $(top_srcdir)/git.mk
