@@ -2,6 +2,7 @@ NULL =
 
 bin_PROGRAMS = \
   ot-sanitise \
+  perf \
   $(NULL)
 
 if HAVE_FREETYPE
@@ -111,6 +112,16 @@ ot_sanitise_SOURCES = \
   $(NULL)
 
 ot_sanitise_LDADD = \
+  libots.a \
+  libbrotli.a \
+  -lz \
+  $(NULL)
+
+perf_SOURCES = \
+  util/perf.cc \
+  $(NULL)
+
+perf_LDADD = \
   libots.a \
   libbrotli.a \
   -lz \
