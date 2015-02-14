@@ -149,8 +149,9 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
                     ots::Buffer& file);
 
 bool ProcessTTF(ots::OpenTypeFile *header,
-                ots::OTSStream *output, const uint8_t *data, size_t length) {
-  ots::Buffer file(data, length);
+                ots::OTSStream *output, const uint8_t *data, size_t length,
+                uint32_t offset = 0) {
+  ots::Buffer file(data + offset, length);
 
   // we disallow all files > 1GB in size for sanity.
   if (length > 1024 * 1024 * 1024) {
@@ -223,6 +224,65 @@ bool ProcessTTF(ots::OpenTypeFile *header,
 
   return ProcessGeneric(header, header->version, output, data, length,
                         tables, file);
+}
+
+bool ProcessTTC(ots::OpenTypeFile *header,
+                ots::OTSStream *output,
+                const uint8_t *data,
+                size_t length,
+                uint32_t index) {
+  ots::Buffer file(data, length);
+
+  // we disallow all files > 1GB in size for sanity.
+  if (length > 1024 * 1024 * 1024) {
+    return OTS_FAILURE_MSG_HDR("file exceeds 1GB");
+  }
+
+  uint32_t ttc_tag;
+  if (!file.ReadU32(&ttc_tag)) {
+    return OTS_FAILURE_MSG_HDR("Error reading TTC tag");
+  }
+  if (ttc_tag != OTS_TAG('t','t','c','f')) {
+    return OTS_FAILURE_MSG_HDR("Invalid TTC tag");
+  }
+
+  uint32_t ttc_version;
+  if (!file.ReadU32(&ttc_version)) {
+    return OTS_FAILURE_MSG_HDR("Error reading TTC version");
+  }
+  if (ttc_version != 0x00010000 && ttc_version != 0x00020000) {
+    return OTS_FAILURE_MSG_HDR("Invalid TTC version");
+  }
+
+  uint32_t num_fonts;
+  if (!file.ReadU32(&num_fonts)) {
+    return OTS_FAILURE_MSG_HDR("Error reading number of TTC fonts");
+  }
+
+  uint32_t offsets[num_fonts];
+  for (unsigned i = 0; i < num_fonts; i++) {
+    if (!file.ReadU32(&offsets[i])) {
+      OTS_FAILURE_MSG_HDR("Error reading offset to OffsetTable");
+    }
+  }
+
+  if (ttc_version == 0x00020000) {
+    // We don't care about these fields of the header:
+    // uint32_t dsig_tag, dsig_length, dsig_offset
+    if (!file.Skip(3 * 4)) {
+      return OTS_FAILURE_MSG_HDR("Error reading DSIG offset and length in TTC font");
+    }
+  }
+
+  if (index == static_cast<uint32_t>(-1)) {
+    return false;
+  } else {
+    if (index >= num_fonts) {
+      return OTS_FAILURE_MSG_HDR("Requested font index is bigger than the number of fonts in the TTC file");
+    }
+
+    return ProcessTTF(header, output, data, length, offsets[index]);
+  }
 }
 
 bool ProcessWOFF(ots::OpenTypeFile *header,
@@ -785,7 +845,8 @@ bool IsValidVersionTag(uint32_t tag) {
 
 bool OTSContext::Process(OTSStream *output,
                          const uint8_t *data,
-                         size_t length) {
+                         size_t length,
+                         uint32_t index) {
   OpenTypeFile header;
 
   header.context = this;
@@ -799,6 +860,8 @@ bool OTSContext::Process(OTSStream *output,
     result = ProcessWOFF(&header, output, data, length);
   } else if (data[0] == 'w' && data[1] == 'O' && data[2] == 'F' && data[3] == '2') {
     result = ProcessWOFF2(&header, output, data, length);
+  } else if (data[0] == 't' && data[1] == 't' && data[2] == 'c' && data[3] == 'f') {
+    result = ProcessTTC(&header, output, data, length, index);
   } else {
     result = ProcessTTF(&header, output, data, length);
   }

@@ -170,7 +170,10 @@ class OTSContext {
     //     partial output may have been written.
     //   input: the OpenType file
     //   length: the size, in bytes, of |input|
-    bool Process(OTSStream *output, const uint8_t *input, size_t length);
+    //   index: if the input is a font collection and index is specified, then
+    //     the corresponding font will be returned, otherwise the whole
+    //     collection. Ignored for non-collection fonts.
+    bool Process(OTSStream *output, const uint8_t *input, size_t length, uint32_t index = -1);
 
     // This function will be called when OTS is reporting an error.
     //   level: the severity of the generated message:
