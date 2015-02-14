@@ -29,7 +29,7 @@
 namespace {
 
 int Usage(const char *argv0) {
-  std::fprintf(stderr, "Usage: %s ttf_file [dest_ttf_file]\n", argv0);
+  std::fprintf(stderr, "Usage: %s ttf_file [dest_ttf_file] [index]\n", argv0);
   return 1;
 }
 
@@ -67,7 +67,7 @@ class Context: public ots::OTSContext {
 }  // namespace
 
 int main(int argc, char **argv) {
-  if (argc < 2 || argc > 3) return Usage(argv[0]);
+  if (argc < 2 || argc > 4) return Usage(argv[0]);
 
   const int fd = ::open(argv[1], O_RDONLY | ADDITIONAL_OPEN_FLAGS);
   if (fd < 0) {
@@ -89,11 +89,15 @@ int main(int argc, char **argv) {
   Context context;
 
   FILE* out = NULL;
-  if (argc == 3)
+  if (argc >= 3)
     out = fopen(argv[2], "wb");
 
+  uint32_t index = -1;
+  if (argc >= 4)
+    index = strtol(argv[3], NULL, 0);
+
   ots::FILEStream output(out);
-  const bool result = context.Process(&output, data, st.st_size);
+  const bool result = context.Process(&output, data, st.st_size, index);
 
   if (!result) {
     std::fprintf(stderr, "Failed to sanitise file!\n");
