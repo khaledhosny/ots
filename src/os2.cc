@@ -42,14 +42,6 @@ bool ots_os2_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     return OTS_FAILURE_MSG("os2 version too high %d", os2->version);
   }
 
-  // Some linux fonts (e.g., Kedage-t.ttf and LucidaSansDemiOblique.ttf) have
-  // weird weight/width classes. Overwrite them with FW_NORMAL/1/9.
-  if (os2->weight_class < 100 ||
-      os2->weight_class > 900 ||
-      os2->weight_class % 100) {
-    OTS_WARNING("bad weight: %u", os2->weight_class);
-    os2->weight_class = 400;  // FW_NORMAL
-  }
   if (os2->width_class < 1) {
     OTS_WARNING("bad width: %u", os2->width_class);
     os2->width_class = 1;
