@@ -42,6 +42,17 @@ bool ots_os2_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     return OTS_FAILURE_MSG("os2 version too high %d", os2->version);
   }
 
+  // Follow WPF Font Selection Model's advice.
+  if (1 <= os2->weight_class && os2->weight_class <= 9) {
+    OTS_WARNING("Bad usWeightClass: %u, changing it to: %u", os2->weight_class, os2->weight_class * 100);
+    os2->weight_class *= 100;
+  }
+  // Ditto.
+  if (os2->weight_class > 999) {
+    OTS_WARNING("Bad usWeightClass: %u, changing it to: %d", os2->weight_class, 999);
+    os2->weight_class = 999;
+  }
+
   if (os2->width_class < 1) {
     OTS_WARNING("bad width: %u", os2->width_class);
     os2->width_class = 1;
