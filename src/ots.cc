@@ -818,10 +818,4 @@ bool OTSContext::Process(OTSStream *output,
   return result;
 }
 
-// For backward compatibility
-bool Process(OTSStream *output, const uint8_t *data, size_t length) {
-  static OTSContext context;
-  return context.Process(output, data, length);
-}
-
 }  // namespace ots

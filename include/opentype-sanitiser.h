@@ -218,9 +218,6 @@ class OTSContext {
     virtual TableAction GetTableAction(uint32_t tag) { return ots::TABLE_ACTION_DEFAULT; }
 };
 
-// For backward compatibility - remove once Chrome switches over to the new API.
-bool Process(OTSStream *output, const uint8_t *input, size_t length);
-
 }  // namespace ots
 
 #endif  // OPENTYPE_SANITISER_H_
