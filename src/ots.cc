@@ -24,6 +24,7 @@ namespace {
 // Generate a message with or without a table tag, when 'header' is the OpenTypeFile pointer
 #define OTS_FAILURE_MSG_TAG(msg_,tag_) OTS_FAILURE_MSG_TAG_(header, msg_, tag_)
 #define OTS_FAILURE_MSG_HDR(msg_)      OTS_FAILURE_MSG_(header, msg_)
+#define OTS_WARNING_MSG_HDR(msg_)      OTS_WARNING_MSG_(header, msg_)
 
 
 struct OpenTypeTable {
@@ -472,7 +473,7 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
       const uint32_t this_tag = ntohl(tables[i].tag);
       const uint32_t prev_tag = ntohl(tables[i - 1].tag);
       if (this_tag <= prev_tag) {
-        return OTS_FAILURE_MSG_HDR("table directory not correctly ordered");
+        OTS_WARNING_MSG_HDR("Table directory is not correctly ordered");
       }
     }
 
