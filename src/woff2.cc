@@ -45,7 +45,7 @@ const size_t kCompositeGlyphBegin = 10;
 
 // Note that the byte order is big-endian, not the same as ots.cc
 #define TAG(a, b, c, d) ((a << 24) | (b << 16) | (c << 8) | d)
-#define CHR(t)           (t >> 24),  (t >> 16),  (t >> 8), (t >> 0)
+#define UNTAG(t)         (t >> 24),  (t >> 16),  (t >> 8), (t >> 0)
 
 const unsigned int kWoff2FlagsTransform = 1 << 5;
 
@@ -812,12 +812,12 @@ bool ReadTableDirectory(ots::OpenTypeFile* file,
     }
     uint32_t dst_length;
     if (!ReadBase128(buffer, &dst_length)) {
-      return OTS_FAILURE_MSG("Failed to read 'origLength' for table '%c%c%c%c'", CHR(tag));
+      return OTS_FAILURE_MSG("Failed to read 'origLength' for table '%c%c%c%c'", UNTAG(tag));
     }
     uint32_t transform_length = dst_length;
     if ((flags & kWoff2FlagsTransform) != 0) {
       if (!ReadBase128(buffer, &transform_length)) {
-        return OTS_FAILURE_MSG("Failed to read 'transformLength' for table '%c%c%c%c'", CHR(tag));
+        return OTS_FAILURE_MSG("Failed to read 'transformLength' for table '%c%c%c%c'", UNTAG(tag));
       }
     }
     // Disallow huge numbers (> 1GB) for sanity.
@@ -1047,7 +1047,7 @@ bool ConvertWOFF2ToSFNT(ots::OpenTypeFile* file,
     } else {
       if (!ReconstructTransformed(file, tables, table->tag,
             transform_buf, transform_length, result, result_length)) {
-        return OTS_FAILURE_MSG("Failed to reconstruct '%c%c%c%c' table", CHR(table->tag));
+        return OTS_FAILURE_MSG("Failed to reconstruct '%c%c%c%c' table", UNTAG(table->tag));
       }
     }
 
