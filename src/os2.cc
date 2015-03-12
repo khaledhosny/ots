@@ -77,10 +77,10 @@ bool ots_os2_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   // mask reserved bits. use only 0..3, 8, 9 bits.
   os2->type &= 0x30f;
 
-#define SET_TO_ZERO(a, b)                                   \
-  if (os2->b < 0) {                                         \
-    OTS_WARNING("Bad "a": %d, setting it to zero", os2->b); \
-    os2->b = 0;                                             \
+#define SET_TO_ZERO(a, b)                                     \
+  if (os2->b < 0) {                                           \
+    OTS_WARNING("Bad " a ": %d, setting it to zero", os2->b); \
+    os2->b = 0;                                               \
   }
 
   SET_TO_ZERO("ySubscriptXSize", subscript_x_size);
