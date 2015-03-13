@@ -29,6 +29,9 @@ typedef unsigned __int64 uint64_t;
 #include <cstddef>
 #include <cstring>
 
+#define OTS_TAG(c1,c2,c3,c4) ((uint32_t)((((uint8_t)(c1))<<24)|(((uint8_t)(c2))<<16)|(((uint8_t)(c3))<<8)|((uint8_t)(c4))))
+#define OTS_UNTAG(tag)       ((uint8_t)((tag)>>24)), ((uint8_t)((tag)>>16)), ((uint8_t)((tag)>>8)), ((uint8_t)(tag))
+
 namespace ots {
 
 // -----------------------------------------------------------------------------

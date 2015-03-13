@@ -49,20 +49,18 @@ class Context: public ots::OTSContext {
   }
 
   virtual ots::TableAction GetTableAction(uint32_t tag) {
-#define TAG(a, b, c, d) ((a) << 24 | (b) << 16 | (c) << 8 | (d))
     switch (tag) {
-      case TAG('S','i','l','f'):
-      case TAG('S','i','l','l'):
-      case TAG('G','l','o','c'):
-      case TAG('G','l','a','t'):
-      case TAG('F','e','a','t'):
-      case TAG('C','B','D','T'):
-      case TAG('C','B','L','C'):
+      case OTS_TAG('S','i','l','f'):
+      case OTS_TAG('S','i','l','l'):
+      case OTS_TAG('G','l','o','c'):
+      case OTS_TAG('G','l','a','t'):
+      case OTS_TAG('F','e','a','t'):
+      case OTS_TAG('C','B','D','T'):
+      case OTS_TAG('C','B','L','C'):
         return ots::TABLE_ACTION_PASSTHRU;
       default:
         return ots::TABLE_ACTION_DEFAULT;
     }
-#undef TAG
   }
 };
 
