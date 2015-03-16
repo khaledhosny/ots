@@ -375,11 +375,17 @@ bool ParsePrivateDictData(
     operands.pop_back();
 
     switch (op) {
-      // array
+      // hints
       case 6:  // BlueValues
       case 7:  // OtherBlues
       case 8:  // FamilyBlues
       case 9:  // FamilyOtherBlues
+        if (operands.empty() || (operands.size() % 2) != 0) {
+          return OTS_FAILURE();
+        }
+        break;
+
+      // array
       case (12U << 8) + 12:  // StemSnapH (delta)
       case (12U << 8) + 13:  // StemSnapV (delta)
         if (operands.empty()) {
