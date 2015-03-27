@@ -772,17 +772,6 @@ bool FixChecksums(const std::vector<Table>& tables, uint8_t* dst) {
   return true;
 }
 
-bool Woff2Uncompress(uint8_t* dst_buf, size_t dst_size,
-    const uint8_t* src_buf, size_t src_size) {
-  size_t uncompressed_size = dst_size;
-  int ok = BrotliDecompressBuffer(src_size, src_buf,
-                                  &uncompressed_size, dst_buf);
-  if (!ok || uncompressed_size != dst_size) {
-    return OTS_FAILURE();
-  }
-  return true;
-}
-
 bool ReadTableDirectory(ots::OpenTypeFile* file,
     ots::Buffer* buffer, std::vector<Table>* tables,
     size_t num_tables) {
@@ -1020,12 +1009,15 @@ bool ConvertWOFF2ToSFNT(ots::OpenTypeFile* file,
   if (total_size > 30 * 1024 * 1024) {
     return OTS_FAILURE();
   }
-  const size_t total_size_size_t = static_cast<size_t>(total_size);
-  uncompressed_buf.resize(total_size_size_t);
-  const uint8_t* src_buf = data + compressed_offset;
-  if (!Woff2Uncompress(&uncompressed_buf[0], total_size_size_t,
-      src_buf, compressed_length)) {
+  size_t uncompressed_size = static_cast<size_t>(total_size);
+  uncompressed_buf.resize(uncompressed_size);
+  const uint8_t* compressed_buf = data + compressed_offset;
+  if (!BrotliDecompressBuffer(compressed_length, compressed_buf,
+                              &uncompressed_size, &uncompressed_buf[0])) {
     return OTS_FAILURE_MSG("Failed to uncompress font data");
+  }
+  if (uncompressed_size != static_cast<size_t>(total_size)) {
+    return OTS_FAILURE_MSG("Decompressed font data size does not match the sum of 'origLength' and 'transformLength'");
   }
   transform_buf = &uncompressed_buf[0];
 
