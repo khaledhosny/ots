@@ -808,6 +808,10 @@ bool ReadTableDirectory(ots::OpenTypeFile* file,
       if (!ReadBase128(buffer, &transform_length)) {
         return OTS_FAILURE_MSG("Failed to read 'transformLength' for table '%c%c%c%c'", UNTAG(tag));
       }
+
+      if (tag == TAG('l', 'o', 'c', 'a') && transform_length != 0) {
+        return OTS_FAILURE_MSG("The 'transformLength' of 'loca' table must be zero: %d", transform_length);
+      }
     }
     // Disallow huge numbers (> 1GB) for sanity.
     if (transform_length > 1024 * 1024 * 1024 ||
