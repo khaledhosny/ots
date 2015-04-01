@@ -1023,10 +1023,6 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
   }
 
   const off_t table_end = out->Tell();
-  // We might have hanging bytes from the above's checksum which the OTSStream
-  // then merges into the table of offsets.
-  OTSStream::ChecksumState saved_checksum = out->SaveChecksumState();
-  out->ResetChecksum();
 
   // Now seek back and write the table of offsets
   if (!out->Seek(record_offset)) {
@@ -1092,7 +1088,6 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
   if (!out->Seek(table_end)) {
     return OTS_FAILURE();
   }
-  out->RestoreChecksum(saved_checksum);
 
   return true;
 }
