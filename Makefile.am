@@ -1,6 +1,6 @@
 NULL =
 
-SUBDIRS = test
+SUBDIRS = tests
 
 bin_PROGRAMS = \
   ot-sanitise \

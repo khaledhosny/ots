@@ -30,7 +30,7 @@ AC_SUBST([GTEST_CPPFLAGS])
 
 AC_CONFIG_FILES([
 Makefile
-test/Makefile
+tests/Makefile
 ])
 
 AC_OUTPUT
