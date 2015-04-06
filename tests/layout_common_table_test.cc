@@ -276,6 +276,7 @@ class FeatureListTableTest : public TableTest {
  protected:
 
   virtual void SetUp() {
+    TableTest::SetUp();
     num_features = 0;
   }
 
