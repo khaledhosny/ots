@@ -20,6 +20,17 @@ if $have_freetype; then
 fi
 AM_CONDITIONAL(HAVE_FREETYPE, $have_freetype)
 
-AC_CONFIG_FILES([Makefile])
+AX_PTHREAD([have_pthread=true])
+if $have_pthread; then
+	GTEST_CPPFLAGS="-DGTEST_HAS_PTHREAD=1"
+else
+	GTEST_CPPFLAGS="-DGTEST_HAS_PTHREAD=0"
+fi
+AC_SUBST([GTEST_CPPFLAGS])
+
+AC_CONFIG_FILES([
+Makefile
+test/Makefile
+])
 
 AC_OUTPUT

@@ -1,5 +1,7 @@
 NULL =
 
+SUBDIRS = test
+
 bin_PROGRAMS = \
   ot-sanitise \
   perf \
