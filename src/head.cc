@@ -33,8 +33,7 @@ bool ots_head_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   }
 
   uint32_t magic;
-  if (!table.ReadTag(&magic) ||
-      std::memcmp(&magic, "\x5F\x0F\x3C\xF5", 4)) {
+  if (!table.ReadU32(&magic) || magic != 0x5F0F3CF5) {
     return OTS_FAILURE_MSG("Failed to read font magic number");
   }
 
