@@ -52,8 +52,8 @@ struct OutputTable {
   size_t length;
   uint32_t chksum;
 
-  static bool SortByTag(const OutputTable& a, const OutputTable& b) {
-    return a.tag < b.tag;
+  bool operator<(const OutputTable& other) const {
+    return tag < other.tag;
   }
 };
 
@@ -729,7 +729,7 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
   const size_t end_of_file = output->Tell();
 
   // Need to sort the output tables for inclusion in the file
-  std::sort(out_tables.begin(), out_tables.end(), OutputTable::SortByTag);
+  std::sort(out_tables.begin(), out_tables.end());
   if (!output->Seek(table_record_offset)) {
     return OTS_FAILURE_MSG_HDR("error writing output");
   }
