@@ -94,13 +94,8 @@ BPG_Chveulebrivi_bold.ttf
 
 # Unsupported CMAP table; ots doesn't support non-Unicode fonts.
 Apple Symbols.ttf
-儷宋 Pro.ttf
-儷黑 Pro.ttf
-华文仿宋.ttf
 华文宋体.ttf
 华文楷体.ttf
-华文细黑.ttf
-华文黑体.ttf
 
 # Unsupported CMAP table; The Unicode BMP table is missing, while the UCS-4 table is available.
 DroidSansJapanese.ttf
