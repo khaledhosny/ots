@@ -39,6 +39,7 @@ if [ $# -eq 0 ] ; then
   # Recursively call this script.
   fails=0
   fonts=`find $BASE_DIR -type f -name '*tf'`
+  IFS=$'\n'
   for f in $fonts; do
     $0 "$f"
     fails=$((fails+$?))
