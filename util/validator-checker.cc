@@ -2,16 +2,16 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "config.h"
+
 #if !defined(_MSC_VER)
-#ifdef __linux__
-// Linux
+#if defined(HAVE_CORETEXT)
+#include <ApplicationServices/ApplicationServices.h>
+#elif defined(HAVE_FREETYPE)
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
-#else
-// Mac OS X
-#include <ApplicationServices/ApplicationServices.h>  // g++ -framework Cocoa
-#endif  // __linux__
+#endif
 #else
 // Windows
 // TODO(yusukes): Support Windows.
@@ -32,8 +32,41 @@
 namespace {
 
 #if !defined(_MSC_VER)
-#ifdef __linux__
-// Linux
+#if defined(HAVE_CORETEXT)
+int OpenAndLoadChars(
+    const char *file_name, uint8_t *trans_font, size_t trans_len) {
+  CFDataRef data = CFDataCreate(0, trans_font, trans_len);
+  if (!data) {
+    std::fprintf(stderr,
+                 "OK: font renderer couldn't open the transcoded font: %s\n",
+                 file_name);
+    return 0;
+  }
+
+  CGDataProviderRef dataProvider = CGDataProviderCreateWithCFData(data);
+  CGFontRef cgFontRef = CGFontCreateWithDataProvider(dataProvider);
+  CGDataProviderRelease(dataProvider);
+  CFRelease(data);
+  if (!cgFontRef) {
+    std::fprintf(stderr,
+                 "OK: font renderer couldn't open the transcoded font: %s\n",
+                 file_name);
+    return 0;
+  }
+
+  size_t numGlyphs = CGFontGetNumberOfGlyphs(cgFontRef);
+  CGFontRelease(cgFontRef);
+  if (!numGlyphs) {
+    std::fprintf(stderr,
+                 "OK: font renderer couldn't open the transcoded font: %s\n",
+                 file_name);
+    return 0;
+  }
+  std::fprintf(stderr, "OK: font renderer didn't crash: %s\n", file_name);
+  // TODO(yusukes): would be better to perform LoadChar() like Linux.
+  return 0;
+}
+#elif defined(HAVE_FREETYPE)
 void LoadChar(FT_Face face, int pt, FT_ULong c) {
   FT_Matrix matrix;
   matrix.xx = matrix.yy = 1 << 16;
@@ -88,42 +121,7 @@ int OpenAndLoadChars(
   std::fprintf(stderr, "OK: FreeType2 didn't crash: %s\n", file_name);
   return 0;
 }
-#else
-// Mac OS X
-int OpenAndLoadChars(
-    const char *file_name, uint8_t *trans_font, size_t trans_len) {
-  CFDataRef data = CFDataCreate(0, trans_font, trans_len);
-  if (!data) {
-    std::fprintf(stderr,
-                 "OK: font renderer couldn't open the transcoded font: %s\n",
-                 file_name);
-    return 0;
-  }
-
-  CGDataProviderRef dataProvider = CGDataProviderCreateWithCFData(data);
-  CGFontRef cgFontRef = CGFontCreateWithDataProvider(dataProvider);
-  CGDataProviderRelease(dataProvider);
-  CFRelease(data);
-  if (!cgFontRef) {
-    std::fprintf(stderr,
-                 "OK: font renderer couldn't open the transcoded font: %s\n",
-                 file_name);
-    return 0;
-  }
-
-  size_t numGlyphs = CGFontGetNumberOfGlyphs(cgFontRef);
-  CGFontRelease(cgFontRef);
-  if (!numGlyphs) {
-    std::fprintf(stderr,
-                 "OK: font renderer couldn't open the transcoded font: %s\n",
-                 file_name);
-    return 0;
-  }
-  std::fprintf(stderr, "OK: font renderer didn't crash: %s\n", file_name);
-  // TODO(yusukes): would be better to perform LoadChar() like Linux.
-  return 0;
-}
-#endif  // __linux__
+#endif
 #else
 // Windows
 // TODO(yusukes): Support Windows.

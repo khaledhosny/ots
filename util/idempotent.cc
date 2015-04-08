@@ -2,16 +2,16 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "config.h"
+
 #if !defined(_WIN32)
-#ifdef __linux__
-// Linux
+#if defined(HAVE_CORETEXT)
+#include <ApplicationServices/ApplicationServices.h>
+#elif defined(HAVE_FREETYPE)
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
-#else
-// Mac OS X
-#include <ApplicationServices/ApplicationServices.h>  // g++ -framework Cocoa
-#endif  // __linux__
+#endif
 #include <unistd.h>
 #else
 // Windows
@@ -90,25 +90,7 @@ bool DumpResults(const uint8_t *result1, const size_t len1,
 // Platform specific implementations.
 bool VerifyTranscodedFont(uint8_t *result, const size_t len);
 
-#if defined(__linux__)
-// Linux
-bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
-  FT_Library library;
-  FT_Error error = ::FT_Init_FreeType(&library);
-  if (error) {
-    return false;
-  }
-  FT_Face dummy;
-  error = ::FT_New_Memory_Face(library, result, len, 0, &dummy);
-  if (error) {
-    return false;
-  }
-  ::FT_Done_Face(dummy);
-  return true;
-}
-
-#elif defined(__APPLE_CC__)
-// Mac
+#if defined(HAVE_CORETEXT)
 bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
   CFDataRef data = CFDataCreate(0, result, len);
   if (!data) {
@@ -128,6 +110,22 @@ bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
   if (!numGlyphs) {
     return false;
   }
+  return true;
+}
+
+#elif defined(HAVE_FREETYPE)
+bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
+  FT_Library library;
+  FT_Error error = ::FT_Init_FreeType(&library);
+  if (error) {
+    return false;
+  }
+  FT_Face dummy;
+  error = ::FT_New_Memory_Face(library, result, len, 0, &dummy);
+  if (error) {
+    return false;
+  }
+  ::FT_Done_Face(dummy);
   return true;
 }
 

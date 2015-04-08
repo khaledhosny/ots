@@ -5,6 +5,7 @@ AC_INIT([OTS],
         [https://github.com/khaledhosny/ots])
 
 AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AM_SILENT_RULES([yes])
@@ -29,13 +30,14 @@ fi
 AC_SUBST([GTEST_CPPFLAGS])
 
 AC_CHECK_TYPE(CTFontRef, have_coretext=true,, [#include <ApplicationServices/ApplicationServices.h>])
-
 if $have_coretext; then
 	CORETEXT_CFLAGS=
 	CORETEXT_LIBS="-framework ApplicationServices"
-	AC_SUBST(CORETEXT_CFLAGS)
-	AC_SUBST(CORETEXT_LIBS)
+	AC_DEFINE(HAVE_CORETEXT, 1, [Have Core Text framework])
 fi
+AC_SUBST(CORETEXT_CFLAGS)
+AC_SUBST(CORETEXT_LIBS)
+AM_CONDITIONAL(HAVE_CORETEXT, $have_coretext)
 
 AC_CONFIG_FILES([Makefile])
 
