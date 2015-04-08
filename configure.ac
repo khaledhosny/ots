@@ -28,9 +28,6 @@ else
 fi
 AC_SUBST([GTEST_CPPFLAGS])
 
-AC_CONFIG_FILES([
-Makefile
-tests/Makefile
-])
+AC_CONFIG_FILES([Makefile])
 
 AC_OUTPUT
