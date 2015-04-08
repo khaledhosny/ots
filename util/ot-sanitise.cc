@@ -81,6 +81,7 @@ int main(int argc, char **argv) {
   uint8_t *data = new uint8_t[st.st_size];
   if (::read(fd, data, st.st_size) != st.st_size) {
     ::perror("read");
+    delete[] data;
     return 1;
   }
   ::close(fd);
@@ -97,5 +98,7 @@ int main(int argc, char **argv) {
   if (!result) {
     std::fprintf(stderr, "Failed to sanitise file!\n");
   }
+
+  delete[] data;
   return !result;
 }
