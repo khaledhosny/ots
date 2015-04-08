@@ -4,11 +4,14 @@ SUBDIRS = tests
 
 bin_PROGRAMS = \
   ot-sanitise \
+  $(NULL)
+
+noinst_PROGRAMS = \
   perf \
   $(NULL)
 
 if HAVE_FREETYPE
-bin_PROGRAMS += \
+noinst_PROGRAMS += \
   idempotent \
   validator-checker \
   side-by-side \
