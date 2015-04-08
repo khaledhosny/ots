@@ -200,6 +200,7 @@ AM_CPPFLAGS = \
   $(NULL)
 
 AM_CXXFLAGS = \
+  $(CORETEXT_CFLAGS) \
   $(FREETYPE_CFLAGS) \
   $(PTHREAD_CFLAGS) \
   $(NULL)
@@ -208,6 +209,7 @@ LDADD = \
   libots.a \
   libbrotli.a \
   -lz \
+  $(CORETEXT_LIBS) \
   $(FREETYPE_LIBS) \
   $(NULL)
 

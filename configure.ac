@@ -28,6 +28,15 @@ else
 fi
 AC_SUBST([GTEST_CPPFLAGS])
 
+AC_CHECK_TYPE(CTFontRef, have_coretext=true,, [#include <ApplicationServices/ApplicationServices.h>])
+
+if $have_coretext; then
+	CORETEXT_CFLAGS=
+	CORETEXT_LIBS="-framework ApplicationServices"
+	AC_SUBST(CORETEXT_CFLAGS)
+	AC_SUBST(CORETEXT_LIBS)
+fi
+
 AC_CONFIG_FILES([Makefile])
 
 AC_OUTPUT
