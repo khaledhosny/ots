@@ -1,7 +1,5 @@
 NULL =
 
-SUBDIRS = tests
-
 bin_PROGRAMS = \
   ot-sanitise \
   $(NULL)
@@ -22,6 +20,19 @@ lib_LIBRARIES = \
   libots.a \
   libbrotli.a \
   $(NULL)
+
+TESTS = \
+  cff_type2_charstring_test \
+  layout_common_table_test \
+  table_dependencies_test \
+  $(NULL)
+
+check_PROGRAMS = $(TESTS)
+
+check_LIBRARIES = \
+  libgtest.a \
+  $(NULL)
+
 
 libots_a_SOURCES = \
   src/cff.cc \
@@ -88,10 +99,12 @@ libots_a_SOURCES = \
   src/woff2.h \
   $(NULL)
 
+
 pkginclude_HEADERS = \
   include/ots-memory-stream.h \
   include/opentype-sanitiser.h \
   $(NULL)
+
 
 libbrotli_a_SOURCES = \
   third_party/brotli/dec/bit_reader.c \
@@ -111,18 +124,22 @@ libbrotli_a_SOURCES = \
   third_party/brotli/dec/types.h \
   $(NULL)
 
+
 ot_sanitise_SOURCES = \
   util/ot-sanitise.cc \
   util/file-stream.h \
   $(NULL)
 
+
 perf_SOURCES = \
   util/perf.cc \
   $(NULL)
 
+
 idempotent_SOURCES = \
   util/idempotent.cc \
   $(NULL)
+
 
 validator_checker_SOURCES = \
   util/validator-checker.cc \
@@ -132,10 +149,59 @@ side_by_side_SOURCES = \
   util/side-by-side.cc \
   $(NULL)
 
+
+cff_type2_charstring_test_SOURCES = \
+  tests/cff_type2_charstring_test.cc \
+  $(NULL)
+
+cff_type2_charstring_test_LDADD = \
+  libgtest.a \
+  $(LDADD) \
+  $(NULL)
+
+
+layout_common_table_test_SOURCES = \
+  tests/layout_common_table_test.cc \
+  $(NULL)
+
+layout_common_table_test_LDADD = \
+  libgtest.a \
+  $(LDADD) \
+  $(NULL)
+
+
+table_dependencies_test_SOURCES = \
+  tests/table_dependencies_test.cc \
+  $(NULL)
+
+table_dependencies_test_LDADD = \
+  libgtest.a \
+  $(LDADD) \
+  $(NULL)
+
+
+libgtest_a_SOURCES = \
+  third_party/gtest/src/gtest-all.cc \
+  third_party/gtest/src/gtest_main.cc \
+  $(NULL)
+
+libgtest_a_LIBADD = \
+  $(PTHREAD_LIBS) \
+  $(NULL)
+
+
 AM_CPPFLAGS = \
+  -I$(top_srcdir)/third_party/gtest/include \
+  -I$(top_srcdir)/third_party/gtest/ \
+  -I$(top_srcdir)/src \
   -I$(top_srcdir)/include \
   -I$(top_srcdir)/third_party/brotli/dec/ \
+  $(GTEST_CPPFLAGS) \
+  $(NULL)
+
+AM_CXXFLAGS = \
   $(FREETYPE_CFLAGS) \
+  $(PTHREAD_CFLAGS) \
   $(NULL)
 
 LDADD = \
