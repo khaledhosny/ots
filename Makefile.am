@@ -25,9 +25,14 @@ TESTS = \
   cff_type2_charstring_test \
   layout_common_table_test \
   table_dependencies_test \
+  tests/test_unmalicious_fonts.sh \
   $(NULL)
 
-check_PROGRAMS = $(TESTS)
+check_PROGRAMS = \
+  cff_type2_charstring_test \
+  layout_common_table_test \
+  table_dependencies_test \
+  $(NULL)
 
 check_LIBRARIES = \
   libgtest.a \
@@ -212,6 +217,17 @@ LDADD = \
   $(CORETEXT_LIBS) \
   $(FREETYPE_LIBS) \
   $(NULL)
+
+
+AM_TESTS_ENVIRONMENT = \
+  EXEEXT="$(EXEEXT)"; \
+  export EXEEXT; \
+  top_srcdir="$(top_srcdir)"; \
+  export top_srcdir; \
+  top_builddir="$(top_builddir)"; \
+  export top_builddir; \
+  $(NULL)
+
 
 MAINTAINERCLEANFILES = \
   $(GITIGNORE_MAINTAINERCLEANFILES_TOPLEVEL) \

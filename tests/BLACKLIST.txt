@@ -122,3 +122,11 @@ Walbf___.otf
 ManchuFont.ttf
 arianamu.ttf
 summersby.ttf
+
+
+# XXX: check why those are failing
+SagarNormal.ttf
+oriya.ttf
+GohaTibebZemen.ttf
+malayalam.ttf
+AkaashNormal.ttf

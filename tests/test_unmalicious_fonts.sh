@@ -4,10 +4,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+test "x$top_srcdir" = x && top_srcdir=../..
+test "x$top_builddir" = x && top_builddir=../..
+
 # Usage: ./test_unmalicious_fonts.sh [ttf_or_otf_file_name]
 
-BLACKLIST=./BLACKLIST.txt
-CHECKER=./idempotent
+BLACKLIST=$top_srcdir/tests/BLACKLIST.txt
+CHECKER=$top_builddir/idempotent$EXEEXT
 
 if [ ! -r "$BLACKLIST" ] ; then
   echo "$BLACKLIST is not found."
@@ -26,7 +29,7 @@ if [ $# -eq 0 ] ; then
   # On Ubuntu Linux (>= 8.04), You can install ~1800 TrueType/OpenType fonts
   # to /usr/share/fonts/truetype by:
   #   % sudo apt-get install ttf-.*[^0]$
-  BASE_DIR=/usr/share/fonts/truetype/
+  BASE_DIR=/usr/share/fonts/
   if [ ! -d $BASE_DIR ] ; then
     # Mac OS X
     BASE_DIR="/Library/Fonts/ /System/Library/Fonts/"
@@ -34,9 +37,19 @@ if [ $# -eq 0 ] ; then
   # TODO(yusukes): Support Cygwin.
 
   # Recursively call this script.
-  find $BASE_DIR -type f -name '*tf' -exec "$0" {} \;
-  echo
-  exit 0
+  fails=0
+  fonts=`find $BASE_DIR -type f -name '*tf'`
+  for f in $fonts; do
+    $0 "$f"
+    fails=$((fails+$?))
+  done
+  if [ $fails != 0 ]; then
+    echo "$fails fonts failed."
+    exit 1
+  else
+    echo "All fonts passed"
+    exit 0
+  fi
 fi
 
 if [ $# -gt 1 ] ; then
@@ -44,7 +57,15 @@ if [ $# -gt 1 ] ; then
   exit 1
 fi
 
-# Check the font file using idempotent iff the font is not blacklisted.
+# Check the font file using idempotent if the font is not blacklisted.
 base=`basename "$1"`
-egrep -i -e "^$base" "$BLACKLIST" > /dev/null 2>&1 || "$CHECKER" "$1" > /dev/null 2>&1 || (echo ; echo "FAIL: $1 (Run $CHECKER $1 for more information.)")
-echo -n "."
+skip=`egrep -i -e "^$base" "$BLACKLIST"`
+
+if [ "x$skip" = "x" ]; then
+  $CHECKER "$1"
+  ret=$?
+  if [ $ret != 0 ]; then
+    echo "FAILED: $1"
+  fi
+  exit $ret
+fi
