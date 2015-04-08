@@ -319,6 +319,7 @@ class LookupListTableTest : public TableTest {
  protected:
 
   virtual void SetUp() {
+    TableTest::SetUp();
     num_lookups = 0;
   }
 
