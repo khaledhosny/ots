@@ -15,12 +15,14 @@ AC_PROG_CXX
 AC_PROG_RANLIB
 PKG_PROG_PKG_CONFIG([0.20])
 
+have_freetype=false
 PKG_CHECK_MODULES(FREETYPE, freetype2, have_freetype=true, :)
 if $have_freetype; then
 	AC_DEFINE(HAVE_FREETYPE, 1, [Have FreeType 2 library])
 fi
 AM_CONDITIONAL(HAVE_FREETYPE, $have_freetype)
 
+have_pthread=false
 AX_PTHREAD([have_pthread=true])
 if $have_pthread; then
 	GTEST_CPPFLAGS="-DGTEST_HAS_PTHREAD=1"
@@ -29,6 +31,7 @@ else
 fi
 AC_SUBST([GTEST_CPPFLAGS])
 
+have_coretext=false
 AC_CHECK_TYPE(CTFontRef, have_coretext=true,, [#include <ApplicationServices/ApplicationServices.h>])
 if $have_coretext; then
 	CORETEXT_CFLAGS=
