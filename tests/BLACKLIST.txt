@@ -130,3 +130,26 @@ oriya.ttf
 GohaTibebZemen.ttf
 malayalam.ttf
 AkaashNormal.ttf
+
+# XXX check those Apple fonts too
+Apple Chancery.ttf
+BigCaslon.ttf
+Chalkduster.ttf
+Diwan Thuluth.ttf
+Gungseouche.ttf
+HeadlineA.ttf
+Kailasa.ttf
+Kokonor.ttf
+Osaka.ttf
+OsakaMono.ttf
+PCmyoungjo.ttf
+Pilgiche.ttf
+PlantagenetCherokee.ttf
+Skia.ttf
+Yu Gothic Bold.otf
+Yu Gothic Medium.otf
+YuppySC-Regular.otf
+YuppyTC-Regular.otf
+Apple Color Emoji.ttf
+LastResort.ttf
+ZapfDingbats.ttf
