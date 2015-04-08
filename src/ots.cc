@@ -46,6 +46,12 @@ bool CheckTag(uint32_t tag_value) {
   return true;
 }
 
+uint32_t Tag(const char *tag_str) {	
+  uint32_t ret;	
+  std::memcpy(&ret, tag_str, 4);	
+  return ret;	
+}
+
 struct OutputTable {
   uint32_t tag;
   size_t offset;
@@ -53,7 +59,7 @@ struct OutputTable {
   uint32_t chksum;
 
   bool operator<(const OutputTable& other) const {
-    return tag < other.tag;
+    return ntohl(tag) < ntohl(other.tag);
   }
 };
 
@@ -77,66 +83,66 @@ struct Arena {
 };
 
 const struct {
-  uint32_t tag;
+  const char* tag;
   bool (*parse)(ots::OpenTypeFile *otf, const uint8_t *data, size_t length);
   bool (*serialise)(ots::OTSStream *out, ots::OpenTypeFile *file);
   bool (*should_serialise)(ots::OpenTypeFile *file);
   void (*free)(ots::OpenTypeFile *file);
   bool required;
 } table_parsers[] = {
-  { OTS_TAG('m','a','x','p'), ots::ots_maxp_parse, ots::ots_maxp_serialise,
+  { "maxp", ots::ots_maxp_parse, ots::ots_maxp_serialise,
     ots::ots_maxp_should_serialise, ots::ots_maxp_free, true },
-  { OTS_TAG('h','e','a','d'), ots::ots_head_parse, ots::ots_head_serialise,
+  { "head", ots::ots_head_parse, ots::ots_head_serialise,
     ots::ots_head_should_serialise, ots::ots_head_free, true },
-  { OTS_TAG('O','S','/','2'), ots::ots_os2_parse, ots::ots_os2_serialise,
+  { "OS/2", ots::ots_os2_parse, ots::ots_os2_serialise,
     ots::ots_os2_should_serialise, ots::ots_os2_free, true },
-  { OTS_TAG('c','m','a','p'), ots::ots_cmap_parse, ots::ots_cmap_serialise,
+  { "cmap", ots::ots_cmap_parse, ots::ots_cmap_serialise,
     ots::ots_cmap_should_serialise, ots::ots_cmap_free, true },
-  { OTS_TAG('h','h','e','a'), ots::ots_hhea_parse, ots::ots_hhea_serialise,
+  { "hhea", ots::ots_hhea_parse, ots::ots_hhea_serialise,
     ots::ots_hhea_should_serialise, ots::ots_hhea_free, true },
-  { OTS_TAG('h','m','t','x'), ots::ots_hmtx_parse, ots::ots_hmtx_serialise,
+  { "hmtx", ots::ots_hmtx_parse, ots::ots_hmtx_serialise,
     ots::ots_hmtx_should_serialise, ots::ots_hmtx_free, true },
-  { OTS_TAG('n','a','m','e'), ots::ots_name_parse, ots::ots_name_serialise,
+  { "name", ots::ots_name_parse, ots::ots_name_serialise,
     ots::ots_name_should_serialise, ots::ots_name_free, true },
-  { OTS_TAG('p','o','s','t'), ots::ots_post_parse, ots::ots_post_serialise,
+  { "post", ots::ots_post_parse, ots::ots_post_serialise,
     ots::ots_post_should_serialise, ots::ots_post_free, true },
-  { OTS_TAG('l','o','c','a'), ots::ots_loca_parse, ots::ots_loca_serialise,
+  { "loca", ots::ots_loca_parse, ots::ots_loca_serialise,
     ots::ots_loca_should_serialise, ots::ots_loca_free, false },
-  { OTS_TAG('g','l','y','f'), ots::ots_glyf_parse, ots::ots_glyf_serialise,
+  { "glyf", ots::ots_glyf_parse, ots::ots_glyf_serialise,
     ots::ots_glyf_should_serialise, ots::ots_glyf_free, false },
-  { OTS_TAG('C','F','F',' '), ots::ots_cff_parse, ots::ots_cff_serialise,
+  { "CFF ", ots::ots_cff_parse, ots::ots_cff_serialise,
     ots::ots_cff_should_serialise, ots::ots_cff_free, false },
-  { OTS_TAG('V','D','M','X'), ots::ots_vdmx_parse, ots::ots_vdmx_serialise,
+  { "VDMX", ots::ots_vdmx_parse, ots::ots_vdmx_serialise,
     ots::ots_vdmx_should_serialise, ots::ots_vdmx_free, false },
-  { OTS_TAG('h','d','m','x'), ots::ots_hdmx_parse, ots::ots_hdmx_serialise,
+  { "hdmx", ots::ots_hdmx_parse, ots::ots_hdmx_serialise,
     ots::ots_hdmx_should_serialise, ots::ots_hdmx_free, false },
-  { OTS_TAG('g','a','s','p'), ots::ots_gasp_parse, ots::ots_gasp_serialise,
+  { "gasp", ots::ots_gasp_parse, ots::ots_gasp_serialise,
     ots::ots_gasp_should_serialise, ots::ots_gasp_free, false },
-  { OTS_TAG('c','v','t',' '), ots::ots_cvt_parse, ots::ots_cvt_serialise,
+  { "cvt ", ots::ots_cvt_parse, ots::ots_cvt_serialise,
     ots::ots_cvt_should_serialise, ots::ots_cvt_free, false },
-  { OTS_TAG('f','p','g','m'), ots::ots_fpgm_parse, ots::ots_fpgm_serialise,
+  { "fpgm", ots::ots_fpgm_parse, ots::ots_fpgm_serialise,
     ots::ots_fpgm_should_serialise, ots::ots_fpgm_free, false },
-  { OTS_TAG('p','r','e','p'), ots::ots_prep_parse, ots::ots_prep_serialise,
+  { "prep", ots::ots_prep_parse, ots::ots_prep_serialise,
     ots::ots_prep_should_serialise, ots::ots_prep_free, false },
-  { OTS_TAG('L','T','S','H'), ots::ots_ltsh_parse, ots::ots_ltsh_serialise,
+  { "LTSH", ots::ots_ltsh_parse, ots::ots_ltsh_serialise,
     ots::ots_ltsh_should_serialise, ots::ots_ltsh_free, false },
-  { OTS_TAG('V','O','R','G'), ots::ots_vorg_parse, ots::ots_vorg_serialise,
+  { "VORG", ots::ots_vorg_parse, ots::ots_vorg_serialise,
     ots::ots_vorg_should_serialise, ots::ots_vorg_free, false },
-  { OTS_TAG('k','e','r','n'), ots::ots_kern_parse, ots::ots_kern_serialise,
+  { "kern", ots::ots_kern_parse, ots::ots_kern_serialise,
     ots::ots_kern_should_serialise, ots::ots_kern_free, false },
   // We need to parse GDEF table in advance of parsing GSUB/GPOS tables
   // because they could refer GDEF table.
-  { OTS_TAG('G','D','E','F'), ots::ots_gdef_parse, ots::ots_gdef_serialise,
+  { "GDEF", ots::ots_gdef_parse, ots::ots_gdef_serialise,
     ots::ots_gdef_should_serialise, ots::ots_gdef_free, false },
-  { OTS_TAG('G','P','O','S'), ots::ots_gpos_parse, ots::ots_gpos_serialise,
+  { "GPOS", ots::ots_gpos_parse, ots::ots_gpos_serialise,
     ots::ots_gpos_should_serialise, ots::ots_gpos_free, false },
-  { OTS_TAG('G','S','U','B'), ots::ots_gsub_parse, ots::ots_gsub_serialise,
+  { "GSUB", ots::ots_gsub_parse, ots::ots_gsub_serialise,
     ots::ots_gsub_should_serialise, ots::ots_gsub_free, false },
-  { OTS_TAG('v','h','e','a'), ots::ots_vhea_parse, ots::ots_vhea_serialise,
+  { "vhea", ots::ots_vhea_parse, ots::ots_vhea_serialise,
     ots::ots_vhea_should_serialise, ots::ots_vhea_free, false },
-  { OTS_TAG('v','m','t','x'), ots::ots_vmtx_parse, ots::ots_vmtx_serialise,
+  { "vmtx", ots::ots_vmtx_parse, ots::ots_vmtx_serialise,
     ots::ots_vmtx_should_serialise, ots::ots_vmtx_free, false },
-  { OTS_TAG('M','A','T','H'), ots::ots_math_parse, ots::ots_math_serialise,
+  { "MATH", ots::ots_math_parse, ots::ots_math_serialise,
     ots::ots_math_should_serialise, ots::ots_math_free, false },
   { 0, NULL, NULL, NULL, NULL, false },
 };
@@ -157,7 +163,7 @@ bool ProcessTTF(ots::OpenTypeFile *header,
     return OTS_FAILURE_MSG_HDR("file exceeds 1GB");
   }
 
-  if (!file.ReadU32(&header->version)) {
+  if (!file.ReadTag(&header->version)) {
     return OTS_FAILURE_MSG_HDR("error reading version tag");
   }
   if (!ots::IsValidVersionTag(header->version)) {
@@ -210,7 +216,7 @@ bool ProcessTTF(ots::OpenTypeFile *header,
 
   for (unsigned i = 0; i < header->num_tables; ++i) {
     OpenTypeTable table;
-    if (!file.ReadU32(&table.tag) ||
+    if (!file.ReadTag(&table.tag) ||
         !file.ReadU32(&table.chksum) ||
         !file.ReadU32(&table.offset) ||
         !file.ReadU32(&table.length)) {
@@ -235,15 +241,15 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
   }
 
   uint32_t woff_tag;
-  if (!file.ReadU32(&woff_tag)) {
+  if (!file.ReadTag(&woff_tag)) {
     return OTS_FAILURE_MSG_HDR("error reading WOFF marker");
   }
 
-  if (woff_tag != OTS_TAG('w','O','F','F')) {
+  if (woff_tag != Tag("wOFF")) {
     return OTS_FAILURE_MSG_HDR("invalid WOFF marker");
   }
 
-  if (!file.ReadU32(&header->version)) {
+  if (!file.ReadTag(&header->version)) {
     return OTS_FAILURE_MSG_HDR("error reading version tag");
   }
   if (!ots::IsValidVersionTag(header->version)) {
@@ -316,7 +322,7 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
   uint64_t total_sfnt_size = 12 + 16 * header->num_tables;
   for (unsigned i = 0; i < header->num_tables; ++i) {
     OpenTypeTable table;
-    if (!file.ReadU32(&table.tag) ||
+    if (!file.ReadTag(&table.tag) ||
         !file.ReadU32(&table.offset) ||
         !file.ReadU32(&table.length) ||
         !file.ReadU32(&table.uncompressed_length) ||
@@ -413,7 +419,7 @@ ots::TableAction GetTableAction(ots::OpenTypeFile *header, uint32_t tag) {
     for (unsigned i = 0; ; ++i) {
       if (table_parsers[i].parse == NULL) break;
 
-      if (table_parsers[i].tag == tag) {
+      if (Tag(table_parsers[i].tag) == tag) {
         action = ots::TABLE_ACTION_SANITIZE;
         break;
       }
@@ -461,8 +467,8 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
     // the tables must be sorted by tag (when taken as big-endian numbers).
     // This also remove the possibility of duplicate tables.
     if (i) {
-      const uint32_t this_tag = tables[i].tag;
-      const uint32_t prev_tag = tables[i - 1].tag;
+      const uint32_t this_tag = ntohl(tables[i].tag);
+      const uint32_t prev_tag = ntohl(tables[i - 1].tag);
       if (this_tag <= prev_tag) {
         OTS_WARNING_MSG_HDR("Table directory is not correctly ordered");
       }
@@ -470,40 +476,40 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
 
     // all tag names must be built from printable ASCII characters
     if (!CheckTag(tables[i].tag)) {
-      return OTS_FAILURE_MSG_TAG("invalid table tag", tables[i].tag);
+      return OTS_FAILURE_MSG_TAG("invalid table tag", &tables[i].tag);
     }
 
     // tables must be 4-byte aligned
     if (tables[i].offset & 3) {
-      return OTS_FAILURE_MSG_TAG("misaligned table", tables[i].tag);
+      return OTS_FAILURE_MSG_TAG("misaligned table", &tables[i].tag);
     }
 
     // and must be within the file
     if (tables[i].offset < data_offset || tables[i].offset >= length) {
-      return OTS_FAILURE_MSG_TAG("invalid table offset", tables[i].tag);
+      return OTS_FAILURE_MSG_TAG("invalid table offset", &tables[i].tag);
     }
     // disallow all tables with a zero length
     if (tables[i].length < 1) {
       // Note: malayalam.ttf has zero length CVT table...
-      return OTS_FAILURE_MSG_TAG("zero-length table", tables[i].tag);
+      return OTS_FAILURE_MSG_TAG("zero-length table", &tables[i].tag);
     }
     // disallow all tables with a length > 1GB
     if (tables[i].length > 1024 * 1024 * 1024) {
-      return OTS_FAILURE_MSG_TAG("table length exceeds 1GB", tables[i].tag);
+      return OTS_FAILURE_MSG_TAG("table length exceeds 1GB", &tables[i].tag);
     }
     // disallow tables where the uncompressed size is < the compressed size.
     if (tables[i].uncompressed_length < tables[i].length) {
-      return OTS_FAILURE_MSG_TAG("invalid compressed table", tables[i].tag);
+      return OTS_FAILURE_MSG_TAG("invalid compressed table", &tables[i].tag);
     }
     if (tables[i].uncompressed_length > tables[i].length) {
       // We'll probably be decompressing this table.
 
       // disallow all tables which uncompress to > 30 MB
       if (tables[i].uncompressed_length > 30 * 1024 * 1024) {
-        return OTS_FAILURE_MSG_TAG("uncompressed length exceeds 30MB", tables[i].tag);
+        return OTS_FAILURE_MSG_TAG("uncompressed length exceeds 30MB", &tables[i].tag);
       }
       if (uncompressed_sum + tables[i].uncompressed_length < uncompressed_sum) {
-        return OTS_FAILURE_MSG_TAG("overflow of uncompressed sum", tables[i].tag);
+        return OTS_FAILURE_MSG_TAG("overflow of uncompressed sum", &tables[i].tag);
       }
 
       uncompressed_sum += tables[i].uncompressed_length;
@@ -512,11 +518,11 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
     // length is < 1GB, the following addtion doesn't overflow
     uint32_t end_byte = tables[i].offset + tables[i].length;
     // Tables in the WOFF file must be aligned 4-byte boundary.
-    if (signature == OTS_TAG('w','O','F','F')) {
+    if (signature == Tag("wOFF")) {
         end_byte = ots::Round4(end_byte);
     }
     if (!end_byte || end_byte > length) {
-      return OTS_FAILURE_MSG_TAG("table overruns end of file", tables[i].tag);
+      return OTS_FAILURE_MSG_TAG("table overruns end of file", &tables[i].tag);
     }
   }
 
@@ -553,7 +559,7 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
   for (unsigned i = 0; ; ++i) {
     if (table_parsers[i].parse == NULL) break;
 
-    uint32_t tag = table_parsers[i].tag;
+    uint32_t tag = Tag(table_parsers[i].tag);
     const std::map<uint32_t, OpenTypeTable>::const_iterator it = table_map.find(tag);
 
     ots::TableAction action = GetTableAction(header, tag);
@@ -581,7 +587,7 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
 
   if (header->cff) {
     // font with PostScript glyph
-    if (header->version != OTS_TAG('O','T','T','O')) {
+    if (header->version != Tag("OTTO")) {
       return OTS_FAILURE_MSG_HDR("wrong font version for PostScript glyph data");
     }
     if (header->glyf || header->loca) {
@@ -591,12 +597,11 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
   } else {
     if (!header->glyf || !header->loca) {
       // No TrueType glyph found.
-#define PASSTHRU_TABLE(tag_) (table_map.find(tag_) != table_map.end() && \
-                              GetTableAction(header, tag_) == ots::TABLE_ACTION_PASSTHRU)
+#define PASSTHRU_TABLE(TAG) (table_map.find(Tag(TAG)) != table_map.end() && \
+                             GetTableAction(header, Tag(TAG)) == ots::TABLE_ACTION_PASSTHRU)
       // We don't sanitise bitmap table, but don't reject bitmap-only fonts if
       // we keep the tables.
-      if (!PASSTHRU_TABLE(OTS_TAG('C','B','D','T')) ||
-          !PASSTHRU_TABLE(OTS_TAG('C','B','L','C'))) {
+      if (!PASSTHRU_TABLE("CBDT") || !PASSTHRU_TABLE("CBLC")) {
         return OTS_FAILURE_MSG_HDR("no supported glyph shapes table(s) present");
       }
 #undef PASSTHRU_TABLE
@@ -658,11 +663,12 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
     }
 
     OutputTable out;
-    out.tag = table_parsers[i].tag;
+    uint32_t tag = Tag(table_parsers[i].tag);
+    out.tag = tag;
     out.offset = output->Tell();
 
     output->ResetChecksum();
-    if (out.tag == OTS_TAG('h','e','a','d')) {
+    if (tag == Tag("head")) {
       head_table_offset = out.offset;
     }
     if (!table_parsers[i].serialise(output, header)) {
@@ -694,7 +700,7 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
       out.offset = output->Tell();
 
       output->ResetChecksum();
-      if (it->second.tag == OTS_TAG('h','e','a','d')) {
+      if (it->second.tag == Tag("head")) {
         head_table_offset = out.offset;
       }
 
@@ -775,12 +781,12 @@ bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
 namespace ots {
 
 bool IsValidVersionTag(uint32_t tag) {
-  return tag == 0x000010000 ||
+  return tag == Tag("\x00\x01\x00\x00") ||
          // OpenType fonts with CFF data have 'OTTO' tag.
-         tag == OTS_TAG('O','T','T','O') ||
+         tag == Tag("OTTO") ||
          // Older Mac fonts might have 'true' or 'typ1' tag.
-         tag == OTS_TAG('t','r','u','e') ||
-         tag == OTS_TAG('t','y','p','1');
+         tag == Tag("true") ||
+         tag == Tag("typ1");
 }
 
 bool OTSContext::Process(OTSStream *output,

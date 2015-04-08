@@ -55,7 +55,7 @@ namespace ots {
 
 // Generate a message with an associated table tag
 #define OTS_FAILURE_MSG_TAG_(otf_,msg_,tag_) \
-  (OTS_MESSAGE_(0,otf_,"%c%c%c%c: %s", OTS_UNTAG(tag_), msg_), false)
+  (OTS_MESSAGE_(0,otf_,"%4.4s: %s", tag_, msg_), false)
 
 // Convenience macros for use in files that only handle a single table tag,
 // defined as TABLE_NAME at the top of the file; the 'file' variable is
@@ -143,6 +143,15 @@ class Buffer {
 
   bool ReadS32(int32_t *value) {
     return ReadU32(reinterpret_cast<uint32_t*>(value));
+  }
+
+  bool ReadTag(uint32_t *value) {
+    if (offset_ + 4 > length_) {
+      return OTS_FAILURE();
+    }
+    std::memcpy(value, buffer_ + offset_, sizeof(uint32_t));
+    offset_ += 4;
+    return true;
   }
 
   bool ReadR64(uint64_t *value) {
