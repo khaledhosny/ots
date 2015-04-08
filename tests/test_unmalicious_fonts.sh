@@ -37,15 +37,16 @@ if [ $# -eq 0 ] ; then
   # TODO(yusukes): Support Cygwin.
 
   # Recursively call this script.
-  fails=0
-  fonts=`find $BASE_DIR -type f -name '*tf'`
+  FAILS=0
+  FONTS=`find $BASE_DIR -type f -name '*tf'`
   IFS=$'\n'
-  for f in $fonts; do
+  for f in $FONTS; do
     $0 "$f"
-    fails=$((fails+$?))
+    FAILS=$((FAILS+$?))
   done
-  if [ $fails != 0 ]; then
-    echo "$fails fonts failed."
+
+  if [ $FAILS != 0 ]; then
+    echo "$FAILS fonts failed."
     exit 1
   else
     echo "All fonts passed"
@@ -59,14 +60,14 @@ if [ $# -gt 1 ] ; then
 fi
 
 # Check the font file using idempotent if the font is not blacklisted.
-base=`basename "$1"`
-skip=`egrep -i -e "^$base" "$BLACKLIST"`
+BASE=`basename "$1"`
+SKIP=`egrep -i -e "^$BASE" "$BLACKLIST"`
 
-if [ "x$skip" = "x" ]; then
+if [ "x$SKIP" = "x" ]; then
   $CHECKER "$1"
-  ret=$?
-  if [ $ret != 0 ]; then
+  RET=$?
+  if [ $RET != 0 ]; then
     echo "FAILED: $1"
   fi
-  exit $ret
+  exit $RET
 fi
