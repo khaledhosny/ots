@@ -310,7 +310,7 @@ bool ots_os2_serialise(OTSStream *out, OpenTypeFile *file) {
     return OTS_FAILURE_MSG("Failed to write version 2-specific fields");
   }
 
-  if (os2->version < 2) {
+  if (os2->version < 5) {
     return true;
   }
 
