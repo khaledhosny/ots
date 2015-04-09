@@ -89,7 +89,7 @@ class OTSStream {
   virtual bool Pad(size_t bytes) {
     static const uint32_t kZero = 0;
     while (bytes >= 4) {
-      if (!WriteTag(kZero)) return false;
+      if (!Write(&kZero, 4)) return false;
       bytes -= 4;
     }
     while (bytes) {
@@ -130,10 +130,6 @@ class OTSStream {
   }
 
   bool WriteR64(uint64_t v) {
-    return Write(&v, sizeof(v));
-  }
-
-  bool WriteTag(uint32_t v) {
     return Write(&v, sizeof(v));
   }
 
