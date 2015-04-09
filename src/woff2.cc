@@ -850,7 +850,7 @@ bool ConvertWOFF2ToSFNT(ots::OpenTypeFile* file,
     return OTS_FAILURE_MSG("Failed to read 'signature' or 'flavor', or not WOFF2 signature");
   }
 
-  if (!IsValidVersionTag(ntohl(flavor))) {
+  if (!IsValidVersionTag(flavor)) {
     return OTS_FAILURE_MSG("Invalid 'flavor'");
   }
 
