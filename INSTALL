@@ -1,7 +1,7 @@
-How to build:
+General build instructions:
 
   1. If you are building from cloned Git repository, make sure to update the
-     submodules as well:
+     sub modules as well:
 
      $ git submodule init
      $ git submodule update
@@ -18,3 +18,15 @@ How to build:
   3. Run the tests (if you wish)
 
      $ make check
+
+Building on Windows:
+
+   1. A POSIX-compatible environment is required to build OTS, MSYS2 is
+      recommended. Follow the installation instructions on
+	  https://msys2.github.io/.
+
+   2. Install the required packages:
+
+      $ pacman -S autoconf automake pkg-config gcc make zlib-devel
+
+   3. Follow the general build instructions above.
