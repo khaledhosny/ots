@@ -15,6 +15,12 @@ AC_PROG_CXX
 AC_PROG_RANLIB
 PKG_PROG_PKG_CONFIG([0.20])
 
+have_zlib=false
+AX_CHECK_ZLIB(have_zlib=true, :)
+if ! $have_zlib; then
+	AC_MSG_ERROR([zlib is required but not found])
+fi
+
 have_freetype=false
 PKG_CHECK_MODULES(FREETYPE, freetype2, have_freetype=true, :)
 if $have_freetype; then
