@@ -118,6 +118,16 @@ ManchuFont.ttf
 arianamu.ttf
 summersby.ttf
 
+# Invalid glyph length
+DroidSansArmenian.ttf
+DroidSansGeorgian.ttf
+
+# Bad glyph flag
+DroidSansFallbackFull.ttf
+
+# incorrect entrySelector for table directory
+NanumMyeongjo.ttf
+NanumMyeongjoBold.ttf
 
 # XXX: check why those are failing
 SagarNormal.ttf
