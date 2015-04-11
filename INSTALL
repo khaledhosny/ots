@@ -1,14 +1,10 @@
 General build instructions:
 
-  1. If you are building from cloned Git repository, make sure to update the
-     sub modules as well:
+  1. If you are building from cloned Git repository, you will need to update
+     the git sub modules, as well as run autoreconf. A convenience script is
+     provided:
 
-     $ git submodule init
-     $ git submodule update
-
-     Then run autoreconf
-
-     $ autoreconf -if
+     $ ./autogen.sh
 
   2. Build OTS
 
