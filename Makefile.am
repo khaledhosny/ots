@@ -1,5 +1,7 @@
 NULL =
 
+ACLOCAL_AMFLAGS = -I m4
+
 bin_PROGRAMS = \
   ot-sanitise \
   $(NULL)
