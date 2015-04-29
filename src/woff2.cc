@@ -560,6 +560,7 @@ bool ReconstructGlyf(ots::OpenTypeFile* file,
   std::vector<uint16_t> n_points_vec;
   std::vector<Point> points;
   uint32_t loca_offset = 0;
+  const uint8_t* bbox_bitmap = bbox_stream.buffer();
   for (unsigned int i = 0; i < num_glyphs; ++i) {
     size_t glyph_size = 0;
     uint16_t n_contours = 0;
@@ -570,6 +571,9 @@ bool ReconstructGlyf(ots::OpenTypeFile* file,
     size_t glyf_dst_size = dst_size - loca_offset;
     if (n_contours == 0xffff) {
       // composite glyph
+      if (!(bbox_bitmap[i >> 3] & (0x80 >> (i & 7)))) {
+        return OTS_FAILURE_MSG("Composite glyph %d without bbox", i);
+      }
       bool have_instructions = false;
       uint16_t instruction_size = 0;
       if (!ProcessComposite(&composite_stream, glyf_dst, glyf_dst_size,
