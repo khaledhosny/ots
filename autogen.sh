@@ -7,10 +7,10 @@ echo -n "checking for git... "
 }
 
 echo "running git submodule init"
-git submodule init
+git submodule init || exit $?
 
 echo "running git submodule update"
-git submodule update
+git submodule update || exit $?
 
 echo -n "checking for pkg-config... "
 which pkg-config || {
