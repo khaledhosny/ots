@@ -60,9 +60,9 @@ namespace ots {
 // Convenience macros for use in files that only handle a single table tag,
 // defined as TABLE_NAME at the top of the file; the 'file' variable is
 // expected to be the current OpenTypeFile pointer.
-#define OTS_FAILURE_MSG(...) OTS_FAILURE_MSG_(file, TABLE_NAME ": " __VA_ARGS__)
+#define OTS_FAILURE_MSG(...) OTS_FAILURE_MSG_(font->file, TABLE_NAME ": " __VA_ARGS__)
 
-#define OTS_WARNING(...) OTS_WARNING_MSG_(file, TABLE_NAME ": " __VA_ARGS__)
+#define OTS_WARNING(...) OTS_WARNING_MSG_(font->file, TABLE_NAME ": " __VA_ARGS__)
 
 // -----------------------------------------------------------------------------
 // Buffer helper class
@@ -216,12 +216,17 @@ bool IsValidVersionTag(uint32_t tag);
 FOR_EACH_TABLE_TYPE
 #undef F
 
-struct OpenTypeFile {
-  OpenTypeFile() {
+struct OpenTypeFile;
+
+struct Font {
+  Font(const OpenTypeFile *f) {
+    file = f;
 #define F(name, capname) name = NULL;
     FOR_EACH_TABLE_TYPE
 #undef F
   }
+
+  const OpenTypeFile *file;
 
   uint32_t version;
   uint16_t num_tables;
@@ -229,18 +234,20 @@ struct OpenTypeFile {
   uint16_t entry_selector;
   uint16_t range_shift;
 
-  OTSContext *context;
-
 #define F(name, capname) OpenType##capname *name;
 FOR_EACH_TABLE_TYPE
 #undef F
 };
 
+struct OpenTypeFile {
+  OTSContext *context;
+};
+
 #define F(name, capname) \
-bool ots_##name##_parse(OpenTypeFile *f, const uint8_t *d, size_t l); \
-bool ots_##name##_should_serialise(OpenTypeFile *f); \
-bool ots_##name##_serialise(OTSStream *s, OpenTypeFile *f); \
-void ots_##name##_free(OpenTypeFile *f);
+bool ots_##name##_parse(Font *f, const uint8_t *d, size_t l); \
+bool ots_##name##_should_serialise(Font *f); \
+bool ots_##name##_serialise(OTSStream *s, Font *f); \
+void ots_##name##_free(Font *f);
 // TODO(yusukes): change these function names to follow Chromium coding rule.
 FOR_EACH_TABLE_TYPE
 #undef F

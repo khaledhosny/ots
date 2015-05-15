@@ -17,7 +17,7 @@ Example:
   $ ./ot-sanitise sample.otf transcoded_sample.otf
   $ ./ot-sanitise malformed.ttf
   WARNING at ots/src/ots.cc:158: bad range shift
-  ERROR at ots/src/ots.cc:199 (bool<unnamed>::do_ots_process(ots::OpenTypeFile*, ots::OTSStream*, const uint8_t*, size_t))
+  ERROR at ots/src/ots.cc:199 (bool<unnamed>::do_ots_process(ots::Font*, ots::OTSStream*, const uint8_t*, size_t))
   Failed to sanitise file!
   $
 
@@ -47,7 +47,7 @@ Example:
   $ ./idempotent sample.otf
   $ ./idempotent malformed.ttf
   WARNING at ots/src/ots.cc:158: bad range shift
-  ERROR at ots/src/ots.cc:199 (bool<unnamed>::do_ots_process(ots::OpenTypeFile*, ots::OTSStream*, const uint8_t*, size_t))
+  ERROR at ots/src/ots.cc:199 (bool<unnamed>::do_ots_process(ots::Font*, ots::OTSStream*, const uint8_t*, size_t))
   Failed to sanitise file!
   $
 

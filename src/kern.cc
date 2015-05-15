@@ -12,17 +12,17 @@
 #define DROP_THIS_TABLE(msg_) \
   do { \
     OTS_FAILURE_MSG(msg_ ", table discarded"); \
-    delete file->kern; \
-    file->kern = 0; \
+    delete font->kern; \
+    font->kern = 0; \
   } while (0)
 
 namespace ots {
 
-bool ots_kern_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
+bool ots_kern_parse(Font *font, const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
   OpenTypeKERN *kern = new OpenTypeKERN;
-  file->kern = kern;
+  font->kern = kern;
 
   uint16_t num_tables = 0;
   if (!table.ReadU16(&kern->version) ||
@@ -153,13 +153,13 @@ bool ots_kern_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   return true;
 }
 
-bool ots_kern_should_serialise(OpenTypeFile *file) {
-  if (!file->glyf) return false;  // this table is not for CFF fonts.
-  return file->kern != NULL;
+bool ots_kern_should_serialise(Font *font) {
+  if (!font->glyf) return false;  // this table is not for CFF fonts.
+  return font->kern != NULL;
 }
 
-bool ots_kern_serialise(OTSStream *out, OpenTypeFile *file) {
-  const OpenTypeKERN *kern = file->kern;
+bool ots_kern_serialise(OTSStream *out, Font *font) {
+  const OpenTypeKERN *kern = font->kern;
 
   const uint16_t num_subtables = static_cast<uint16_t>(kern->subtables.size());
   if (num_subtables != kern->subtables.size() ||
@@ -193,8 +193,8 @@ bool ots_kern_serialise(OTSStream *out, OpenTypeFile *file) {
   return true;
 }
 
-void ots_kern_free(OpenTypeFile *file) {
-  delete file->kern;
+void ots_kern_free(Font *font) {
+  delete font->kern;
 }
 
 }  // namespace ots

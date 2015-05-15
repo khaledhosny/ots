@@ -58,11 +58,11 @@ void AssignToUtf16BeFromAscii(std::string* target,
 
 namespace ots {
 
-bool ots_name_parse(OpenTypeFile* file, const uint8_t* data, size_t length) {
+bool ots_name_parse(Font *font, const uint8_t* data, size_t length) {
   Buffer table(data, length);
 
   OpenTypeNAME* name = new OpenTypeNAME;
-  file->name = name;
+  font->name = name;
 
   uint16_t format = 0;
   if (!table.ReadU16(&format) || format > 1) {
@@ -141,14 +141,14 @@ bool ots_name_parse(OpenTypeFile* file, const uint8_t* data, size_t length) {
     if (rec.name_id == 6) {
       // PostScript name: check that it is valid, if not then discard it
       if (rec.platform_id == 1) {
-        if (file->cff && !file->cff->name.empty()) {
-          rec.text = file->cff->name;
+        if (font->cff && !font->cff->name.empty()) {
+          rec.text = font->cff->name;
         } else if (!CheckPsNameAscii(rec.text)) {
           continue;
         }
       } else if (rec.platform_id == 0 || rec.platform_id == 3) {
-        if (file->cff && !file->cff->name.empty()) {
-          AssignToUtf16BeFromAscii(&rec.text, file->cff->name);
+        if (font->cff && !font->cff->name.empty()) {
+          AssignToUtf16BeFromAscii(&rec.text, font->cff->name);
         } else if (!CheckPsNameUtf16Be(rec.text)) {
           continue;
         }
@@ -213,8 +213,8 @@ bool ots_name_parse(OpenTypeFile* file, const uint8_t* data, size_t length) {
   // The spec says that "In CFF OpenType fonts, these two name strings, when
   // translated to ASCII, must also be identical to the font name as stored in
   // the CFF's Name INDEX." And actually, Mac OS X's font parser requires that.
-  if (file->cff && !file->cff->name.empty()) {
-    kStdNames[6] = file->cff->name.c_str();
+  if (font->cff && !font->cff->name.empty()) {
+    kStdNames[6] = font->cff->name.c_str();
   }
 
   // scan the names to check whether the required "standard" ones are present;
@@ -264,12 +264,12 @@ bool ots_name_parse(OpenTypeFile* file, const uint8_t* data, size_t length) {
   return true;
 }
 
-bool ots_name_should_serialise(OpenTypeFile* file) {
-  return file->name != NULL;
+bool ots_name_should_serialise(Font *font) {
+  return font->name != NULL;
 }
 
-bool ots_name_serialise(OTSStream* out, OpenTypeFile* file) {
-  const OpenTypeNAME* name = file->name;
+bool ots_name_serialise(OTSStream* out, Font *font) {
+  const OpenTypeNAME* name = font->name;
 
   uint16_t name_count = static_cast<uint16_t>(name->names.size());
   uint16_t lang_tag_count = static_cast<uint16_t>(name->lang_tags.size());
@@ -331,8 +331,8 @@ bool ots_name_serialise(OTSStream* out, OpenTypeFile* file) {
   return true;
 }
 
-void ots_name_free(OpenTypeFile* file) {
-  delete file->name;
+void ots_name_free(Font *font) {
+  delete font->name;
 }
 
 }  // namespace

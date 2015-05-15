@@ -14,11 +14,11 @@
 
 namespace ots {
 
-bool ots_os2_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
+bool ots_os2_parse(Font *font, const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
   OpenTypeOS2 *os2 = new OpenTypeOS2;
-  file->os2 = os2;
+  font->os2 = os2;
 
   if (!table.ReadU16(&os2->version) ||
       !table.ReadS16(&os2->avg_char_width) ||
@@ -131,26 +131,26 @@ bool ots_os2_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 
   // the settings of bits 0 and 1 must be reflected in the macStyle bits
   // in the 'head' table.
-  if (!file->head) {
+  if (!font->head) {
     return OTS_FAILURE_MSG("Needed head table is missing from the font");
   }
   if ((os2->selection & 0x1) &&
-      !(file->head->mac_style & 0x2)) {
+      !(font->head->mac_style & 0x2)) {
     OTS_WARNING("adjusting Mac style (italic)");
-    file->head->mac_style |= 0x2;
+    font->head->mac_style |= 0x2;
   }
   if ((os2->selection & 0x2) &&
-      !(file->head->mac_style & 0x4)) {
+      !(font->head->mac_style & 0x4)) {
     OTS_WARNING("adjusting Mac style (underscore)");
-    file->head->mac_style |= 0x4;
+    font->head->mac_style |= 0x4;
   }
 
   // While bit 6 on implies that bits 0 and 1 of macStyle are clear,
   // the reverse is not true.
   if ((os2->selection & 0x40) &&
-      (file->head->mac_style & 0x3)) {
+      (font->head->mac_style & 0x3)) {
     OTS_WARNING("adjusting Mac style (regular)");
-    file->head->mac_style &= 0xfffcu;
+    font->head->mac_style &= 0xfffcu;
   }
 
   if ((os2->version < 4) &&
@@ -241,12 +241,12 @@ bool ots_os2_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   return true;
 }
 
-bool ots_os2_should_serialise(OpenTypeFile *file) {
-  return file->os2 != NULL;
+bool ots_os2_should_serialise(Font *font) {
+  return font->os2 != NULL;
 }
 
-bool ots_os2_serialise(OTSStream *out, OpenTypeFile *file) {
-  const OpenTypeOS2 *os2 = file->os2;
+bool ots_os2_serialise(OTSStream *out, Font *font) {
+  const OpenTypeOS2 *os2 = font->os2;
 
   if (!out->WriteU16(os2->version) ||
       !out->WriteS16(os2->avg_char_width) ||
@@ -322,8 +322,8 @@ bool ots_os2_serialise(OTSStream *out, OpenTypeFile *file) {
   return true;
 }
 
-void ots_os2_free(OpenTypeFile *file) {
-  delete file->os2;
+void ots_os2_free(Font *font) {
+  delete font->os2;
 }
 
 }  // namespace ots

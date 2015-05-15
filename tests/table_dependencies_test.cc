@@ -11,25 +11,26 @@
 #include "vmtx.h"
 
 #define SET_TABLE(name, capname) \
-  do { file.name = new ots::OpenType##capname; } while (0)
+  do { font->name = new ots::OpenType##capname; } while (0)
 #define SET_LAYOUT_TABLE(name, capname)                    \
   do {                                                     \
-    if (!file.name) {                                      \
+    if (!font->name) {                                      \
       SET_TABLE(name, capname);                            \
     }                                                      \
-    file.name->data = reinterpret_cast<const uint8_t*>(1); \
-    file.name->length = 1;                                 \
+    font->name->data = reinterpret_cast<const uint8_t*>(1); \
+    font->name->length = 1;                                 \
   } while (0)
 #define DROP_TABLE(name) \
-  do { delete file.name; file.name = NULL; } while (0)
+  do { delete font->name; font->name = NULL; } while (0)
 #define DROP_LAYOUT_TABLE(name) \
-  do { file.name->data = NULL; file.name->length = 0; } while (0)
+  do { font->name->data = NULL; font->name->length = 0; } while (0)
 
 namespace {
 
 class TableDependenciesTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
+    font = new ots::Font(new ots::OpenTypeFile);
     SET_LAYOUT_TABLE(gsub, GSUB);
     SET_TABLE(vhea, VHEA);
     SET_TABLE(vmtx, VMTX);
@@ -40,39 +41,39 @@ class TableDependenciesTest : public ::testing::Test {
     DROP_TABLE(vhea);
     DROP_TABLE(vmtx);
   }
-  ots::OpenTypeFile file;
+  ots::Font *font;
 };
 }  // namespace
 
 TEST_F(TableDependenciesTest, TestVhea) {
-  EXPECT_TRUE(ots::ots_vhea_should_serialise(&file));
+  EXPECT_TRUE(ots::ots_vhea_should_serialise(font));
 }
 
 TEST_F(TableDependenciesTest, TestVmtx) {
-  EXPECT_TRUE(ots::ots_vmtx_should_serialise(&file));
+  EXPECT_TRUE(ots::ots_vmtx_should_serialise(font));
 }
 
 TEST_F(TableDependenciesTest, TestVheaVmtx) {
   DROP_TABLE(vmtx);
-  EXPECT_FALSE(ots::ots_vhea_should_serialise(&file));
+  EXPECT_FALSE(ots::ots_vhea_should_serialise(font));
 }
 
 TEST_F(TableDependenciesTest, TestVmtxVhea) {
   DROP_TABLE(vhea);
-  EXPECT_FALSE(ots::ots_vmtx_should_serialise(&file));
+  EXPECT_FALSE(ots::ots_vmtx_should_serialise(font));
 }
 
 TEST_F(TableDependenciesTest, TestVheaGsub) {
   DROP_LAYOUT_TABLE(gsub);
-  EXPECT_FALSE(ots::ots_vhea_should_serialise(&file));
+  EXPECT_FALSE(ots::ots_vhea_should_serialise(font));
   DROP_TABLE(gsub);
-  EXPECT_FALSE(ots::ots_vhea_should_serialise(&file));
+  EXPECT_FALSE(ots::ots_vhea_should_serialise(font));
 }
 
 TEST_F(TableDependenciesTest, TestVmtxGsub) {
   DROP_LAYOUT_TABLE(gsub);
-  EXPECT_FALSE(ots::ots_vmtx_should_serialise(&file));
+  EXPECT_FALSE(ots::ots_vmtx_should_serialise(font));
   DROP_TABLE(gsub);
-  EXPECT_FALSE(ots::ots_vmtx_should_serialise(&file));
+  EXPECT_FALSE(ots::ots_vmtx_should_serialise(font));
 }
 

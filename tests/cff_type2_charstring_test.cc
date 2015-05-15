@@ -152,8 +152,9 @@ bool Validate(const int *char_string, size_t char_string_len,
   ots::Buffer ots_buffer(&buffer[0], buffer.size());
 
   ots::OpenTypeFile* file = new ots::OpenTypeFile();
+  ots::Font* font = new ots::Font(file);
   file->context = new ots::OTSContext();
-  return ots::ValidateType2CharStringIndex(file,
+  return ots::ValidateType2CharStringIndex(font,
                                            char_strings_index,
                                            global_subrs_index,
                                            fd_select,
