@@ -672,21 +672,19 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
   }
 
   uint16_t num_output_tables = 0;
-  for (unsigned i = 0; ; ++i) {
-    if (table_parsers[i].parse == NULL) {
-      break;
-    }
-
-    if (table_parsers[i].should_serialise(font)) {
-      num_output_tables++;
-    }
-  }
-
   for (std::map<uint32_t, OpenTypeTable>::const_iterator it = table_map.begin();
        it != table_map.end(); ++it) {
     ots::TableAction action = GetTableAction(header, it->first);
     if (action == ots::TABLE_ACTION_PASSTHRU) {
       num_output_tables++;
+    } else {
+      for (unsigned i = 0; table_parsers[i].parse != NULL; ++i) {
+        if (table_parsers[i].tag == it->first &&
+            table_parsers[i].should_serialise(font)) {
+          num_output_tables++;
+          break;
+        }
+      }
     }
   }
 
@@ -716,56 +714,19 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
   std::vector<OutputTable> out_tables;
 
   size_t head_table_offset = 0;
-  for (unsigned i = 0; ; ++i) {
-    if (table_parsers[i].parse == NULL) {
-      break;
-    }
-
-    if (!table_parsers[i].should_serialise(font)) {
-      continue;
-    }
-
+  for (std::map<uint32_t, OpenTypeTable>::const_iterator it = table_map.begin();
+       it != table_map.end(); ++it) {
     OutputTable out;
-    out.tag = table_parsers[i].tag;
+    out.tag = it->first;
     out.offset = output->Tell();
 
-    output->ResetChecksum();
     if (out.tag == OTS_TAG('h','e','a','d')) {
       head_table_offset = out.offset;
     }
-    if (!table_parsers[i].serialise(output, font)) {
-      return OTS_FAILURE_MSG_TAG("failed to serialize table", table_parsers[i].tag);
-    }
 
-    const size_t end_offset = output->Tell();
-    if (end_offset <= out.offset) {
-      // paranoid check. |end_offset| is supposed to be greater than the offset,
-      // as long as the Tell() interface is implemented correctly.
-      return OTS_FAILURE_MSG_HDR("error writing output");
-    }
-    out.length = end_offset - out.offset;
-
-    // align tables to four bytes
-    if (!output->Pad((4 - (end_offset & 3)) % 4)) {
-      return OTS_FAILURE_MSG_HDR("error writing output");
-    }
-    out.chksum = output->chksum();
-    out_tables.push_back(out);
-  }
-
-  for (std::map<uint32_t, OpenTypeTable>::const_iterator it = table_map.begin();
-       it != table_map.end(); ++it) {
     ots::TableAction action = GetTableAction(header, it->first);
     if (action == ots::TABLE_ACTION_PASSTHRU) {
-      OutputTable out;
-      out.tag = it->second.tag;
-      out.offset = output->Tell();
-
       output->ResetChecksum();
-      if (it->second.tag == OTS_TAG('h','e','a','d')) {
-        head_table_offset = out.offset;
-      }
-
       const uint8_t* table_data;
       size_t table_length;
 
@@ -791,6 +752,33 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
       }
       out.chksum = output->chksum();
       out_tables.push_back(out);
+    } else {
+      for (unsigned i = 0; table_parsers[i].parse != NULL; ++i) {
+        if (table_parsers[i].tag == it->first &&
+            table_parsers[i].should_serialise(font)) {
+          output->ResetChecksum();
+          if (!table_parsers[i].serialise(output, font)) {
+            return OTS_FAILURE_MSG_TAG("failed to serialize table", table_parsers[i].tag);
+          }
+
+          const size_t end_offset = output->Tell();
+          if (end_offset <= out.offset) {
+            // paranoid check. |end_offset| is supposed to be greater than the offset,
+            // as long as the Tell() interface is implemented correctly.
+            return OTS_FAILURE_MSG_HDR("error writing output");
+          }
+          out.length = end_offset - out.offset;
+
+          // align tables to four bytes
+          if (!output->Pad((4 - (end_offset & 3)) % 4)) {
+            return OTS_FAILURE_MSG_HDR("error writing output");
+          }
+          out.chksum = output->chksum();
+          out_tables.push_back(out);
+
+          break;
+        }
+      }
     }
   }
 
