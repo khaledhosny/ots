@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <map>
 
 #include "opentype-sanitiser.h"
 
@@ -239,8 +240,20 @@ FOR_EACH_TABLE_TYPE
 #undef F
 };
 
+struct OutputTable {
+  uint32_t tag;
+  size_t offset;
+  size_t length;
+  uint32_t chksum;
+
+  bool operator<(const OutputTable& other) const {
+    return tag < other.tag;
+  }
+};
+
 struct OpenTypeFile {
   OTSContext *context;
+  std::map<uint32_t, OutputTable> tables;
 };
 
 #define F(name, capname) \

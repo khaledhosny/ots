@@ -46,17 +46,6 @@ bool CheckTag(uint32_t tag_value) {
   return true;
 }
 
-struct OutputTable {
-  uint32_t tag;
-  size_t offset;
-  size_t length;
-  uint32_t chksum;
-
-  bool operator<(const OutputTable& other) const {
-    return tag < other.tag;
-  }
-};
-
 struct Arena {
  public:
   ~Arena() {
@@ -277,7 +266,27 @@ bool ProcessTTC(ots::OpenTypeFile *header,
   }
 
   if (index == static_cast<uint32_t>(-1)) {
-    return false;
+    if (!output->WriteU32(ttc_tag) ||
+        !output->WriteU32(0x00010000) ||
+        !output->WriteU32(num_fonts) ||
+        !output->Seek((3 + num_fonts) * 4)) {
+      return OTS_FAILURE_MSG_HDR("Error writing output");
+    }
+
+    for (unsigned i = 0; i < num_fonts; i++) {
+      uint32_t out_offset = output->Tell();
+      if (!output->Seek((3 + i) * 4) ||
+          !output->WriteU32(out_offset) ||
+          !output->Seek(out_offset)) {
+        return OTS_FAILURE_MSG_HDR("Error writing output");
+      }
+      ots::Font font(header);
+      if (!ProcessTTF(header, &font, output, data, length, offsets[i])) {
+        return false;
+      }
+    }
+
+    return true;
   } else {
     if (index >= num_fonts) {
       return OTS_FAILURE_MSG_HDR("Requested font index is bigger than the number of fonts in the TTC file");
@@ -711,72 +720,84 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
     return OTS_FAILURE_MSG_HDR("error writing output");
   }
 
-  std::vector<OutputTable> out_tables;
+  std::vector<ots::OutputTable> out_tables;
 
   size_t head_table_offset = 0;
   for (std::map<uint32_t, OpenTypeTable>::const_iterator it = table_map.begin();
        it != table_map.end(); ++it) {
-    OutputTable out;
-    out.tag = it->first;
-    out.offset = output->Tell();
-
-    if (out.tag == OTS_TAG('h','e','a','d')) {
-      head_table_offset = out.offset;
-    }
-
-    ots::TableAction action = GetTableAction(header, it->first);
-    if (action == ots::TABLE_ACTION_PASSTHRU) {
-      output->ResetChecksum();
-      const uint8_t* table_data;
-      size_t table_length;
-
-      if (!GetTableData(data, it->second, &arena, &table_length, &table_data)) {
-        return OTS_FAILURE_MSG_HDR("Failed to uncompress table");
+    uint32_t input_offset = it->second.offset;
+    const std::map<uint32_t, ots::OutputTable>::const_iterator ot = header->tables.find(input_offset);
+    if (ot != header->tables.end()) {
+      ots::OutputTable out = ot->second;
+      if (out.tag == OTS_TAG('h','e','a','d')) {
+        head_table_offset = out.offset;
       }
-
-      if (!output->Write(table_data, table_length)) {
-        return OTS_FAILURE_MSG_HDR("Failed to serialize table");
-      }
-
-      const size_t end_offset = output->Tell();
-      if (end_offset <= out.offset) {
-        // paranoid check. |end_offset| is supposed to be greater than the offset,
-        // as long as the Tell() interface is implemented correctly.
-        return OTS_FAILURE_MSG_HDR("error writing output");
-      }
-      out.length = end_offset - out.offset;
-
-      // align tables to four bytes
-      if (!output->Pad((4 - (end_offset & 3)) % 4)) {
-        return OTS_FAILURE_MSG_HDR("error writing output");
-      }
-      out.chksum = output->chksum();
       out_tables.push_back(out);
     } else {
-      for (unsigned i = 0; table_parsers[i].parse != NULL; ++i) {
-        if (table_parsers[i].tag == it->first &&
-            table_parsers[i].should_serialise(font)) {
-          output->ResetChecksum();
-          if (!table_parsers[i].serialise(output, font)) {
-            return OTS_FAILURE_MSG_TAG("failed to serialize table", table_parsers[i].tag);
-          }
+      ots::OutputTable out;
+      out.tag = it->first;
+      out.offset = output->Tell();
 
-          const size_t end_offset = output->Tell();
-          if (end_offset <= out.offset) {
-            // paranoid check. |end_offset| is supposed to be greater than the offset,
-            // as long as the Tell() interface is implemented correctly.
-            return OTS_FAILURE_MSG_HDR("error writing output");
-          }
-          out.length = end_offset - out.offset;
+      if (out.tag == OTS_TAG('h','e','a','d')) {
+        head_table_offset = out.offset;
+      }
 
-          // align tables to four bytes
-          if (!output->Pad((4 - (end_offset & 3)) % 4)) {
-            return OTS_FAILURE_MSG_HDR("error writing output");
-          }
-          out.chksum = output->chksum();
-          out_tables.push_back(out);
+      ots::TableAction action = GetTableAction(header, it->first);
+      if (action == ots::TABLE_ACTION_PASSTHRU) {
+        output->ResetChecksum();
+        const uint8_t* table_data;
+        size_t table_length;
 
-          break;
+        if (!GetTableData(data, it->second, &arena, &table_length, &table_data)) {
+          return OTS_FAILURE_MSG_HDR("Failed to uncompress table");
+        }
+
+        if (!output->Write(table_data, table_length)) {
+          return OTS_FAILURE_MSG_HDR("Failed to serialize table");
+        }
+
+        const size_t end_offset = output->Tell();
+        if (end_offset <= out.offset) {
+          // paranoid check. |end_offset| is supposed to be greater than the offset,
+          // as long as the Tell() interface is implemented correctly.
+          return OTS_FAILURE_MSG_HDR("error writing output");
+        }
+        out.length = end_offset - out.offset;
+
+        // align tables to four bytes
+        if (!output->Pad((4 - (end_offset & 3)) % 4)) {
+          return OTS_FAILURE_MSG_HDR("error writing output");
+        }
+        out.chksum = output->chksum();
+        out_tables.push_back(out);
+        header->tables[input_offset] = out;
+      } else {
+        for (unsigned i = 0; table_parsers[i].parse != NULL; ++i) {
+          if (table_parsers[i].tag == it->first &&
+              table_parsers[i].should_serialise(font)) {
+            output->ResetChecksum();
+            if (!table_parsers[i].serialise(output, font)) {
+              return OTS_FAILURE_MSG_TAG("failed to serialize table", table_parsers[i].tag);
+            }
+
+            const size_t end_offset = output->Tell();
+            if (end_offset <= out.offset) {
+              // paranoid check. |end_offset| is supposed to be greater than the offset,
+              // as long as the Tell() interface is implemented correctly.
+              return OTS_FAILURE_MSG_HDR("error writing output");
+            }
+            out.length = end_offset - out.offset;
+
+            // align tables to four bytes
+            if (!output->Pad((4 - (end_offset & 3)) % 4)) {
+              return OTS_FAILURE_MSG_HDR("error writing output");
+            }
+            out.chksum = output->chksum();
+            out_tables.push_back(out);
+            header->tables[input_offset] = out;
+
+            break;
+          }
         }
       }
     }
