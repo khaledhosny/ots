@@ -38,7 +38,7 @@ if [ $# -eq 0 ] ; then
 
   # Recursively call this script.
   FAILS=0
-  FONTS=`find $BASE_DIR -type f -name '*tf'`
+  FONTS=`find $BASE_DIR -type f -name '*tf' -o -name '*tc'`
   IFS=$'\n'
   for f in $FONTS; do
     $0 "$f"

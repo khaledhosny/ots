@@ -158,3 +158,6 @@ YuppyTC-Regular.otf
 Apple Color Emoji.ttf
 LastResort.ttf
 ZapfDingbats.ttf
+
+# FFTM: misaligned table
+wqy-microhei.ttc
