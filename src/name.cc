@@ -331,6 +331,11 @@ bool ots_name_serialise(OTSStream* out, Font *font) {
   return true;
 }
 
+void ots_name_reuse(Font *font, Font *other) {
+  font->name = other->name;
+  font->name_reused = true;
+}
+
 void ots_name_free(Font *font) {
   delete font->name;
 }

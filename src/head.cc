@@ -145,6 +145,11 @@ bool ots_head_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_head_reuse(Font *font, Font *other) {
+  font->head = other->head;
+  font->head_reused = true;
+}
+
 void ots_head_free(Font *font) {
   delete font->head;
 }

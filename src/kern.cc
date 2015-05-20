@@ -193,6 +193,11 @@ bool ots_kern_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_kern_reuse(Font *font, Font *other) {
+  font->kern = other->kern;
+  font->kern_reused = true;
+}
+
 void ots_kern_free(Font *font) {
   delete font->kern;
 }

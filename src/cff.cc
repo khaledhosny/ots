@@ -1023,6 +1023,11 @@ bool ots_cff_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_cff_reuse(Font *font, Font *other) {
+  font->cff = other->cff;
+  font->cff_reused = true;
+}
+
 void ots_cff_free(Font *font) {
   if (font->cff) {
     for (size_t i = 0; i < font->cff->char_strings_array.size(); ++i) {

@@ -818,6 +818,11 @@ bool ots_gpos_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_gpos_reuse(Font *font, Font *other) {
+  font->gpos = other->gpos;
+  font->gpos_reused = true;
+}
+
 void ots_gpos_free(Font *font) {
   delete font->gpos;
 }

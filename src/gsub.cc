@@ -675,6 +675,11 @@ bool ots_gsub_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_gsub_reuse(Font *font, Font *other) {
+  font->gsub = other->gsub;
+  font->gsub_reused = true;
+}
+
 void ots_gsub_free(Font *font) {
   delete font->gsub;
 }

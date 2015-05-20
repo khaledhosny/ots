@@ -132,6 +132,11 @@ bool ots_hdmx_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_hdmx_reuse(Font *font, Font *other) {
+  font->hdmx = other->hdmx;
+  font->hdmx_reused = true;
+}
+
 void ots_hdmx_free(Font *font) {
   delete font->hdmx;
 }

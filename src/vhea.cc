@@ -50,6 +50,11 @@ bool ots_vhea_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_vhea_reuse(Font *font, Font *other) {
+  font->vhea = other->vhea;
+  font->vhea_reused = true;
+}
+
 void ots_vhea_free(Font *font) {
   delete font->vhea;
 }

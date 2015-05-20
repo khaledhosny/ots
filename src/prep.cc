@@ -45,6 +45,11 @@ bool ots_prep_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_prep_reuse(Font *font, Font *other) {
+  font->prep = other->prep;
+  font->prep_reused = true;
+}
+
 void ots_prep_free(Font *font) {
   delete font->prep;
 }

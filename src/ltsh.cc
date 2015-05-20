@@ -82,6 +82,11 @@ bool ots_ltsh_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_ltsh_reuse(Font *font, Font *other) {
+  font->ltsh = other->ltsh;
+  font->ltsh_reused = true;
+}
+
 void ots_ltsh_free(Font *font) {
   delete font->ltsh;
 }

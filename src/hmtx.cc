@@ -42,6 +42,11 @@ bool ots_hmtx_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_hmtx_reuse(Font *font, Font *other) {
+  font->hmtx = other->hmtx;
+  font->hmtx_reused = true;
+}
+
 void ots_hmtx_free(Font *font) {
   delete font->hmtx;
 }

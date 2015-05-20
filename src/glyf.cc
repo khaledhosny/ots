@@ -289,6 +289,11 @@ bool ots_glyf_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_glyf_reuse(Font *font, Font *other) {
+  font->glyf = other->glyf;
+  font->glyf_reused = true;
+}
+
 void ots_glyf_free(Font *font) {
   delete font->glyf;
 }

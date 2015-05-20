@@ -378,6 +378,11 @@ bool ots_gdef_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_gdef_reuse(Font *font, Font *other) {
+  font->gdef = other->gdef;
+  font->gdef_reused = true;
+}
+
 void ots_gdef_free(Font *font) {
   delete font->gdef;
 }

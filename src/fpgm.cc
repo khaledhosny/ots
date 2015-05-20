@@ -45,6 +45,11 @@ bool ots_fpgm_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_fpgm_reuse(Font *font, Font *other) {
+  font->fpgm = other->fpgm;
+  font->fpgm_reused = true;
+}
+
 void ots_fpgm_free(Font *font) {
   delete font->fpgm;
 }

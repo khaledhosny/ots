@@ -217,12 +217,33 @@ bool IsValidVersionTag(uint32_t tag);
 FOR_EACH_TABLE_TYPE
 #undef F
 
+struct Font;
 struct OpenTypeFile;
+
+#define F(name, capname) \
+bool ots_##name##_parse(Font *f, const uint8_t *d, size_t l); \
+bool ots_##name##_should_serialise(Font *f); \
+bool ots_##name##_serialise(OTSStream *s, Font *f); \
+void ots_##name##_reuse(Font *f, Font *o);\
+void ots_##name##_free(Font *f);
+FOR_EACH_TABLE_TYPE
+#undef F
 
 struct Font {
   Font(const OpenTypeFile *f) {
     file = f;
-#define F(name, capname) name = NULL;
+#define F(name, capname) \
+    name = NULL; \
+    name##_reused = false;
+    FOR_EACH_TABLE_TYPE
+#undef F
+  }
+
+  ~Font() {
+#define F(name, capname) \
+    if (!name##_reused) {\
+      ots_##name##_free(this); \
+    }
     FOR_EACH_TABLE_TYPE
 #undef F
   }
@@ -235,7 +256,9 @@ struct Font {
   uint16_t entry_selector;
   uint16_t range_shift;
 
-#define F(name, capname) OpenType##capname *name;
+#define F(name, capname) \
+  OpenType##capname *name; \
+  bool name##_reused;
 FOR_EACH_TABLE_TYPE
 #undef F
 };
@@ -253,17 +276,8 @@ struct OutputTable {
 
 struct OpenTypeFile {
   OTSContext *context;
-  std::map<uint32_t, OutputTable> tables;
+  std::map<uint32_t, std::pair<Font*, OutputTable> > tables;
 };
-
-#define F(name, capname) \
-bool ots_##name##_parse(Font *f, const uint8_t *d, size_t l); \
-bool ots_##name##_should_serialise(Font *f); \
-bool ots_##name##_serialise(OTSStream *s, Font *f); \
-void ots_##name##_free(Font *f);
-// TODO(yusukes): change these function names to follow Chromium coding rule.
-FOR_EACH_TABLE_TYPE
-#undef F
 
 }  // namespace ots
 

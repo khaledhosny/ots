@@ -44,6 +44,11 @@ bool ots_hhea_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_hhea_reuse(Font *font, Font *other) {
+  font->hhea = other->hhea;
+  font->hhea_reused = true;
+}
+
 void ots_hhea_free(Font *font) {
   delete font->hhea;
 }

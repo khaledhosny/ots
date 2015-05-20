@@ -96,6 +96,11 @@ bool ots_vorg_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_vorg_reuse(Font *font, Font *other) {
+  font->vorg = other->vorg;
+  font->vorg_reused = true;
+}
+
 void ots_vorg_free(Font *font) {
   delete font->vorg;
 }

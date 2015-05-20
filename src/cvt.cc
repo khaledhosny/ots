@@ -51,6 +51,11 @@ bool ots_cvt_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_cvt_reuse(Font *font, Font *other) {
+  font->cvt = other->cvt;
+  font->cvt_reused = true;
+}
+
 void ots_cvt_free(Font *font) {
   delete font->cvt;
 }

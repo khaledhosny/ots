@@ -104,6 +104,11 @@ bool ots_gasp_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_gasp_reuse(Font *font, Font *other) {
+  font->gasp = other->gasp;
+  font->gasp_reused = true;
+}
+
 void ots_gasp_free(Font *font) {
   delete font->gasp;
 }

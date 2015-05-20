@@ -46,6 +46,11 @@ bool ots_vmtx_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_vmtx_reuse(Font *font, Font *other) {
+  font->vmtx = other->vmtx;
+  font->vmtx_reused = true;
+}
+
 void ots_vmtx_free(Font *font) {
   delete font->vmtx;
 }

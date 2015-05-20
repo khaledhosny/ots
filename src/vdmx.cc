@@ -171,6 +171,11 @@ bool ots_vdmx_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_vdmx_reuse(Font *font, Font *other) {
+  font->vdmx = other->vdmx;
+  font->vdmx_reused = true;
+}
+
 void ots_vdmx_free(Font *font) {
   delete font->vdmx;
 }

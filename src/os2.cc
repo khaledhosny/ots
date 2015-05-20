@@ -322,6 +322,11 @@ bool ots_os2_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_os2_reuse(Font *font, Font *other) {
+  font->os2 = other->os2;
+  font->os2_reused = true;
+}
+
 void ots_os2_free(Font *font) {
   delete font->os2;
 }

@@ -599,6 +599,11 @@ bool ots_math_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_math_reuse(Font *font, Font *other) {
+  font->math = other->math;
+  font->math_reused = true;
+}
+
 void ots_math_free(Font *font) {
   delete font->math;
 }

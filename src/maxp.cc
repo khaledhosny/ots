@@ -111,6 +111,11 @@ bool ots_maxp_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_maxp_reuse(Font *font, Font *other) {
+  font->maxp = other->maxp;
+  font->maxp_reused = true;
+}
+
 void ots_maxp_free(Font *font) {
   delete font->maxp;
 }

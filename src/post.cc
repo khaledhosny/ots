@@ -179,6 +179,11 @@ bool ots_post_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_post_reuse(Font *font, Font *other) {
+  font->post = other->post;
+  font->post_reused = true;
+}
+
 void ots_post_free(Font *font) {
   delete font->post;
 }

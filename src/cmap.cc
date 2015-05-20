@@ -1092,6 +1092,11 @@ bool ots_cmap_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_cmap_reuse(Font *font, Font *other) {
+  font->cmap = other->cmap;
+  font->cmap_reused = true;
+}
+
 void ots_cmap_free(Font *font) {
   delete font->cmap;
 }

@@ -95,6 +95,11 @@ bool ots_loca_serialise(OTSStream *out, Font *font) {
   return true;
 }
 
+void ots_loca_reuse(Font *font, Font *other) {
+  font->loca = other->loca;
+  font->loca_reused = true;
+}
+
 void ots_loca_free(Font *font) {
   delete font->loca;
 }
