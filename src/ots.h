@@ -274,9 +274,11 @@ struct OutputTable {
   }
 };
 
+typedef std::map<uint32_t, std::pair<Font*, OutputTable> > TableMap;
+
 struct OpenTypeFile {
   OTSContext *context;
-  std::map<uint32_t, std::pair<Font*, OutputTable> > tables;
+  TableMap tables;
 };
 
 }  // namespace ots

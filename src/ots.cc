@@ -672,7 +672,7 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
     }
 
     uint32_t input_offset = it->second.offset;
-    const std::map<uint32_t, std::pair<ots::Font*, ots::OutputTable> >::const_iterator ot = header->tables.find(input_offset);
+    const ots::TableMap::const_iterator ot = header->tables.find(input_offset);
     if (ot == header->tables.end()) {
       const uint8_t* table_data;
       size_t table_length;
@@ -762,7 +762,7 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
   for (std::map<uint32_t, OpenTypeTable>::const_iterator it = table_map.begin();
        it != table_map.end(); ++it) {
     uint32_t input_offset = it->second.offset;
-    const std::map<uint32_t, std::pair<ots::Font*, ots::OutputTable> >::const_iterator ot = header->tables.find(input_offset);
+    const ots::TableMap::const_iterator ot = header->tables.find(input_offset);
     if (ot != header->tables.end()) {
       ots::OutputTable out = ot->second.second;
       if (out.tag == OTS_TAG('h','e','a','d')) {
