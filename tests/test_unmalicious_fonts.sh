@@ -4,8 +4,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-test "x$top_srcdir" = x && top_srcdir=../..
-test "x$top_builddir" = x && top_builddir=../..
+test "x$top_srcdir" = x && top_srcdir=.
+test "x$top_builddir" = x && top_builddir=.
 
 # Usage: ./test_unmalicious_fonts.sh [ttf_or_otf_file_name]
 
