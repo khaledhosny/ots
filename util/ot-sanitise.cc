@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
   }
   ::close(fd);
 
-  ots::TestContext context;
+  ots::TestContext context(-1);
 
   FILE* out = NULL;
   if (argc >= 3)

@@ -11,8 +11,15 @@ namespace ots {
 
 class TestContext: public ots::OTSContext {
  public:
+  TestContext(unsigned level)
+    : level_(level)
+  { }
+
   virtual void Message(int level, const char *format, ...) {
     va_list va;
+
+    if (level > level_)
+      return;
 
     if (level == 0)
       std::fprintf(stderr, "ERROR: ");
@@ -38,6 +45,9 @@ class TestContext: public ots::OTSContext {
         return ots::TABLE_ACTION_DEFAULT;
     }
   }
+
+private:
+  unsigned level_;
 };
 
 }  // namespace ots

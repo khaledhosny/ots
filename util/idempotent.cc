@@ -170,7 +170,7 @@ int main(int argc, char **argv) {
   uint8_t *result = new uint8_t[file_size * 8];
   ots::MemoryStream output(result, file_size * 8);
 
-  ots::TestContext context;
+  ots::TestContext context(0);
 
   bool r = context.Process(&output, data, file_size);
   if (!r) {
