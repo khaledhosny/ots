@@ -26,7 +26,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "opentype-sanitiser.h"
+#include "test-context.h"
 #include "ots-memory-stream.h"
 
 namespace {
@@ -170,7 +170,7 @@ int main(int argc, char **argv) {
   uint8_t *result = new uint8_t[file_size * 8];
   ots::MemoryStream output(result, file_size * 8);
 
-  ots::OTSContext context;
+  ots::TestContext context;
 
   bool r = context.Process(&output, data, file_size);
   if (!r) {
