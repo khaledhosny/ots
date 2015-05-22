@@ -1,0 +1,17 @@
+language: cpp
+
+compiler:
+  - gcc
+  - clang
+
+git:
+  submodules: false
+
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq ^fonts-.*[^0]$ # install font package for testsing
+  - sudo apt-get purge -qq fonts-{linuxlibertine,arphic-{ukai,uming},nanum-extra} # these are buggy
+
+install: ./autogen.sh
+
+script: ./configure && make check
