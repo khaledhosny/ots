@@ -18,7 +18,7 @@
 #include <cstdlib>
 
 #include "file-stream.h"
-#include "opentype-sanitiser.h"
+#include "test-context.h"
 
 #if defined(_WIN32)
 #define ADDITIONAL_OPEN_FLAGS O_BINARY
@@ -28,41 +28,11 @@
 
 namespace {
 
+
 int Usage(const char *argv0) {
   std::fprintf(stderr, "Usage: %s ttf_file [dest_ttf_file] [index]\n", argv0);
   return 1;
 }
-
-class Context: public ots::OTSContext {
- public:
-  virtual void Message(int level, const char *format, ...) {
-    va_list va;
-
-    if (level == 0)
-      std::fprintf(stderr, "ERROR: ");
-    else
-      std::fprintf(stderr, "WARNING: ");
-    va_start(va, format);
-    std::vfprintf(stderr, format, va);
-    std::fprintf(stderr, "\n");
-    va_end(va);
-  }
-
-  virtual ots::TableAction GetTableAction(uint32_t tag) {
-    switch (tag) {
-      case OTS_TAG('S','i','l','f'):
-      case OTS_TAG('S','i','l','l'):
-      case OTS_TAG('G','l','o','c'):
-      case OTS_TAG('G','l','a','t'):
-      case OTS_TAG('F','e','a','t'):
-      case OTS_TAG('C','B','D','T'):
-      case OTS_TAG('C','B','L','C'):
-        return ots::TABLE_ACTION_PASSTHRU;
-      default:
-        return ots::TABLE_ACTION_DEFAULT;
-    }
-  }
-};
 
 }  // namespace
 
@@ -86,7 +56,7 @@ int main(int argc, char **argv) {
   }
   ::close(fd);
 
-  Context context;
+  ots::TestContext context;
 
   FILE* out = NULL;
   if (argc >= 3)
