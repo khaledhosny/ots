@@ -70,7 +70,7 @@ bool ots_kern_parse(Font *font, const uint8_t *data, size_t length) {
       continue;
     }
     if (subtable.coverage & 0xF0) {
-      DROP_THIS_TABLE("Reserved fields should zero-filled.");
+      DROP_THIS_TABLE("Reserved fields should zero-filled");
       return true;
     }
     const uint32_t format = (subtable.coverage & 0xFF00) >> 8;
@@ -89,7 +89,7 @@ bool ots_kern_parse(Font *font, const uint8_t *data, size_t length) {
     }
 
     if (!num_pairs) {
-      DROP_THIS_TABLE("Zero length subtable is found.");
+      DROP_THIS_TABLE("Zero length subtable is found");
       return true;
     }
 
@@ -98,7 +98,7 @@ bool ots_kern_parse(Font *font, const uint8_t *data, size_t length) {
     const size_t kFormat0PairSize = 6;  // left, right, and value. 2 bytes each.
     if (num_pairs > (65536 / kFormat0PairSize)) {
       // Some fonts (e.g. calibri.ttf, pykes_peak_zero.ttf) have pairs >= 10923.
-      DROP_THIS_TABLE("Too large subtable.");
+      DROP_THIS_TABLE("Too large subtable");
       return true;
     }
     unsigned max_pow2 = 0;
@@ -135,7 +135,7 @@ bool ots_kern_parse(Font *font, const uint8_t *data, size_t length) {
       if (j != 0 && current_pair <= last_pair) {
         // Many free fonts don't follow this rule, so we don't call OTS_FAILURE
         // in order to support these fonts.
-        DROP_THIS_TABLE("Kerning pairs are not sorted.");
+        DROP_THIS_TABLE("Kerning pairs are not sorted");
         return true;
       }
       last_pair = current_pair;
@@ -146,7 +146,7 @@ bool ots_kern_parse(Font *font, const uint8_t *data, size_t length) {
   }
 
   if (!kern->subtables.size()) {
-    DROP_THIS_TABLE("All subtables are removed.");
+    DROP_THIS_TABLE("All subtables are removed");
     return true;
   }
 
