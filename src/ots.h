@@ -283,4 +283,6 @@ struct OpenTypeFile {
 
 }  // namespace ots
 
+#undef FOR_EACH_TABLE_TYPE
+
 #endif  // OTS_H_
