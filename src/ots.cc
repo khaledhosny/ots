@@ -276,6 +276,10 @@ bool ProcessTTC(ots::OpenTypeFile *header,
   if (!file.ReadU32(&num_fonts)) {
     return OTS_FAILURE_MSG_HDR("Error reading number of TTC fonts");
   }
+  // Limit the allowed number of subfonts to have same memory allocation.
+  if (num_fonts > 0x10000) {
+    return OTS_FAILURE_MSG_HDR("Too many fonts in TTC");
+  }
 
   uint32_t offsets[num_fonts];
   for (unsigned i = 0; i < num_fonts; i++) {
