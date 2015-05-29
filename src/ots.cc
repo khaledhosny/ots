@@ -280,7 +280,7 @@ bool ProcessTTC(ots::OpenTypeFile *header,
   uint32_t offsets[num_fonts];
   for (unsigned i = 0; i < num_fonts; i++) {
     if (!file.ReadU32(&offsets[i])) {
-      OTS_FAILURE_MSG_HDR("Error reading offset to OffsetTable");
+      return OTS_FAILURE_MSG_HDR("Error reading offset to OffsetTable");
     }
   }
 
