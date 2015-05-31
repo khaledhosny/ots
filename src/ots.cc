@@ -169,7 +169,11 @@ bool ProcessTTF(ots::OpenTypeFile *header,
                 ots::Font *font,
                 ots::OTSStream *output, const uint8_t *data, size_t length,
                 uint32_t offset = 0) {
-  ots::Buffer file(data + offset, length);
+  ots::Buffer file(data + offset, length - offset);
+
+  if (offset > length) {
+    return OTS_FAILURE_MSG_HDR("offset beyond end of file");
+  }
 
   // we disallow all files > 1GB in size for sanity.
   if (length > 1024 * 1024 * 1024) {
