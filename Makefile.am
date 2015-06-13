@@ -108,8 +108,6 @@ libots_a_SOURCES = \
   src/vmtx.h \
   src/vorg.cc \
   src/vorg.h \
-  src/woff2.cc \
-  src/woff2.h \
   $(NULL)
 
 
