@@ -23,6 +23,7 @@ endif
 lib_LIBRARIES = \
   libots.a \
   libbrotli.a \
+  libwoff2.a \
   $(NULL)
 
 TESTS = \
@@ -139,6 +140,26 @@ libbrotli_a_SOURCES = \
   $(NULL)
 
 
+libwoff2_a_SOURCES = \
+  third_party/woff2/src/buffer.h \
+  third_party/woff2/src/round.h \
+  third_party/woff2/src/store_bytes.h \
+  third_party/woff2/src/table_tags.cc \
+  third_party/woff2/src/table_tags.h \
+  third_party/woff2/src/woff2_common.cc \
+  third_party/woff2/src/woff2_common.h \
+  third_party/woff2/src/variable_length.cc \
+  third_party/woff2/src/variable_length.h \
+  third_party/woff2/src/woff2_common.h \
+  third_party/woff2/src/woff2_dec.cc \
+  third_party/woff2/src/woff2_dec.h \
+  $(NULL)
+
+libwoff2_a_CXXFLAGS = \
+  -std=c++11 \
+  $(NULL)
+
+
 ot_sanitise_SOURCES = \
   util/ot-sanitise.cc \
   util/file-stream.h \
@@ -212,6 +233,7 @@ AM_CPPFLAGS = \
   -I$(top_srcdir)/src \
   -I$(top_srcdir)/include \
   -I$(top_srcdir)/third_party/brotli/dec/ \
+  -I$(top_srcdir)/third_party/woff2/src \
   $(GTEST_CPPFLAGS) \
   $(NULL)
 
@@ -223,6 +245,7 @@ AM_CXXFLAGS = \
 
 LDADD = \
   libots.a \
+  libwoff2.a \
   libbrotli.a \
   -lz \
   $(CORETEXT_LIBS) \
@@ -246,6 +269,7 @@ EXTRA_DIST = \
   tests/test_unmalicious_fonts.sh \
   third_party/brotli/LICENSE \
   third_party/gtest \
+  third_party/woff2/LICENSE \
   $(NULL)
 
 

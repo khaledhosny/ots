@@ -19,7 +19,10 @@ sudo: false
 
 addons:
   apt:
+    sources:
+      - ubuntu-toolchain-r-test
     packages:
+      - g++-4.8
       - fonts-inconsolata
       - fonts-takao-gothic
       - fonts-takao-mincho
@@ -33,6 +36,8 @@ addons:
     build_command: "make -j 4"
     branch_pattern: coverity
 
-install: ./autogen.sh
+install:
+  - test "$CXX" = "g++" && export CXX="g++-4.8" CC="gcc-4.8" || true
+  - ./autogen.sh
 
 script: ./configure && make check
