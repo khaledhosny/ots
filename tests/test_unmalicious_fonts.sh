@@ -68,6 +68,8 @@ if [ "x$SKIP" = "x" ]; then
   RET=$?
   if [ $RET != 0 ]; then
     echo "FAILED: $1"
+  else
+    echo "PASSED: $1"
   fi
   exit $RET
 fi
