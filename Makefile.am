@@ -240,8 +240,10 @@ AM_TESTS_ENVIRONMENT = \
 
 
 EXTRA_DIST = \
-  tests/test_unmalicious_fonts.sh \
+  LICENSE \
   tests/BLACKLIST.txt \
+  tests/test_unmalicious_fonts.sh \
+  third_party/brotli/LICENSE \
   third_party/gtest \
   $(NULL)
 
