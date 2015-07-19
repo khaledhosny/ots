@@ -1,5 +1,5 @@
 AC_INIT([OTS],
-        [0.0.1],
+        [4.0.0],
         [https://github.com/khaledhosny/ots/issues],
         [ots],
         [https://github.com/khaledhosny/ots])
