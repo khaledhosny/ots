@@ -125,6 +125,7 @@ libbrotli_a_SOURCES = \
   third_party/brotli/dec/dictionary.h \
   third_party/brotli/dec/huffman.c \
   third_party/brotli/dec/huffman.h \
+  third_party/brotli/dec/port.h \
   third_party/brotli/dec/prefix.h \
   third_party/brotli/dec/safe_malloc.c \
   third_party/brotli/dec/safe_malloc.h \
@@ -140,6 +141,7 @@ libbrotli_a_SOURCES = \
 ot_sanitise_SOURCES = \
   util/ot-sanitise.cc \
   util/file-stream.h \
+  util/test-context.h \
   $(NULL)
 
 
@@ -150,6 +152,7 @@ perf_SOURCES = \
 
 idempotent_SOURCES = \
   util/idempotent.cc \
+  util/test-context.h \
   $(NULL)
 
 
@@ -233,6 +236,13 @@ AM_TESTS_ENVIRONMENT = \
   export top_srcdir; \
   top_builddir="$(top_builddir)"; \
   export top_builddir; \
+  $(NULL)
+
+
+EXTRA_DIST = \
+  tests/test_unmalicious_fonts.sh \
+  tests/BLACKLIST.txt \
+  third_party/gtest \
   $(NULL)
 
 
