@@ -7,10 +7,15 @@ compiler:
 git:
   submodules: false
 
-before_install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq ^fonts-.*[^0]$ # install font package for testsing
-  - sudo apt-get purge -qq fonts-{linuxlibertine,arphic-{ukai,uming},nanum-extra} # these are buggy
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - fonts-inconsolata
+      - fonts-takao-gothic
+      - fonts-takao-mincho
+      - fonts-takao-pgothic
 
 install: ./autogen.sh
 
