@@ -229,18 +229,17 @@ bool ots_name_parse(Font *font, const uint8_t* data, size_t length) {
     if (kStdNames[i] == NULL) {
       continue;
     }
-    if (!mac_name[i]) {
-      NameRecord rec(1 /* platform_id */, 0 /* encoding_id */,
-                     0 /* language_id */ , i /* name_id */);
-      rec.text.assign(kStdNames[i]);
-      name->names.push_back(rec);
-      sort_required = true;
-    }
-    if (!win_name[i]) {
-      NameRecord rec(3 /* platform_id */, 1 /* encoding_id */,
-                     1033 /* language_id */ , i /* name_id */);
-      AssignToUtf16BeFromAscii(&rec.text, std::string(kStdNames[i]));
-      name->names.push_back(rec);
+    if (!mac_name[i] && !win_name[i]) {
+      NameRecord mac_rec(1 /* platform_id */, 0 /* encoding_id */,
+                         0 /* language_id */ , i /* name_id */);
+      mac_rec.text.assign(kStdNames[i]);
+
+      NameRecord win_rec(3 /* platform_id */, 1 /* encoding_id */,
+                         1033 /* language_id */ , i /* name_id */);
+      AssignToUtf16BeFromAscii(&win_rec.text, std::string(kStdNames[i]));
+
+      name->names.push_back(mac_rec);
+      name->names.push_back(win_rec);
       sort_required = true;
     }
   }
