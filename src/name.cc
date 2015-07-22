@@ -210,12 +210,6 @@ bool ots_name_parse(Font *font, const uint8_t* data, size_t length) {
     "1.000",
     "OTS-derived-font"
   };
-  // The spec says that "In CFF OpenType fonts, these two name strings, when
-  // translated to ASCII, must also be identical to the font name as stored in
-  // the CFF's Name INDEX." And actually, Mac OS X's font parser requires that.
-  if (font->cff && !font->cff->name.empty()) {
-    kStdNames[6] = font->cff->name.c_str();
-  }
 
   // scan the names to check whether the required "standard" ones are present;
   // if not, we'll add our fixed versions here
