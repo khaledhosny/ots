@@ -7,8 +7,6 @@
 #include <algorithm>
 #include <cstring>
 
-#include "cff.h"
-
 // name - Naming Table
 // http://www.microsoft.com/typography/otspec/name.htm
 
@@ -141,15 +139,11 @@ bool ots_name_parse(Font *font, const uint8_t* data, size_t length) {
     if (rec.name_id == 6) {
       // PostScript name: check that it is valid, if not then discard it
       if (rec.platform_id == 1) {
-        if (font->cff && !font->cff->name.empty()) {
-          rec.text = font->cff->name;
-        } else if (!CheckPsNameAscii(rec.text)) {
+        if (!CheckPsNameAscii(rec.text)) {
           continue;
         }
       } else if (rec.platform_id == 0 || rec.platform_id == 3) {
-        if (font->cff && !font->cff->name.empty()) {
-          AssignToUtf16BeFromAscii(&rec.text, font->cff->name);
-        } else if (!CheckPsNameUtf16Be(rec.text)) {
+        if (!CheckPsNameUtf16Be(rec.text)) {
           continue;
         }
       }
