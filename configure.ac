@@ -15,8 +15,8 @@ AC_PROG_CXX
 AC_PROG_RANLIB
 PKG_PROG_PKG_CONFIG([0.20])
 
-have_zlib=false
-AX_CHECK_ZLIB(have_zlib=true, :)
+have_zlib=true
+AX_CHECK_ZLIB([], have_zlib=false)
 if ! $have_zlib; then
 	AC_MSG_ERROR([zlib is required but not found])
 fi
