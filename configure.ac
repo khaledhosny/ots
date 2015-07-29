@@ -16,17 +16,17 @@ AC_PROG_RANLIB
 PKG_PROG_PKG_CONFIG([0.20])
 
 have_zlib=true
-AX_CHECK_ZLIB([], have_zlib=false)
+AX_CHECK_ZLIB([], [have_zlib=false])
 if ! $have_zlib; then
 	AC_MSG_ERROR([zlib is required but not found])
 fi
 
 have_freetype=false
-PKG_CHECK_MODULES(FREETYPE, freetype2, have_freetype=true, :)
+PKG_CHECK_MODULES(FREETYPE, [freetype2], [have_freetype=true], :)
 if $have_freetype; then
 	AC_DEFINE(HAVE_FREETYPE, 1, [Have FreeType 2 library])
 fi
-AM_CONDITIONAL(HAVE_FREETYPE, $have_freetype)
+AM_CONDITIONAL(HAVE_FREETYPE, [$have_freetype])
 
 have_pthread=false
 AX_PTHREAD([have_pthread=true])
@@ -38,7 +38,7 @@ fi
 AC_SUBST([GTEST_CPPFLAGS])
 
 have_coretext=false
-AC_CHECK_TYPE(CTFontRef, have_coretext=true,, [#include <ApplicationServices/ApplicationServices.h>])
+AC_CHECK_TYPE([CTFontRef], [have_coretext=true], [], [#include <ApplicationServices/ApplicationServices.h>])
 if $have_coretext; then
 	CORETEXT_CFLAGS=
 	CORETEXT_LIBS="-framework ApplicationServices"
@@ -46,11 +46,11 @@ if $have_coretext; then
 fi
 AC_SUBST(CORETEXT_CFLAGS)
 AC_SUBST(CORETEXT_LIBS)
-AM_CONDITIONAL(HAVE_CORETEXT, $have_coretext)
+AM_CONDITIONAL(HAVE_CORETEXT, [$have_coretext])
 
 have_systime=false
 AC_CHECK_HEADER([sys/time.h], [have_systime=true])
-AM_CONDITIONAL(HAVE_SYSTIME, $have_systime)
+AM_CONDITIONAL(HAVE_SYSTIME, [$have_systime])
 
 AC_CONFIG_FILES([Makefile])
 
