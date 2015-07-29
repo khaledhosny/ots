@@ -6,9 +6,11 @@ bin_PROGRAMS = \
   ot-sanitise \
   $(NULL)
 
-noinst_PROGRAMS = \
-  perf \
-  $(NULL)
+noinst_PROGRAMS = $(NULL)
+
+if HAVE_SYSTIME
+noinst_PROGRAMS += perf
+endif
 
 if HAVE_FREETYPE
 noinst_PROGRAMS += \

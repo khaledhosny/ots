@@ -48,6 +48,10 @@ AC_SUBST(CORETEXT_CFLAGS)
 AC_SUBST(CORETEXT_LIBS)
 AM_CONDITIONAL(HAVE_CORETEXT, $have_coretext)
 
+have_systime=false
+AC_CHECK_HEADER([sys/time.h], [have_systime=true])
+AM_CONDITIONAL(HAVE_SYSTIME, $have_systime)
+
 AC_CONFIG_FILES([Makefile])
 
 AC_OUTPUT
