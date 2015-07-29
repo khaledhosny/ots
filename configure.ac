@@ -4,12 +4,16 @@ AC_INIT([OTS],
         [ots],
         [https://github.com/khaledhosny/ots])
 
+AC_CANONICAL_SYSTEM
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AM_SILENT_RULES([yes])
 
+AC_CYGWIN
+AC_EXEEXT
+AC_OBJEXT
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_RANLIB
