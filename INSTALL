@@ -1,3 +1,8 @@
+Instructions below are for building standalone OTS utilities, if you want to
+use OTS as a library then the recommended way is to copy the source code and
+integrate it into your existing build system. Our build system does not build
+a shared library intentionally.
+
 General build instructions:
 
   1. If you are building from cloned Git repository, you will need to update
