@@ -79,7 +79,6 @@ bool ots_name_parse(Font *font, const uint8_t* data, size_t length) {
   const char* string_base = reinterpret_cast<const char*>(data) +
       string_offset;
 
-  NameRecord prev_record;
   bool sort_required = false;
 
   // Read all the names, discarding any with invalid IDs,
@@ -149,13 +148,12 @@ bool ots_name_parse(Font *font, const uint8_t* data, size_t length) {
       }
     }
 
-    if ((i > 0) && !(prev_record < rec)) {
+    if (!name->names.empty() && !(name->names.back() < rec)) {
       OTS_WARNING("name records are not sorted.");
       sort_required = true;
     }
 
     name->names.push_back(rec);
-    prev_record = rec;
   }
 
   if (format == 1) {
