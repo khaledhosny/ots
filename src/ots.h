@@ -230,8 +230,13 @@ FOR_EACH_TABLE_TYPE
 #undef F
 
 struct Font {
-  Font(const OpenTypeFile *f) {
-    file = f;
+  Font(const OpenTypeFile *f)
+      : file(f),
+        version(0),
+        num_tables(0),
+        search_range(0),
+        entry_selector(0),
+        range_shift(0) {
 #define F(name, capname) \
     name = NULL; \
     name##_reused = false;

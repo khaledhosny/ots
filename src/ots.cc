@@ -361,10 +361,6 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
     return OTS_FAILURE_MSG_HDR("invalid version tag");
   }
 
-  font->search_range = 0;
-  font->entry_selector = 0;
-  font->range_shift = 0;
-
   uint32_t reported_length;
   if (!file.ReadU32(&reported_length) || length != reported_length) {
     return OTS_FAILURE_MSG_HDR("incorrect file size in WOFF header");
