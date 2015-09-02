@@ -5,6 +5,8 @@
 // A very simple driver program while sanitises the file given as argv[1] and
 // writes the sanitised version to stdout.
 
+#include "config.h"
+
 #include <fcntl.h>
 #include <sys/stat.h>
 #if defined(_WIN32)
@@ -38,6 +40,11 @@ int Usage(const char *argv0) {
 
 int main(int argc, char **argv) {
   if (argc < 2 || argc > 4) return Usage(argv[0]);
+
+  if (std::strcmp("--version", argv[1]) == 0) {
+    std::printf("%s\n", PACKAGE_STRING);
+    return 0;
+  }
 
   const int fd = ::open(argv[1], O_RDONLY | ADDITIONAL_OPEN_FLAGS);
   if (fd < 0) {
