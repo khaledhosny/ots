@@ -4,6 +4,10 @@ compiler:
   - gcc
   - clang
 
+os:
+  - linux
+  - osx
+
 env:
   global:
     - secure: "KXfgO6PGxlEcNJHLxMPxZvUtxkCX8V/ZD5plXYxCPaKamTWJknuAvFJAPukhIDTX+1AcUxEBvG/QLszEIiPemPRbDmj4knG5y5GINLx/Jjl3ePKXzYdfc6G/G/QnH3YEQ/GBp6Gvf6w2d+IB3dgEyn9td8VaOt0XmNvW4l76nm4="
