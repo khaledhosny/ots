@@ -229,13 +229,6 @@ bool ParseMarkGlyphSetsDefTable(ots::Font *font, const uint8_t *data,
 
 }  // namespace
 
-#define DROP_THIS_TABLE(msg_) \
-  do { \
-    OTS_FAILURE_MSG(msg_ ", table discarded"); \
-    font->gdef->data = 0; \
-    font->gdef->length = 0; \
-  } while (0)
-
 namespace ots {
 
 bool ots_gdef_parse(Font *font, const uint8_t *data, size_t length) {
@@ -253,12 +246,10 @@ bool ots_gdef_parse(Font *font, const uint8_t *data, size_t length) {
 
   uint32_t version = 0;
   if (!table.ReadU32(&version)) {
-    DROP_THIS_TABLE("Incomplete table");
-    return true;
+    return OTS_FAILURE_MSG("Incomplete table");
   }
   if (version < 0x00010000 || version == 0x00010001) {
-    DROP_THIS_TABLE("Bad version");
-    return true;
+    return OTS_FAILURE_MSG("Bad version");
   }
 
   if (version >= 0x00010002) {
@@ -273,14 +264,12 @@ bool ots_gdef_parse(Font *font, const uint8_t *data, size_t length) {
       !table.ReadU16(&offset_attach_list) ||
       !table.ReadU16(&offset_lig_caret_list) ||
       !table.ReadU16(&offset_mark_attach_class_def)) {
-    DROP_THIS_TABLE("Incomplete table");
-    return true;
+    return OTS_FAILURE_MSG("Incomplete table");
   }
   uint16_t offset_mark_glyph_sets_def = 0;
   if (gdef->version_2) {
     if (!table.ReadU16(&offset_mark_glyph_sets_def)) {
-      DROP_THIS_TABLE("Incomplete table");
-      return true;
+      return OTS_FAILURE_MSG("Incomplete table");
     }
   }
 
@@ -292,14 +281,12 @@ bool ots_gdef_parse(Font *font, const uint8_t *data, size_t length) {
   if (offset_glyph_class_def) {
     if (offset_glyph_class_def >= length ||
         offset_glyph_class_def < gdef_header_end) {
-      DROP_THIS_TABLE("Invalid offset to glyph classes");
-      return true;
+      return OTS_FAILURE_MSG("Invalid offset to glyph classes");
     }
     if (!ParseGlyphClassDefTable(font, data + offset_glyph_class_def,
                                  length - offset_glyph_class_def,
                                  num_glyphs)) {
-      DROP_THIS_TABLE("Invalid glyph classes");
-      return true;
+      return OTS_FAILURE_MSG("Invalid glyph classes");
     }
     gdef->has_glyph_class_def = true;
   }
@@ -307,28 +294,24 @@ bool ots_gdef_parse(Font *font, const uint8_t *data, size_t length) {
   if (offset_attach_list) {
     if (offset_attach_list >= length ||
         offset_attach_list < gdef_header_end) {
-      DROP_THIS_TABLE("Invalid offset to attachment list");
-      return true;
+      return OTS_FAILURE_MSG("Invalid offset to attachment list");
     }
     if (!ParseAttachListTable(font, data + offset_attach_list,
                               length - offset_attach_list,
                               num_glyphs)) {
-      DROP_THIS_TABLE("Invalid attachment list");
-      return true;
+      return OTS_FAILURE_MSG("Invalid attachment list");
     }
   }
 
   if (offset_lig_caret_list) {
     if (offset_lig_caret_list >= length ||
         offset_lig_caret_list < gdef_header_end) {
-      DROP_THIS_TABLE("Invalid offset to ligature caret list");
-      return true;
+      return OTS_FAILURE_MSG("Invalid offset to ligature caret list");
     }
     if (!ParseLigCaretListTable(font, data + offset_lig_caret_list,
                               length - offset_lig_caret_list,
                               num_glyphs)) {
-      DROP_THIS_TABLE("Invalid ligature caret list");
-      return true;
+      return OTS_FAILURE_MSG("Invalid ligature caret list");
     }
   }
 
@@ -341,8 +324,7 @@ bool ots_gdef_parse(Font *font, const uint8_t *data, size_t length) {
                                       data + offset_mark_attach_class_def,
                                       length - offset_mark_attach_class_def,
                                       num_glyphs)) {
-      DROP_THIS_TABLE("Invalid mark attachment list");
-      return true;
+      return OTS_FAILURE_MSG("Invalid mark attachment list");
     }
     gdef->has_mark_attachment_class_def = true;
   }
@@ -356,8 +338,7 @@ bool ots_gdef_parse(Font *font, const uint8_t *data, size_t length) {
                                     data + offset_mark_glyph_sets_def,
                                     length - offset_mark_glyph_sets_def,
                                     num_glyphs)) {
-      DROP_THIS_TABLE("Invalid mark glyph sets");
-      return true;
+      return OTS_FAILURE_MSG("Invalid mark glyph sets");
     }
     gdef->has_mark_glyph_sets_def = true;
   }
@@ -390,4 +371,3 @@ void ots_gdef_free(Font *font) {
 }  // namespace ots
 
 #undef TABLE_NAME
-#undef DROP_THIS_TABLE

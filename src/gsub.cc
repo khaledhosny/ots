@@ -528,13 +528,6 @@ bool ParseReverseChainingContextSingleSubstitution(
 
 }  // namespace
 
-#define DROP_THIS_TABLE(msg_) \
-  do { \
-    OTS_FAILURE_MSG(msg_ ", table discarded"); \
-    font->gsub->data = 0; \
-    font->gsub->length = 0; \
-  } while (0)
-
 namespace ots {
 
 // As far as I checked, following fonts contain invalid values in GSUB table.
@@ -606,55 +599,47 @@ bool ots_gsub_parse(Font *font, const uint8_t *data, size_t length) {
       !table.ReadU16(&offset_script_list) ||
       !table.ReadU16(&offset_feature_list) ||
       !table.ReadU16(&offset_lookup_list)) {
-    DROP_THIS_TABLE("Incomplete table");
-    return true;
+    return OTS_FAILURE_MSG("Incomplete table");
   }
 
   if (version != 0x00010000) {
-    DROP_THIS_TABLE("Bad version");
-    return true;
+    return OTS_FAILURE_MSG("Bad version");
   }
 
   if (offset_lookup_list) {
     if (offset_lookup_list < kGsubHeaderSize || offset_lookup_list >= length) {
-      DROP_THIS_TABLE("Bad lookup list offset in table header");
-      return true;
+      return OTS_FAILURE_MSG("Bad lookup list offset in table header");
     }
 
     if (!ParseLookupListTable(font, data + offset_lookup_list,
                               length - offset_lookup_list,
                               &kGsubLookupSubtableParser,
                               &gsub->num_lookups)) {
-      DROP_THIS_TABLE("Failed to parse lookup list table");
-      return true;
+      return OTS_FAILURE_MSG("Failed to parse lookup list table");
     }
   }
 
   uint16_t num_features = 0;
   if (offset_feature_list) {
     if (offset_feature_list < kGsubHeaderSize || offset_feature_list >= length) {
-      DROP_THIS_TABLE("Bad feature list offset in table header");
-      return true;
+      return OTS_FAILURE_MSG("Bad feature list offset in table header");
     }
 
     if (!ParseFeatureListTable(font, data + offset_feature_list,
                                length - offset_feature_list, gsub->num_lookups,
                                &num_features)) {
-      DROP_THIS_TABLE("Failed to parse feature list table");
-      return true;
+      return OTS_FAILURE_MSG("Failed to parse feature list table");
     }
   }
 
   if (offset_script_list) {
     if (offset_script_list < kGsubHeaderSize || offset_script_list >= length) {
-      DROP_THIS_TABLE("Bad script list offset in table header");
-      return true;
+      return OTS_FAILURE_MSG("Bad script list offset in table header");
     }
 
     if (!ParseScriptListTable(font, data + offset_script_list,
                               length - offset_script_list, num_features)) {
-      DROP_THIS_TABLE("Failed to parse script list table");
-      return true;
+      return OTS_FAILURE_MSG("Failed to parse script list table");
     }
   }
 
@@ -687,4 +672,3 @@ void ots_gsub_free(Font *font) {
 }  // namespace ots
 
 #undef TABLE_NAME
-#undef DROP_THIS_TABLE
