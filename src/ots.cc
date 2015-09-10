@@ -687,9 +687,7 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
 
       if (action == ots::TABLE_ACTION_SANITIZE &&
           !table_parsers[i].parse(font, table_data, table_length)) {
-        // TODO: parsers should generate specific messages detailing the failure;
-        // once those are all added, we won't need a generic failure message here
-        return OTS_FAILURE_MSG_TAG("failed to parse table", table_parsers[i].tag);
+        return OTS_FAILURE();
       }
     } else if (action == ots::TABLE_ACTION_SANITIZE) {
       table_parsers[i].reuse(font, ot->second.first);
