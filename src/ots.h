@@ -230,7 +230,7 @@ FOR_EACH_TABLE_TYPE
 #undef F
 
 struct Font {
-  Font(const OpenTypeFile *f)
+  explicit Font(const OpenTypeFile *f)
       : file(f),
         version(0),
         num_tables(0),
