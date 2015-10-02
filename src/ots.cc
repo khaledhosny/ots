@@ -512,9 +512,7 @@ bool ProcessWOFF2(ots::OpenTypeFile *header,
 }
 
 ots::TableAction GetTableAction(ots::OpenTypeFile *header, uint32_t tag) {
-  ots::TableAction action = ots::TABLE_ACTION_DEFAULT;
-
-  action = header->context->GetTableAction(tag);
+  ots::TableAction action = header->context->GetTableAction(tag);
 
   if (action == ots::TABLE_ACTION_DEFAULT) {
     action = ots::TABLE_ACTION_DROP;
