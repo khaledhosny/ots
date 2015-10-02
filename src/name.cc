@@ -208,7 +208,7 @@ bool ots_name_parse(Font *font, const uint8_t* data, size_t length) {
   bool mac_name[kStdNameCount] = { 0 };
   bool win_name[kStdNameCount] = { 0 };
   for (std::vector<NameRecord>::iterator name_iter = name->names.begin();
-       name_iter != name->names.end(); name_iter++) {
+       name_iter != name->names.end(); ++name_iter) {
     const uint16_t id = name_iter->name_id;
     if (id >= kStdNameCount || kStdNames[id] == NULL) {
       continue;
@@ -277,7 +277,7 @@ bool ots_name_serialise(OTSStream* out, Font *font) {
 
   std::string string_data;
   for (std::vector<NameRecord>::const_iterator name_iter = name->names.begin();
-       name_iter != name->names.end(); name_iter++) {
+       name_iter != name->names.end(); ++name_iter) {
     const NameRecord& rec = *name_iter;
     if (string_data.size() + rec.text.size() >
             std::numeric_limits<uint16_t>::max() ||
@@ -298,7 +298,7 @@ bool ots_name_serialise(OTSStream* out, Font *font) {
     }
     for (std::vector<std::string>::const_iterator tag_iter =
              name->lang_tags.begin();
-         tag_iter != name->lang_tags.end(); tag_iter++) {
+         tag_iter != name->lang_tags.end(); ++tag_iter) {
       if (string_data.size() + tag_iter->size() >
               std::numeric_limits<uint16_t>::max() ||
           !out->WriteU16(static_cast<uint16_t>(tag_iter->size())) ||
