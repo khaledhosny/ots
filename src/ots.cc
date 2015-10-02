@@ -505,7 +505,7 @@ ots::TableAction GetTableAction(ots::OpenTypeFile *header, uint32_t tag) {
 }
 
 bool GetTableData(const uint8_t *data,
-                  const OpenTypeTable table,
+                  const OpenTypeTable& table,
                   Arena *arena,
                   size_t *table_length,
                   const uint8_t **table_data) {
