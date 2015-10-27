@@ -517,7 +517,7 @@ bool Parse0514(ots::Font *font,
       if (!subtable.ReadU32(&num_mappings)) {
         return OTS_FAILURE_MSG("Can't read number of mappings in variation selector record %d", i);
       }
-      if (num_mappings == 0) {
+      if (num_mappings == 0 || num_mappings > kMaxCMAPGroups) {
         return OTS_FAILURE_MSG("Bad number of mappings (%d) in variation selector record %d", num_mappings, i);
       }
 
