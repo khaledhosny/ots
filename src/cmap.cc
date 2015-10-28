@@ -304,21 +304,6 @@ bool Parse31012(ots::Font *font,
                              groups[i].start_range, groups[i].end_range, groups[i].start_glyph_id);
     }
 
-    // [0xD800, 0xDFFF] are surrogate code points.
-    if (groups[i].start_range >= 0xD800 &&
-        groups[i].start_range <= 0xDFFF) {
-      return OTS_FAILURE_MSG("format 12 subtable out of range group startCharCode (0x%4X)", groups[i].start_range);
-    }
-    if (groups[i].end_range >= 0xD800 &&
-        groups[i].end_range <= 0xDFFF) {
-      return OTS_FAILURE_MSG("format 12 subtable out of range group endCharCode (0x%4X)", groups[i].end_range);
-    }
-    if (groups[i].start_range < 0xD800 &&
-        groups[i].end_range > 0xDFFF) {
-      return OTS_FAILURE_MSG("bad format 12 subtable group startCharCode (0x%4X) or endCharCode (0x%4X)",
-                             groups[i].start_range, groups[i].end_range);
-    }
-
     // We assert that the glyph value is within range. Because of the range
     // limits, above, we don't need to worry about overflow.
     if (groups[i].end_range < groups[i].start_range) {
