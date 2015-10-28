@@ -36,10 +36,6 @@ struct Subtable314Range {
   uint32_t id_range_offset_offset;
 };
 
-// The maximum number of groups in format 12, 13 or 14 subtables.
-// Note: 0xFFFF is the maximum number of glyphs in a single font file.
-const unsigned kMaxCMAPGroups = 0xFFFF;
-
 // Glyph array size for the Mac Roman (format 0) table.
 const size_t kFormat0ArraySize = 256;
 
@@ -286,7 +282,7 @@ bool Parse31012(ots::Font *font,
   if (!subtable.ReadU32(&num_groups)) {
     return OTS_FAILURE_MSG("can't read number of format 12 subtable groups");
   }
-  if (num_groups == 0 || num_groups > kMaxCMAPGroups) {
+  if (num_groups == 0 || subtable.remaining() < num_groups * 12) {
     return OTS_FAILURE_MSG("Bad format 12 subtable group count %d", num_groups);
   }
 
@@ -375,7 +371,7 @@ bool Parse31013(ots::Font *font,
 
   // We limit the number of groups in the same way as in 3.10.12 tables. See
   // the comment there in
-  if (num_groups == 0 || num_groups > kMaxCMAPGroups) {
+  if (num_groups == 0 || subtable.remaining() < num_groups * 12) {
     return OTS_FAILURE_MSG("Bad format 13 subtable group count %d", num_groups);
   }
 
@@ -483,7 +479,7 @@ bool Parse0514(ots::Font *font,
       if (!subtable.ReadU32(&num_ranges)) {
         return OTS_FAILURE_MSG("Can't read number of ranges in record %d", i);
       }
-      if (num_ranges == 0 || num_ranges > kMaxCMAPGroups) {
+      if (num_ranges == 0 || subtable.remaining() < num_ranges * 4) {
         return OTS_FAILURE_MSG("Bad number of ranges (%d) in record %d", num_ranges, i);
       }
 
@@ -517,7 +513,7 @@ bool Parse0514(ots::Font *font,
       if (!subtable.ReadU32(&num_mappings)) {
         return OTS_FAILURE_MSG("Can't read number of mappings in variation selector record %d", i);
       }
-      if (num_mappings == 0) {
+      if (num_mappings == 0 || subtable.remaining() < num_mappings * 5) {
         return OTS_FAILURE_MSG("Bad number of mappings (%d) in variation selector record %d", num_mappings, i);
       }
 
