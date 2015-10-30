@@ -63,17 +63,3 @@ TEST_F(TableDependenciesTest, TestVmtxVhea) {
   EXPECT_FALSE(ots::ots_vmtx_should_serialise(font));
 }
 
-TEST_F(TableDependenciesTest, TestVheaGsub) {
-  DROP_LAYOUT_TABLE(gsub);
-  EXPECT_FALSE(ots::ots_vhea_should_serialise(font));
-  DROP_TABLE(gsub);
-  EXPECT_FALSE(ots::ots_vhea_should_serialise(font));
-}
-
-TEST_F(TableDependenciesTest, TestVmtxGsub) {
-  DROP_LAYOUT_TABLE(gsub);
-  EXPECT_FALSE(ots::ots_vmtx_should_serialise(font));
-  DROP_TABLE(gsub);
-  EXPECT_FALSE(ots::ots_vmtx_should_serialise(font));
-}
-
