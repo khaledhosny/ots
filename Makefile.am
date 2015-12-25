@@ -124,7 +124,6 @@ libbrotli_a_SOURCES = \
   third_party/brotli/dec/decode.c \
   third_party/brotli/dec/decode.h \
   third_party/brotli/dec/dictionary.h \
-  third_party/brotli/dec/dictionary.c \
   third_party/brotli/dec/huffman.c \
   third_party/brotli/dec/huffman.h \
   third_party/brotli/dec/port.h \
