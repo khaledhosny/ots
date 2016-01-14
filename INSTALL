@@ -31,3 +31,22 @@ Building on Windows:
       $ pacman -S autoconf automake pkg-config gcc make zlib-devel
 
    3. Follow the general build instructions above.
+
+Developer build instructions:
+
+  1. If you would like to see the source code lines related to reported 
+     errors, then run make with:
+
+     $ make CXXFLAGS=-DOTS_DEBUG
+
+     For example,
+
+     $ ./ot-sanitise ~/fonts/ofl/merriweathersans/MerriweatherSans-Bold.ttf 
+     ERROR at src/layout.cc:100 (ParseScriptTable)
+     ERROR: Layout: DFLT table doesn't satisfy the spec. for script tag DFLT
+     ERROR at src/layout.cc:1247 (ParseScriptListTable)
+     ERROR: Layout: Failed to parse script table 0
+     ERROR at src/gsub.cc:642 (ots_gsub_parse)
+     ERROR: GSUB: Failed to parse script list table
+     ERROR at src/ots.cc:669 (ProcessGeneric)
+     Failed to sanitise file!
