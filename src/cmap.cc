@@ -282,7 +282,10 @@ bool Parse31012(ots::Font *font,
   if (!subtable.ReadU32(&num_groups)) {
     return OTS_FAILURE_MSG("can't read number of format 12 subtable groups");
   }
-  if (num_groups == 0 || subtable.remaining() < num_groups * 12) {
+  uint32_t groups_size = num_groups * 12;
+  if (num_groups == 0 ||
+      groups_size < num_groups ||
+      subtable.remaining() < groups_size) {
     return OTS_FAILURE_MSG("Bad format 12 subtable group count %d", num_groups);
   }
 
@@ -356,7 +359,10 @@ bool Parse31013(ots::Font *font,
 
   // We limit the number of groups in the same way as in 3.10.12 tables. See
   // the comment there in
-  if (num_groups == 0 || subtable.remaining() < num_groups * 12) {
+  uint32_t groups_size = num_groups * 12;
+  if (num_groups == 0 ||
+      groups_size < num_groups ||
+      subtable.remaining() < groups_size) {
     return OTS_FAILURE_MSG("Bad format 13 subtable group count %d", num_groups);
   }
 
@@ -464,7 +470,10 @@ bool Parse0514(ots::Font *font,
       if (!subtable.ReadU32(&num_ranges)) {
         return OTS_FAILURE_MSG("Can't read number of ranges in record %d", i);
       }
-      if (num_ranges == 0 || subtable.remaining() < num_ranges * 4) {
+      uint32_t ranges_size = num_ranges * 4;
+      if (num_ranges == 0 ||
+          ranges_size < num_ranges ||
+          subtable.remaining() < ranges_size) {
         return OTS_FAILURE_MSG("Bad number of ranges (%d) in record %d", num_ranges, i);
       }
 
@@ -498,7 +507,10 @@ bool Parse0514(ots::Font *font,
       if (!subtable.ReadU32(&num_mappings)) {
         return OTS_FAILURE_MSG("Can't read number of mappings in variation selector record %d", i);
       }
-      if (num_mappings == 0 || subtable.remaining() < num_mappings * 5) {
+      uint32_t mappings_size = num_mappings * 5;
+      if (num_mappings == 0 ||
+          mappings_size < num_mappings ||
+          subtable.remaining() < mappings_size) {
         return OTS_FAILURE_MSG("Bad number of mappings (%d) in variation selector record %d", num_mappings, i);
       }
 
