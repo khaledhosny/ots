@@ -2,8 +2,8 @@
 ot-sanitise - TTF/OTF font validator/transcoder
 
 Description:
-  ot-sanitise is a program which validates and/or transcodes a truetype or
-  opentype font file using the OTS library:
+  ot-sanitise is a program which validates and/or transcodes a truetype,
+  opentype, woff, or woff2 font file using the OTS library:
 
       transcoded_font = ValidateAndTranscode(original_font);
       if (validation_error)
@@ -25,9 +25,9 @@ Example:
 idempotent - TTF/OTF font transcoder (for OTS debugging)
 
 Description:
-  idempotent is a program which validates and transcodes a truetype or opentype
-  font file using OTS. This tool transcodes the original font twice and then
-  verifies that the two transcoded fonts are identical:
+  idempotent is a program which validates and transcodes a truetype,
+  opentype, woff, or woff2 font file using OTS. This tool transcodes the 
+  original font twice and then verifies that the two transcoded fonts are identical:
 
       t1 = ValidateAndTranscode(original_font);
       if (validation_error)
@@ -86,8 +86,8 @@ Example:
 perf - performance checker
 
 Description:
-  perf is a program which validates and transcodes a truetype or opentype font
-  file N times using OTS, then prints the elapsed time:
+  perf is a program which validates and transcodes a truetype,
+  opentype, woff, or woff2 font file N times using OTS, then prints the elapsed time:
 
       for (N times)
         ValidateAndTranscode(original_font);
