@@ -32,7 +32,7 @@ namespace {
 
 
 int Usage(const char *argv0) {
-  std::fprintf(stderr, "Usage: %s ttf_file [dest_ttf_file] [index]\n", argv0);
+  std::fprintf(stderr, "Usage: %s font_file [dest_font_file] [index]\n", argv0);
   return 1;
 }
 
