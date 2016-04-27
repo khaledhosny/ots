@@ -1,7 +1,7 @@
 What's OTS?
 ===========
 
-Sanitiser for OpenType (OTS) is a small library which parses OpenType files
+Sanitiser for OpenType (OTS) is a small library which parses OpenType (TTF/OTF) and WOFF/WOFF2 files
 (usually from `@font-face`) and attempts to validate and sanitise them. This
 library is primarily intended to be used with Chromium. We hope this reduces
 the attack surface of the system font libraries.
