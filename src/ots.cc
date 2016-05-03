@@ -689,8 +689,9 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
                               GetTableAction(header, tag_) == ots::TABLE_ACTION_PASSTHRU)
       // We don't sanitise bitmap table, but don't reject bitmap-only fonts if
       // we keep the tables.
-      if (!PASSTHRU_TABLE(OTS_TAG('C','B','D','T')) ||
-          !PASSTHRU_TABLE(OTS_TAG('C','B','L','C'))) {
+      if ((!PASSTHRU_TABLE(OTS_TAG('C','B','D','T')) ||
+           !PASSTHRU_TABLE(OTS_TAG('C','B','L','C'))) &&
+          !PASSTHRU_TABLE(OTS_TAG('s','b','i','x'))) {
         return OTS_FAILURE_MSG_HDR("no supported glyph shapes table(s) present");
       }
 #undef PASSTHRU_TABLE
