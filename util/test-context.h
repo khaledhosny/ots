@@ -40,6 +40,7 @@ class TestContext: public ots::OTSContext {
       case OTS_TAG('F','e','a','t'):
       case OTS_TAG('C','B','D','T'):
       case OTS_TAG('C','B','L','C'):
+      case OTS_TAG('s','b','i','x'):
         return ots::TABLE_ACTION_PASSTHRU;
       default:
         return ots::TABLE_ACTION_DEFAULT;
