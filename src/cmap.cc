@@ -658,20 +658,21 @@ bool ots_cmap_parse(Font *font, const uint8_t *data, size_t length) {
   }
 
   // check if the table is sorted first by platform ID, then by encoding ID.
-  uint32_t last_id = 0;
-  for (unsigned i = 0; i < num_tables; ++i) {
-    uint32_t current_id
-        = (subtable_headers[i].platform << 24)
-        + (subtable_headers[i].encoding << 16)
-        + subtable_headers[i].language;
-    if ((i != 0) && (last_id >= current_id)) {
+  for (unsigned i = 1; i < num_tables; ++i) {
+    if (subtable_headers[i - 1].platform > subtable_headers[i].platform ||
+        (subtable_headers[i - 1].platform == subtable_headers[i].platform &&
+         (subtable_headers[i - 1].encoding > subtable_headers[i].encoding ||
+          (subtable_headers[i - 1].encoding == subtable_headers[i].encoding &&
+           subtable_headers[i - 1].language > subtable_headers[i].language))))
       OTS_WARNING("subtable %d with platform ID %d, encoding ID %d, language ID %d "
                   "following subtable with platform ID %d, encoding ID %d, language ID %d",
                   i,
-                  (uint8_t)(current_id >> 24), (uint8_t)(current_id >> 16), (uint8_t)(current_id),
-                  (uint8_t)(last_id >> 24), (uint8_t)(last_id >> 16), (uint8_t)(last_id));
-    }
-    last_id = current_id;
+                  subtable_headers[i].platform,
+                  subtable_headers[i].encoding,
+                  subtable_headers[i].language,
+                  subtable_headers[i - 1].platform,
+                  subtable_headers[i - 1].encoding,
+                  subtable_headers[i - 1].language);
   }
 
   // Now, verify that all the lengths are sane
