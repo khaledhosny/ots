@@ -131,8 +131,6 @@ libbrotli_a_SOURCES = \
   third_party/brotli/dec/prefix.h \
   third_party/brotli/dec/state.c \
   third_party/brotli/dec/state.h \
-  third_party/brotli/dec/streams.c \
-  third_party/brotli/dec/streams.h \
   third_party/brotli/dec/transform.h \
   third_party/brotli/dec/types.h \
   $(NULL)
@@ -144,13 +142,15 @@ libwoff2_a_SOURCES = \
   third_party/woff2/src/store_bytes.h \
   third_party/woff2/src/table_tags.cc \
   third_party/woff2/src/table_tags.h \
-  third_party/woff2/src/woff2_common.cc \
-  third_party/woff2/src/woff2_common.h \
   third_party/woff2/src/variable_length.cc \
   third_party/woff2/src/variable_length.h \
+  third_party/woff2/src/woff2_common.cc \
+  third_party/woff2/src/woff2_common.h \
   third_party/woff2/src/woff2_common.h \
   third_party/woff2/src/woff2_dec.cc \
   third_party/woff2/src/woff2_dec.h \
+  third_party/woff2/src/woff2_out.cc \
+  third_party/woff2/src/woff2_out.h \
   $(NULL)
 
 libwoff2_a_CXXFLAGS = \
