@@ -1,12 +1,12 @@
 What's OTS?
 ===========
 
-Sanitiser for OpenType (OTS) is a small library which parses OpenType (TTF/OTF) and WOFF/WOFF2 files
-(usually from `@font-face`) and attempts to validate and sanitise them. This
+Sanitizer for OpenType (OTS) is a small library which parses OpenType (TTF/OTF) and WOFF/WOFF2 files
+(usually from `@font-face`) and attempts to validate and sanitize them. This
 library is primarily intended to be used with Chromium. We hope this reduces
 the attack surface of the system font libraries.
 
-What the sanitiser does is as follows:
+What the sanitizer does is as follows:
 
 1. Parses an original font. If the parsing fails, OTS rejects the original
    font.
@@ -36,7 +36,7 @@ Supported OpenType tables
 | `name` | Yes                         | Yes               |        |
 | `OS/2` | Yes                         | Yes               |        |
 | `post` | Yes                         | Yes               |        |
-| `cmap` | Yes                         | Partialy          | see below |
+| `cmap` | Yes                         | Partially         | see below |
 | `glyf` | Yes, for TrueType fonts     | Yes               | TrueType bytecode is supported, but OTS does **not** validate it.|
 | `loca` | Yes, when glyf table exists | Yes               |        |
 | `CFF ` | Yes, for OpenType fonts     | Yes               | OpenType bytecode is also supported, and OTS **does** validate it.|
