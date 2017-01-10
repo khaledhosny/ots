@@ -22,26 +22,17 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 }
 
 #ifdef OTS_FUZZER_MAIN
-bool FileToString(const std::string &path, std::string &string) {
-  std::ifstream f(path.c_str());
-  if (f.good()) {
-    string = std::string(std::istreambuf_iterator<char>(f),
-                         std::istreambuf_iterator<char>());
-    return true;
-  }
-  return false;
-}
-
 int main(int argc, char **argv) {
   for (int i = 1; i < argc; i++) {
-    std::string s;
-    if (FileToString(argv[i], s)) {
-      std::cout << argv[i] << std::endl;
-      LLVMFuzzerTestOneInput((const uint8_t*)s.data(), s.size());
-    } else {
-      std::cerr << "Failed to read file: " << argv[i] << std::endl;
+    std::cout << argv[i] << std::endl;
+
+    std::ifstream f(argv[i]);
+    if (!f.good())
       return 1;
-    }
+
+    std::string s((std::istreambuf_iterator<char>(f)),
+                  (std::istreambuf_iterator<char>()));
+    LLVMFuzzerTestOneInput((const uint8_t*)s.data(), s.size());
   }
   return 0;
 }
