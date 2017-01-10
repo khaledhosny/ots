@@ -191,10 +191,6 @@ ots_fuzzer_SOURCES = \
   util/ots-fuzzer.cc \
   $(NULL)
 
-ots_fuzzer_CXXFLAGS = \
-  -DOTS_FUZZER_MAIN \
-  $(NULL)
-
 
 cff_type2_charstring_test_SOURCES = \
   tests/cff_type2_charstring_test.cc \

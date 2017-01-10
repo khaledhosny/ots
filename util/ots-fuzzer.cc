@@ -4,7 +4,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#ifdef OTS_FUZZER_MAIN
+#ifndef OTS_FUZZER_NO_MAIN
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -21,7 +21,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   return 0;
 }
 
-#ifdef OTS_FUZZER_MAIN
+#ifndef OTS_FUZZER_NO_MAIN
 int main(int argc, char **argv) {
   for (int i = 1; i < argc; i++) {
     std::cout << argv[i] << std::endl;
