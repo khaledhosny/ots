@@ -20,6 +20,8 @@ noinst_PROGRAMS += \
   $(NULL)
 endif
 
+noinst_PROGRAMS += ots-fuzzer
+
 lib_LIBRARIES = \
   libots.a \
   libbrotli.a \
@@ -182,6 +184,15 @@ validator_checker_SOURCES = \
 
 side_by_side_SOURCES = \
   util/side-by-side.cc \
+  $(NULL)
+
+
+ots_fuzzer_SOURCES = \
+  util/ots-fuzzer.cc \
+  $(NULL)
+
+ots_fuzzer_CXXFLAGS = \
+  -DOTS_FUZZER_MAIN \
   $(NULL)
 
 
