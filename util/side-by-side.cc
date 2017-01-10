@@ -269,7 +269,7 @@ int main(int argc, char **argv) {
 
   bool result = context.Process(&output, orig_font, orig_len);
   if (!result) {
-    std::fprintf(stderr, "Failed to sanitise file! %s\n", argv[1]);
+    std::fprintf(stderr, "Failed to sanitize file! %s\n", argv[1]);
     return 1;
   }
   const size_t trans_len = output.Tell();

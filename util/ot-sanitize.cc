@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// A very simple driver program while sanitises the file given as argv[1] and
-// writes the sanitised version to stdout.
+// A very simple driver program while sanitizes the file given as argv[1] and
+// writes the sanitized version to stdout.
 
 #include "config.h"
 
@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
   const bool result = context.Process(&output, data, st.st_size, index);
 
   if (!result) {
-    std::fprintf(stderr, "Failed to sanitise file!\n");
+    std::fprintf(stderr, "Failed to sanitize file!\n");
   }
 
   delete[] data;

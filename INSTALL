@@ -41,7 +41,7 @@ Developer build instructions:
 
      For example,
 
-     $ ./ot-sanitise ~/fonts/ofl/merriweathersans/MerriweatherSans-Bold.ttf 
+     $ ./ot-sanitize ~/fonts/ofl/merriweathersans/MerriweatherSans-Bold.ttf
      ERROR at src/layout.cc:100 (ParseScriptTable)
      ERROR: Layout: DFLT table doesn't satisfy the spec. for script tag DFLT
      ERROR at src/layout.cc:1247 (ParseScriptListTable)
@@ -49,4 +49,4 @@ Developer build instructions:
      ERROR at src/gsub.cc:642 (ots_gsub_parse)
      ERROR: GSUB: Failed to parse script list table
      ERROR at src/ots.cc:669 (ProcessGeneric)
-     Failed to sanitise file!
+     Failed to sanitize file!

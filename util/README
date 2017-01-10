@@ -1,8 +1,8 @@
 ------------------------------------------------------------------------------
-ot-sanitise - TTF/OTF font validator/transcoder
+ot-sanitize - TTF/OTF font validator/transcoder
 
 Description:
-  ot-sanitise is a program which validates and/or transcodes a truetype,
+  ot-sanitize is a program which validates and/or transcodes a truetype,
   opentype, woff, or woff2 font file using the OTS library:
 
       transcoded_font = ValidateAndTranscode(original_font);
@@ -11,14 +11,14 @@ Description:
       OutputToStdout(transcoded_font);
 
 Usage:
-  $ ./ot-sanitise ttf_or_otf_file [transcoded_file]
+  $ ./ot-sanitize ttf_or_otf_file [transcoded_file]
 
 Example:
-  $ ./ot-sanitise sample.otf transcoded_sample.otf
-  $ ./ot-sanitise malformed.ttf
+  $ ./ot-sanitize sample.otf transcoded_sample.otf
+  $ ./ot-sanitize malformed.ttf
   WARNING at ots/src/ots.cc:158: bad range shift
   ERROR at ots/src/ots.cc:199 (bool<unnamed>::do_ots_process(ots::Font*, ots::OTSStream*, const uint8_t*, size_t))
-  Failed to sanitise file!
+  Failed to sanitize file!
   $
 
 ------------------------------------------------------------------------------
@@ -48,7 +48,7 @@ Example:
   $ ./idempotent malformed.ttf
   WARNING at ots/src/ots.cc:158: bad range shift
   ERROR at ots/src/ots.cc:199 (bool<unnamed>::do_ots_process(ots::Font*, ots::OTSStream*, const uint8_t*, size_t))
-  Failed to sanitise file!
+  Failed to sanitize file!
   $
 
 ------------------------------------------------------------------------------

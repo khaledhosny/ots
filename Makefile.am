@@ -3,7 +3,7 @@ NULL =
 ACLOCAL_AMFLAGS = -I m4
 
 bin_PROGRAMS = \
-  ot-sanitise \
+  ot-sanitize \
   $(NULL)
 
 noinst_PROGRAMS = $(NULL)
@@ -158,8 +158,8 @@ libwoff2_a_CXXFLAGS = \
   $(NULL)
 
 
-ot_sanitise_SOURCES = \
-  util/ot-sanitise.cc \
+ot_sanitize_SOURCES = \
+  util/ot-sanitize.cc \
   util/file-stream.h \
   util/test-context.h \
   $(NULL)

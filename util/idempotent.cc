@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
 
   bool r = context.Process(&output, data, file_size);
   if (!r) {
-    std::fprintf(stderr, "Failed to sanitise file!\n");
+    std::fprintf(stderr, "Failed to sanitize file!\n");
     return 1;
   }
   const size_t result_len = output.Tell();
@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
   ots::MemoryStream output2(result2, result_len);
   r = context.Process(&output2, result, result_len);
   if (!r) {
-    std::fprintf(stderr, "Failed to sanitise previous output!\n");
+    std::fprintf(stderr, "Failed to sanitize previous output!\n");
     return 1;
   }
   const size_t result2_len = output2.Tell();

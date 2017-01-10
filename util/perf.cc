@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
     ots::OTSContext context;
     bool r = context.Process(&output, data, st.st_size);
     if (!r) {
-      std::fprintf(stderr, "Failed to sanitise file!\n");
+      std::fprintf(stderr, "Failed to sanitize file!\n");
       return 1;
     }
   }

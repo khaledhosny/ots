@@ -166,7 +166,7 @@ class OTSContext {
     OTSContext() {}
     virtual ~OTSContext() {}
 
-    // Process a given OpenType file and write out a sanitised version
+    // Process a given OpenType file and write out a sanitized version
     //   output: a pointer to an object implementing the OTSStream interface. The
     //     sanitisied output will be written to this. In the even of a failure,
     //     partial output may have been written.

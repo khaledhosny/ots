@@ -64,5 +64,5 @@ We have some command line tools for tests. To build them:
         (tool is located at build/Default directory)
 
 You can use `idempotent` tool to check whether a font will be rejected or not.
-You can also use `ot-sanitise` tool to get sanitised font (it is available on
+You can also use `ot-sanitize` tool to get sanitized font (it is available on
 Linux for now). See README file in the test directory for more details.
