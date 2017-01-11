@@ -2,34 +2,54 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// A very simple driver program while sanitizes the file given as argv[1] and
-// writes the sanitized version to stdout.
-
 #include "config.h"
 
-#include <fcntl.h>
-#include <sys/stat.h>
-#if defined(_WIN32)
-#include <io.h>
-#else
-#include <unistd.h>
-#endif  // defined(_WIN32)
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <vector>
 
-#include <cstdarg>
-#include <cstdio>
-#include <cstdlib>
-
-#include "file-stream.h"
 #include "test-context.h"
-
-#if defined(_WIN32)
-#define ADDITIONAL_OPEN_FLAGS O_BINARY
-#else
-#define ADDITIONAL_OPEN_FLAGS 0
-#endif
 
 namespace {
 
+class FileStream : public ots::OTSStream {
+ public:
+  explicit FileStream(std::string& filename)
+      : file_(false), off_(0) {
+    if (!filename.empty()) {
+      stream_.open(filename, std::ofstream::out | std::ofstream::binary);
+      file_ = true;
+    }
+  }
+
+  bool WriteRaw(const void *data, size_t length) {
+    off_ += length;
+    if (file_) {
+      stream_.write(static_cast<const char*>(data), length);
+      return stream_.good();
+    }
+    return true;
+  }
+
+  bool Seek(off_t position) {
+    off_ = position;
+    if (file_) {
+      stream_.seekp(position);
+      return stream_.good();
+    }
+    return true;
+  }
+
+  off_t Tell() const {
+    return off_;
+  }
+
+ private:
+  std::ofstream stream_;
+  bool file_;
+  off_t off_;
+};
 
 int Usage(const char *argv0) {
   std::fprintf(stderr, "Usage: %s font_file [dest_font_file] [index]\n", argv0);
@@ -46,40 +66,28 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  const int fd = ::open(argv[1], O_RDONLY | ADDITIONAL_OPEN_FLAGS);
-  if (fd < 0) {
-    ::perror("open");
+  std::ifstream ifs(argv[1]);
+  if (!ifs.good())
     return 1;
-  }
 
-  struct stat st;
-  ::fstat(fd, &st);
-
-  uint8_t *data = new uint8_t[st.st_size];
-  if (::read(fd, data, st.st_size) != st.st_size) {
-    ::perror("read");
-    delete[] data;
-    return 1;
-  }
-  ::close(fd);
+  std::vector<uint8_t> in((std::istreambuf_iterator<char>(ifs)),
+                          (std::istreambuf_iterator<char>()));
 
   ots::TestContext context(-1);
-
-  FILE* out = NULL;
-  if (argc >= 3)
-    out = fopen(argv[2], "wb");
 
   uint32_t index = -1;
   if (argc >= 4)
     index = strtol(argv[3], NULL, 0);
 
-  ots::FILEStream output(out);
-  const bool result = context.Process(&output, data, st.st_size, index);
+  std::string out("");
+  if (argc >= 3)
+    out = argv[2];
 
-  if (!result) {
-    std::fprintf(stderr, "Failed to sanitize file!\n");
-  }
+  FileStream output(out);
+  const bool result = context.Process(&output, in.data(), in.size(), index);
 
-  delete[] data;
+  if (!result)
+    std::cerr << "Failed to sanitize file!\n";
+
   return !result;
 }

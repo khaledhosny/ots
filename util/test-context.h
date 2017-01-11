@@ -5,6 +5,8 @@
 #ifndef OTS_TEST_CONTEXT_H_
 #define OTS_TEST_CONTEXT_H_
 
+#include <cstdarg>
+
 #include "opentype-sanitiser.h"
 
 namespace ots {
