@@ -18,7 +18,7 @@ class FileStream : public ots::OTSStream {
   explicit FileStream(std::string& filename)
       : file_(false), off_(0) {
     if (!filename.empty()) {
-      stream_.open(filename, std::ofstream::out | std::ofstream::binary);
+      stream_.open(filename.c_str(), std::ofstream::out | std::ofstream::binary);
       file_ = true;
     }
   }
