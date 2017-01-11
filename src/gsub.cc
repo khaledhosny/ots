@@ -530,56 +530,6 @@ bool ParseReverseChainingContextSingleSubstitution(
 
 namespace ots {
 
-// As far as I checked, following fonts contain invalid values in GSUB table.
-// OTS will drop their GSUB table.
-//
-// # too large substitute (value is 0xFFFF)
-// kaiu.ttf
-// mingliub2.ttf
-// mingliub1.ttf
-// mingliub0.ttf
-// GraublauWeb.otf
-// GraublauWebBold.otf
-//
-// # too large alternate (value is 0xFFFF)
-// ManchuFont.ttf
-//
-// # bad offset to lang sys table (NULL offset)
-// DejaVuMonoSansBold.ttf
-// DejaVuMonoSansBoldOblique.ttf
-// DejaVuMonoSansOblique.ttf
-// DejaVuSansMono-BoldOblique.ttf
-// DejaVuSansMono-Oblique.ttf
-// DejaVuSansMono-Bold.ttf
-//
-// # bad start coverage index
-// GenBasBI.ttf
-// GenBasI.ttf
-// AndBasR.ttf
-// GenBkBasI.ttf
-// CharisSILR.ttf
-// CharisSILBI.ttf
-// CharisSILI.ttf
-// CharisSILB.ttf
-// DoulosSILR.ttf
-// CharisSILBI.ttf
-// GenBkBasB.ttf
-// GenBkBasR.ttf
-// GenBkBasBI.ttf
-// GenBasB.ttf
-// GenBasR.ttf
-//
-// # glyph range is overlapping
-// KacstTitleL.ttf
-// KacstDecorative.ttf
-// KacstTitle.ttf
-// KacstArt.ttf
-// KacstPoster.ttf
-// KacstQurn.ttf
-// KacstDigital.ttf
-// KacstBook.ttf
-// KacstFarsi.ttf
-
 bool ots_gsub_parse(Font *font, const uint8_t *data, size_t length) {
   // Parsing gsub table requires |font->maxp->num_glyphs|
   if (!font->maxp) {

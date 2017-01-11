@@ -683,52 +683,6 @@ bool ParseExtensionPositioning(const ots::Font *font,
 
 namespace ots {
 
-// As far as I checked, following fonts contain invalid GPOS table and
-// OTS will drop their GPOS table.
-//
-// # invalid delta format in device table
-// samanata.ttf
-//
-// # bad size range in device table
-// Sarai_07.ttf
-//
-// # bad offset to PairSetTable
-// chandas1-2.ttf
-//
-// # bad offset to FeatureTable
-// glrso12.ttf
-// gllr12.ttf
-// glbo12.ttf
-// glb12.ttf
-// glro12.ttf
-// glbso12.ttf
-// glrc12.ttf
-// glrsc12.ttf
-// glbs12.ttf
-// glrs12.ttf
-// glr12.ttf
-//
-// # ScriptRecords aren't sorted by tag
-// Garogier_unhinted.otf
-//
-// # bad start coverage index in CoverageFormat2
-// AndBasR.ttf
-// CharisSILB.ttf
-// CharisSILBI.ttf
-// CharisSILI.ttf
-// CharisSILR.ttf
-// DoulosSILR.ttf
-// GenBasBI.ttf
-// GenBasI.ttf
-// GenBkBasI.ttf
-// GenBkBasB.ttf
-// GenBkBasR.ttf
-// Padauk-Bold.ttf
-// Padauk.ttf
-//
-// # Contour point indexes aren't sorted
-// Arial Unicode.ttf
-
 bool ots_gpos_parse(Font *font, const uint8_t *data, size_t length) {
   // Parsing GPOS table requires num_glyphs which is contained in maxp table.
   if (!font->maxp) {
