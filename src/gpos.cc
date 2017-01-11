@@ -77,8 +77,11 @@ const ots::LookupSubtableParser kGposLookupSubtableParser = {
 // Shared Tables: ValueRecord, Anchor Table, and MarkArray
 
 bool ParseValueRecord(const ots::Font *font,
-                      ots::Buffer* subtable, const uint8_t *data,
-                      const size_t length, const uint16_t value_format) {
+                      ots::Buffer* subtable,
+                      const uint16_t value_format) {
+  const uint8_t *data = subtable->buffer();
+  const size_t length = subtable->length();
+
   // Check existence of adjustment fields.
   for (unsigned i = 0; i < 4; ++i) {
     if ((value_format >> i) & 0x1) {
@@ -218,7 +221,7 @@ bool ParseSingleAdjustment(const ots::Font *font, const uint8_t *data,
 
   if (format == 1) {
     // Format 1 exactly one value record.
-    if (!ParseValueRecord(font, &subtable, data, length, value_format)) {
+    if (!ParseValueRecord(font, &subtable, value_format)) {
       return OTS_FAILURE_MSG("Failed to parse format 1 single adjustment table");
     }
   } else if (format == 2) {
@@ -227,7 +230,7 @@ bool ParseSingleAdjustment(const ots::Font *font, const uint8_t *data,
       return OTS_FAILURE_MSG("Failed to parse format 2 single adjustment table");
     }
     for (unsigned i = 0; i < value_count; ++i) {
-      if (!ParseValueRecord(font, &subtable, data, length, value_format)) {
+      if (!ParseValueRecord(font, &subtable, value_format)) {
         return OTS_FAILURE_MSG("Failed to parse value record %d in format 2 single adjustment table", i);
       }
     }
@@ -268,10 +271,10 @@ bool ParsePairSetTable(const ots::Font *font,
     if (glyph_id >= num_glyphs) {
       return OTS_FAILURE_MSG("glyph id %d too high >= %d", glyph_id, num_glyphs);
     }
-    if (!ParseValueRecord(font, &subtable, data, length, value_format1)) {
+    if (!ParseValueRecord(font, &subtable, value_format1)) {
       return OTS_FAILURE_MSG("Failed to parse value record in format 1 pair set table");
     }
-    if (!ParseValueRecord(font, &subtable, data, length, value_format2)) {
+    if (!ParseValueRecord(font, &subtable, value_format2)) {
       return OTS_FAILURE_MSG("Failed to parse value record in format 2 pair set table");
     }
   }
@@ -345,12 +348,10 @@ bool ParsePairPosFormat2(const ots::Font *font,
   for (unsigned i = 0; i < class1_count; ++i) {
     // Check class 2 records.
     for (unsigned j = 0; j < class2_count; ++j) {
-      if (value_format1 && !ParseValueRecord(font, &subtable, data, length,
-                                             value_format1)) {
+      if (value_format1 && !ParseValueRecord(font, &subtable, value_format1)) {
         return OTS_FAILURE_MSG("Failed to parse value record 1 %d and %d", j, i);
       }
-      if (value_format2 && !ParseValueRecord(font, &subtable, data, length,
-                                             value_format2)) {
+      if (value_format2 && !ParseValueRecord(font, &subtable, value_format2)) {
         return OTS_FAILURE_MSG("Falied to parse value record 2 %d and %d", j, i);
       }
     }
