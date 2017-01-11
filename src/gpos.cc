@@ -344,6 +344,11 @@ bool ParsePairPosFormat2(const ots::Font *font,
     return OTS_FAILURE_MSG("Failed to read pair pos format 2 data");
   }
 
+  if (offset_class_def1 >= length || offset_class_def2 >= length) {
+    return OTS_FAILURE_MSG("ParsePairPosFormat2 class definition offset (%d or %d) >= subtable length (%d)",
+        offset_class_def1, offset_class_def2, length);
+  }
+
   // Check class 1 records.
   for (unsigned i = 0; i < class1_count; ++i) {
     // Check class 2 records.
@@ -358,8 +363,8 @@ bool ParsePairPosFormat2(const ots::Font *font,
   }
 
   // Check class definition tables.
-  if (offset_class_def1 < subtable.offset() || offset_class_def1 >= length ||
-      offset_class_def2 < subtable.offset() || offset_class_def2 >= length) {
+  if (offset_class_def1 < subtable.offset() ||
+      offset_class_def2 < subtable.offset()) {
     return OTS_FAILURE_MSG("Bad class definition table offsets %d or %d", offset_class_def1, offset_class_def2);
   }
   if (!ots::ParseClassDefTable(font, data + offset_class_def1,
