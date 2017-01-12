@@ -59,35 +59,64 @@ int Usage(const char *argv0) {
 }  // namespace
 
 int main(int argc, char **argv) {
-  if (argc < 2 || argc > 4) return Usage(argv[0]);
+  std::string in_filename;
+  std::string out_filename;
+  int font_index = -1;
+  bool verbose = false;
+  bool version = false;
 
-  if (std::strcmp("--version", argv[1]) == 0) {
-    std::printf("%s\n", PACKAGE_STRING);
+  for (int i = 1; i < argc; i++) {
+    std::string arg(argv[i]);
+    if (arg.at(0) == '-') {
+      if (arg == "--version") {
+        version = true;
+      } else if (arg == "--verbose") {
+        verbose = true;
+      } else {
+        std::cerr << "Unrecognized option: " << arg << std::endl;
+        return 1;
+      }
+    } else if (in_filename.empty()) {
+      in_filename = arg;
+    } else if (out_filename.empty()) {
+      out_filename = arg;
+    } else if (font_index == -1) {
+      font_index = std::strtol(arg.c_str(), NULL, 10);
+    } else {
+      std::cerr << "Unrecognized argument: " << arg << std::endl;
+      return 1;
+    }
+  }
+
+  if (version) {
+    std::cout << PACKAGE_STRING << std::endl;
     return 0;
   }
 
-  std::ifstream ifs(argv[1]);
-  if (!ifs.good())
+  if (in_filename.empty()) {
+    return Usage(argv[0]);
+  }
+
+  std::ifstream ifs(in_filename);
+  if (!ifs.good()) {
+    std::cerr << "Failed to open: " << in_filename << std::endl;
     return 1;
+  }
 
   std::vector<uint8_t> in((std::istreambuf_iterator<char>(ifs)),
                           (std::istreambuf_iterator<char>()));
 
   ots::TestContext context(-1);
 
-  uint32_t index = -1;
-  if (argc >= 4)
-    index = strtol(argv[3], NULL, 0);
+  FileStream output(out_filename);
+  const bool result = context.Process(&output, in.data(), in.size(), font_index);
 
-  std::string out("");
-  if (argc >= 3)
-    out = argv[2];
-
-  FileStream output(out);
-  const bool result = context.Process(&output, in.data(), in.size(), index);
-
-  if (!result)
-    std::cerr << "Failed to sanitize file!\n";
+  if (verbose) {
+    if (result)
+      std::cout << "File sanitized successfully!\n";
+    else
+      std::cout << "Failed to sanitize file!\n";
+  }
 
   return !result;
 }
