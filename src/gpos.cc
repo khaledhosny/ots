@@ -76,6 +76,17 @@ const ots::LookupSubtableParser kGposLookupSubtableParser = {
 
 // Shared Tables: ValueRecord, Anchor Table, and MarkArray
 
+size_t CalcValueRecordSize(const uint16_t value_format) {
+  size_t size = 0;
+  for (unsigned i = 0; i < 8; ++i) {
+    if ((value_format >> i) & 0x1) {
+      size += 2;
+    }
+  }
+
+  return size;
+}
+
 bool ParseValueRecord(const ots::Font *font,
                       ots::Buffer* subtable,
                       const uint16_t value_format) {
@@ -344,29 +355,36 @@ bool ParsePairPosFormat2(const ots::Font *font,
     return OTS_FAILURE_MSG("Failed to read pair pos format 2 data");
   }
 
-  if (offset_class_def1 >= length || offset_class_def2 >= length) {
-    return OTS_FAILURE_MSG("ParsePairPosFormat2 class definition offset (%d or %d) >= subtable length (%d)",
-        offset_class_def1, offset_class_def2, length);
+  size_t value_record1_size = CalcValueRecordSize(value_format1);
+  size_t value_record2_size = CalcValueRecordSize(value_format2);
+  size_t value_records_size = class1_count * class2_count *
+    (value_record1_size + value_record2_size);
+
+  // Check the validity of class definition offsets.
+  if (offset_class_def1 < subtable.offset() + value_records_size ||
+      offset_class_def2 < subtable.offset() + value_records_size ||
+      offset_class_def1 >= length || offset_class_def2 >= length) {
+    return OTS_FAILURE_MSG("Bad ParsePairPosFormat2 class definition offsets %d or %d", offset_class_def1, offset_class_def2);
   }
 
   // Check class 1 records.
-  for (unsigned i = 0; i < class1_count; ++i) {
-    // Check class 2 records.
-    for (unsigned j = 0; j < class2_count; ++j) {
-      if (value_format1 && !ParseValueRecord(font, &subtable, value_format1)) {
-        return OTS_FAILURE_MSG("Failed to parse value record 1 %d and %d", j, i);
-      }
-      if (value_format2 && !ParseValueRecord(font, &subtable, value_format2)) {
-        return OTS_FAILURE_MSG("Falied to parse value record 2 %d and %d", j, i);
+  if (value_record1_size && value_record2_size) {
+    for (unsigned i = 0; i < class1_count; ++i) {
+      // Check class 2 records.
+      for (unsigned j = 0; j < class2_count; ++j) {
+        if (value_format1 && value_record2_size &&
+            !ParseValueRecord(font, &subtable, value_format1)) {
+          return OTS_FAILURE_MSG("Failed to parse value record 1 %d and %d", j, i);
+        }
+        if (value_format2 && value_record2_size &&
+            !ParseValueRecord(font, &subtable, value_format2)) {
+          return OTS_FAILURE_MSG("Falied to parse value record 2 %d and %d", j, i);
+        }
       }
     }
   }
 
   // Check class definition tables.
-  if (offset_class_def1 < subtable.offset() ||
-      offset_class_def2 < subtable.offset()) {
-    return OTS_FAILURE_MSG("Bad class definition table offsets %d or %d", offset_class_def1, offset_class_def2);
-  }
   if (!ots::ParseClassDefTable(font, data + offset_class_def1,
                                length - offset_class_def1,
                                num_glyphs, kMaxClassDefValue)) {
