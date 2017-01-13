@@ -14,6 +14,21 @@
 
 namespace {
 
+bool g_quite = false;
+
+
+int Log(const std::string& msg) {
+  if (!g_quite)
+    std::cout << msg << std::endl;
+  return 0;
+}
+
+int Error(const std::string& msg) {
+  if (!g_quite)
+    std::cerr << msg << std::endl;
+  return 1;
+}
+
 class FileStream : public ots::OTSStream {
  public:
   explicit FileStream(std::string& filename)
@@ -52,9 +67,8 @@ class FileStream : public ots::OTSStream {
   off_t off_;
 };
 
-int Usage(const char *argv0) {
-  std::fprintf(stderr, "Usage: %s font_file [dest_font_file] [index]\n", argv0);
-  return 1;
+int Usage(const std::string& name) {
+  return Error("Usage: " + name + " [options] font_file [dest_font_file] [font_index]");
 }
 
 }  // namespace
@@ -63,61 +77,46 @@ int main(int argc, char **argv) {
   std::string in_filename;
   std::string out_filename;
   int font_index = -1;
-  bool verbose = false;
-  bool version = false;
 
   for (int i = 1; i < argc; i++) {
     std::string arg(argv[i]);
     if (arg.at(0) == '-') {
-      if (arg == "--version") {
-        version = true;
-      } else if (arg == "--verbose") {
-        verbose = true;
-      } else {
-        std::cerr << "Unrecognized option: " << arg << std::endl;
-        return 1;
-      }
-    } else if (in_filename.empty()) {
-      in_filename = arg;
-    } else if (out_filename.empty()) {
-      out_filename = arg;
-    } else if (font_index == -1) {
-      font_index = std::strtol(arg.c_str(), NULL, 10);
-    } else {
-      std::cerr << "Unrecognized argument: " << arg << std::endl;
-      return 1;
+      if (arg == "--version")
+        return Log(PACKAGE_STRING);
+      else if (arg == "--quite")
+        g_quite = true;
+      else
+        return Error("Unrecognized option: " + arg);
     }
+    else if (in_filename.empty())
+      in_filename = arg;
+    else if (out_filename.empty())
+      out_filename = arg;
+    else if (font_index == -1)
+      font_index = std::strtol(arg.c_str(), NULL, 10);
+    else
+      return Error("Unrecognized argument: " + arg);
   }
 
-  if (version) {
-    std::cout << PACKAGE_STRING << std::endl;
-    return 0;
-  }
-
-  if (in_filename.empty()) {
+  if (in_filename.empty())
     return Usage(argv[0]);
-  }
 
   std::ifstream ifs(in_filename.c_str());
-  if (!ifs.good()) {
-    std::cerr << "Failed to open: " << in_filename << std::endl;
-    return 1;
-  }
+  if (!ifs.good())
+    return Error("Failed to open: " + in_filename);
 
   std::vector<uint8_t> in((std::istreambuf_iterator<char>(ifs)),
                           (std::istreambuf_iterator<char>()));
 
-  ots::TestContext context(-1);
+  ots::TestContext context(g_quite ? -1 : 0);
 
   FileStream output(out_filename);
   const bool result = context.Process(&output, in.data(), in.size(), font_index);
 
-  if (verbose) {
-    if (result)
-      std::cout << "File sanitized successfully!\n";
-    else
-      std::cout << "Failed to sanitize file!\n";
-  }
+  if (result)
+    Log("File sanitized successfully!");
+  else
+    Log("Failed to sanitize file!");
 
   return !result;
 }

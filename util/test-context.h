@@ -50,7 +50,7 @@ class TestContext: public ots::OTSContext {
   }
 
 private:
-  unsigned level_;
+  int level_;
 };
 
 }  // namespace ots
