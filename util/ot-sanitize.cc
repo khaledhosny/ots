@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
     return Usage(argv[0]);
   }
 
-  std::ifstream ifs(in_filename);
+  std::ifstream ifs(in_filename.c_str());
   if (!ifs.good()) {
     std::cerr << "Failed to open: " << in_filename << std::endl;
     return 1;
