@@ -368,7 +368,7 @@ bool ParsePairPosFormat2(const ots::Font *font,
   }
 
   // Check class 1 records.
-  if (value_record1_size && value_record2_size) {
+  if (value_record1_size || value_record2_size) {
     for (unsigned i = 0; i < class1_count; ++i) {
       // Check class 2 records.
       for (unsigned j = 0; j < class2_count; ++j) {
