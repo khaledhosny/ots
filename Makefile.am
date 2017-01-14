@@ -302,11 +302,14 @@ AM_TESTS_ENVIRONMENT = \
 
 EXTRA_DIST = \
   LICENSE \
+  docs/DesignDoc.md \
+  docs/HowToFix.md \
+  docs/HowToTest.md \
   tests/BLACKLIST.txt \
+  tests/fonts/malicious/.dummy \
   tests/test_fuzzed_fonts.sh \
   tests/test_malicious_fonts.sh \
   tests/test_unmalicious_fonts.sh \
-  tests/fonts/malicious/.dummy \
   third_party/brotli/LICENSE \
   third_party/googletest/googletest/LICENSE \
   third_party/woff2/LICENSE \
