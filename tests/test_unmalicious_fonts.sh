@@ -10,7 +10,7 @@ test "x$top_builddir" = x && top_builddir=.
 # Usage: ./test_unmalicious_fonts.sh [ttf_or_otf_file_name]
 
 BLACKLIST=$top_srcdir/tests/BLACKLIST.txt
-CHECKER=$top_builddir/idempotent$EXEEXT
+CHECKER=$top_builddir/ots-idempotent$EXEEXT
 
 if [ ! -r "$BLACKLIST" ] ; then
   echo "$BLACKLIST is not found."

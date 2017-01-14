@@ -3,20 +3,20 @@ NULL =
 ACLOCAL_AMFLAGS = -I m4
 
 bin_PROGRAMS = \
-  ot-sanitize \
+  ots-sanitize \
   $(NULL)
 
 noinst_PROGRAMS = $(NULL)
 
 if HAVE_SYSTIME
-noinst_PROGRAMS += perf
+noinst_PROGRAMS += ots-perf
 endif
 
 if HAVE_FREETYPE
 noinst_PROGRAMS += \
-  idempotent \
-  validator-checker \
-  side-by-side \
+  ots-idempotent \
+  ots-validator-checker \
+  ots-side-by-side \
   $(NULL)
 endif
 
@@ -161,30 +161,29 @@ libwoff2_a_CXXFLAGS = \
   $(NULL)
 
 
-ot_sanitize_SOURCES = \
-  util/ot-sanitize.cc \
-  util/file-stream.h \
+ots_sanitize_SOURCES = \
+  util/ots-sanitize.cc \
   util/test-context.h \
   $(NULL)
 
 
-perf_SOURCES = \
-  util/perf.cc \
+ots_perf_SOURCES = \
+  util/ots-perf.cc \
   $(NULL)
 
 
-idempotent_SOURCES = \
-  util/idempotent.cc \
+ots_idempotent_SOURCES = \
+  util/ots-idempotent.cc \
   util/test-context.h \
   $(NULL)
 
 
-validator_checker_SOURCES = \
-  util/validator-checker.cc \
+ots_validator_checker_SOURCES = \
+  util/ots-validator-checker.cc \
   $(NULL)
 
-side_by_side_SOURCES = \
-  util/side-by-side.cc \
+ots_side_by_side_SOURCES = \
+  util/ots-side-by-side.cc \
   $(NULL)
 
 

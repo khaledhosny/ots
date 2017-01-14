@@ -45,10 +45,10 @@ Command line tools
 
 We have some command line tools for tests.
 
-## `ot-sanitize` - font validator/transcoder
+## `ots-sanitize` - font validator/transcoder
 
 ### Description:
-`ot-sanitize` is a program which validates and/or transcodes a font file using
+`ots-sanitize` is a program which validates and/or transcodes a font file using
 the OTS library:
 
     transcoded_font = ValidateAndTranscode(original_font);
@@ -57,19 +57,19 @@ the OTS library:
     OutputToStdout(transcoded_font);
 
 ### Usage:
-    $ ./ot-sanitize ttf_or_otf_file [transcoded_file]
+    $ ./ots-sanitize ttf_or_otf_file [transcoded_file]
 
 ### Example:
-    $ ./ot-sanitize sample.otf transcoded_sample.otf
-    $ ./ot-sanitize malformed.ttf
+    $ ./ots-sanitize sample.otf transcoded_sample.otf
+    $ ./ots-sanitize malformed.ttf
     WARNING at ots/src/ots.cc:158: bad range shift
     ERROR at ots/src/ots.cc:199 (bool<unnamed>::do_ots_process(ots::Font*, ots::OTSStream*, const uint8_t*, size_t))
     Failed to sanitize file!
 
-## `idempotent` — font transcoder
+## `ots-idempotent` — font transcoder
 
 ### Description:
-`idempotent` is a program which validates and transcodes a font file using OTS.
+`ots-idempotent` is a program which validates and transcodes a font file using OTS.
 This tool transcodes the original font twice and then verifies that the two
 transcoded fonts are identical:
 
@@ -85,19 +85,19 @@ transcoded fonts are identical:
 This tool is basically for OTS developers.
 
 ### Usage:
-    $ ./idempotent ttf_or_otf_file
+    $ ./ots-idempotent ttf_or_otf_file
 
 ### Example:
-    $ ./idempotent sample.otf
-    $ ./idempotent malformed.ttf
+    $ ./ots-idempotent sample.otf
+    $ ./ots-idempotent malformed.ttf
     WARNING at ots/src/ots.cc:158: bad range shift
     ERROR at ots/src/ots.cc:199 (bool<unnamed>::do_ots_process(ots::Font*, ots::OTSStream*, const uint8_t*, size_t))
     Failed to sanitize file!
 
-## `validator-checker` — font validation checker
+## `ots-validator-checker` — font validation checker
 
 ### Description:
-`validator-checker` is a program which is intended to validate malformed fonts.
+`ots-validator-checker` is a program which is intended to validate malformed fonts.
 If the program detects that the font is invalid, it prints “OK” and returns
 with 0 (success). If it coulndn’t detect any errors, the program then opens the
 transcoded font and renders some characters using FreeType:
@@ -117,16 +117,16 @@ crash the library (see the example below).
     $ catchsegv ./validator_checker malicous_ttf_or_otf_file
 
 ### Example:
-    $ for f in malformed/*.ttf ; do catchsegv ./validator-checker "$f" ; done
+    $ for f in malformed/*.ttf ; do catchsegv ./ots-validator-checker "$f" ; done
     OK: the malicious font was filtered: malformed/1.ttf
     OK: the malicious font was filtered: malformed/2.ttf
     OK: FreeType2 didn't crash: malformed/3.ttf
     OK: the malicious font was filtered: malformed/4.ttf
 
-## `perf` — performance checker
+## `ots-perf` — performance checker
 
 ### Description:
-`perf` is a program which validates and transcodes a font file N times using
+`ots-perf` is a program which validates and transcodes a font file N times using
 OTS, then prints the elapsed time:
 
     for (N times)
@@ -134,18 +134,18 @@ OTS, then prints the elapsed time:
     Print(elapsed_time_in_us / N);
 
 ### Usage:
-    $ ./perf ttf_or_otf_file
+    $ ./ots-perf ttf_or_otf_file
 
 ### Example:
-    $ ./perf sample.ttf
+    $ ./ots-perf sample.ttf
     903 [us] sample.ttf (139332 bytes, 154 [byte/us])
-    $ ./perf sample-bold.otf
+    $ ./ots-perf sample-bold.otf
     291 [us] sample-bold.otf (150652 bytes, 517 [byte/us])
 
-## `side-by-side` — font quality checker
+## `ots-side-by-side` — font quality checker
 
 ### Description:
-`side-by-side` is a program which renders some characters (ASCII, Latin-1, CJK)
+`ots-side-by-side` is a program which renders some characters (ASCII, Latin-1, CJK)
 using both original font and transcoded font and checks that the two rendering
 results are exactly equal.
 
@@ -165,11 +165,11 @@ Note: This tool doesn't check kerning (GPOS/kern) nor font substitution
 (GSUB). These should be tested in Layout tests if necessary.
 
 ### Usage:
-    $ ./side-by-side ttf_or_otf_file
+    $ ./ots-side-by-side ttf_or_otf_file
 
 ### Example:
-    $ ./side-by-side linux/kochi-gothic.ttf  # no problem
-    $ ./side-by-side free/kredit1.ttf        # this is known issue of OTS.
+    $ ./ots-side-by-side linux/kochi-gothic.ttf  # no problem
+    $ ./ots-side-by-side free/kredit1.ttf        # this is known issue of OTS.
     bitmap metrics doesn't match! (14, 57), (37, 45)
     EXPECTED:
 

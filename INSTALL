@@ -41,7 +41,7 @@ Developer build instructions:
 
      For example,
 
-     $ ./ot-sanitize ~/fonts/ofl/merriweathersans/MerriweatherSans-Bold.ttf
+     $ ./ots-sanitize ~/fonts/ofl/merriweathersans/MerriweatherSans-Bold.ttf
      ERROR at src/layout.cc:100 (ParseScriptTable)
      ERROR: Layout: DFLT table doesn't satisfy the spec. for script tag DFLT
      ERROR at src/layout.cc:1247 (ParseScriptListTable)
