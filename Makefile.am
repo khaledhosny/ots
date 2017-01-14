@@ -226,8 +226,8 @@ table_dependencies_test_LDADD = \
 
 
 libgtest_a_SOURCES = \
-  third_party/gtest/src/gtest-all.cc \
-  third_party/gtest/src/gtest_main.cc \
+  third_party/googletest/googletest/src/gtest-all.cc \
+  third_party/googletest/googletest/src/gtest_main.cc \
   $(NULL)
 
 libgtest_a_LIBADD = \
@@ -236,8 +236,8 @@ libgtest_a_LIBADD = \
 
 
 AM_CPPFLAGS = \
-  -I$(top_srcdir)/third_party/gtest/include \
-  -I$(top_srcdir)/third_party/gtest/ \
+  -I$(top_srcdir)/third_party/googletest/googletest/include \
+  -I$(top_srcdir)/third_party/googletest/googletest/ \
   -I$(top_srcdir)/src \
   -I$(top_srcdir)/include \
   -I$(top_srcdir)/third_party/brotli/dec/ \

@@ -6,3 +6,6 @@
 	path = third_party/woff2
 	url = https://github.com/google/woff2.git
 	ignore = dirty
+[submodule "third_party/googletest"]
+	path = third_party/googletest
+	url = https://github.com/google/googletest.git
