@@ -226,8 +226,39 @@ table_dependencies_test_LDADD = \
 
 
 libgtest_a_SOURCES = \
-  third_party/googletest/googletest/src/gtest-all.cc \
+  third_party/googletest/googletest/include/gtest/gtest-death-test.h \
+  third_party/googletest/googletest/include/gtest/gtest.h \
+  third_party/googletest/googletest/include/gtest/gtest-message.h \
+  third_party/googletest/googletest/include/gtest/gtest-param-test.h \
+  third_party/googletest/googletest/include/gtest/gtest_pred_impl.h \
+  third_party/googletest/googletest/include/gtest/gtest-printers.h \
+  third_party/googletest/googletest/include/gtest/gtest_prod.h \
+  third_party/googletest/googletest/include/gtest/gtest-spi.h \
+  third_party/googletest/googletest/include/gtest/gtest-test-part.h \
+  third_party/googletest/googletest/include/gtest/gtest-typed-test.h \
+  third_party/googletest/googletest/include/gtest/internal/custom/gtest.h \
+  third_party/googletest/googletest/include/gtest/internal/custom/gtest-port.h \
+  third_party/googletest/googletest/include/gtest/internal/custom/gtest-printers.h \
+  third_party/googletest/googletest/include/gtest/internal/gtest-death-test-internal.h \
+  third_party/googletest/googletest/include/gtest/internal/gtest-filepath.h \
+  third_party/googletest/googletest/include/gtest/internal/gtest-internal.h \
+  third_party/googletest/googletest/include/gtest/internal/gtest-linked_ptr.h \
+  third_party/googletest/googletest/include/gtest/internal/gtest-param-util-generated.h \
+  third_party/googletest/googletest/include/gtest/internal/gtest-param-util.h \
+  third_party/googletest/googletest/include/gtest/internal/gtest-port-arch.h \
+  third_party/googletest/googletest/include/gtest/internal/gtest-port.h \
+  third_party/googletest/googletest/include/gtest/internal/gtest-string.h \
+  third_party/googletest/googletest/include/gtest/internal/gtest-tuple.h \
+  third_party/googletest/googletest/include/gtest/internal/gtest-type-util.h \
+  third_party/googletest/googletest/src/gtest.cc \
+  third_party/googletest/googletest/src/gtest-death-test.cc \
+  third_party/googletest/googletest/src/gtest-filepath.cc \
+  third_party/googletest/googletest/src/gtest-internal-inl.h \
   third_party/googletest/googletest/src/gtest_main.cc \
+  third_party/googletest/googletest/src/gtest-port.cc \
+  third_party/googletest/googletest/src/gtest-printers.cc \
+  third_party/googletest/googletest/src/gtest-test-part.cc \
+  third_party/googletest/googletest/src/gtest-typed-test.cc \
   $(NULL)
 
 libgtest_a_LIBADD = \
@@ -274,9 +305,12 @@ AM_TESTS_ENVIRONMENT = \
 EXTRA_DIST = \
   LICENSE \
   tests/BLACKLIST.txt \
+  tests/test_fuzzed_fonts.sh \
+  tests/test_malicious_fonts.sh \
   tests/test_unmalicious_fonts.sh \
+  tests/fonts/malicious/.dummy \
   third_party/brotli/LICENSE \
-  third_party/gtest \
+  third_party/googletest/googletest/LICENSE \
   third_party/woff2/LICENSE \
   $(NULL)
 
