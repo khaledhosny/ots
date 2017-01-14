@@ -36,7 +36,10 @@ TESTS = \
   $(NULL)
 
 if HAVE_FREETYPE
-TESTS += tests/test_unmalicious_fonts.sh
+TESTS += \
+  tests/test_malicious_fonts.sh \
+  tests/test_unmalicious_fonts.sh \
+  $(NULL)
 endif
 
 check_PROGRAMS = \

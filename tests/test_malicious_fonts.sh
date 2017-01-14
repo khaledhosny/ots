@@ -4,10 +4,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+test "x$top_srcdir" = x && top_srcdir=.
+test "x$top_builddir" = x && top_builddir=.
+
 # Usage: ./test_malicious_fonts.sh [ttf_or_otf_file_name]
 
-BASE_DIR=~/malicious/
-CHECKER=./validator-checker
+BASE_DIR=$top_srcdir/tests/fonts/malicious/
+CHECKER=$top_builddir/ots-validator-checker$EXEEXT
 
 if [ ! -x "$CHECKER" ] ; then
   echo "$CHECKER is not found."
@@ -23,7 +26,7 @@ if [ $# -eq 0 ] ; then
   fi
 
   # Recursively call this script.
-  find $BASE_DIR -type f -name '*tf' -exec "$0" {} \;
+  find $BASE_DIR -type f -name '*tf' -o -name '*tc' -exec "$0" {} \;
   echo
   exit 0
 fi
