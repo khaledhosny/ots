@@ -159,10 +159,6 @@ libwoff2_a_SOURCES = \
   third_party/woff2/src/woff2_out.h \
   $(NULL)
 
-libwoff2_a_CXXFLAGS = \
-  -std=c++11 \
-  $(NULL)
-
 
 ots_sanitize_SOURCES = \
   util/ots-sanitize.cc \
@@ -277,6 +273,8 @@ AM_CPPFLAGS = \
   $(NULL)
 
 AM_CXXFLAGS = \
+## for woff2
+  -std=c++11 \
   $(CORETEXT_CFLAGS) \
   $(FREETYPE_CFLAGS) \
   $(PTHREAD_CFLAGS) \
