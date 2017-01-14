@@ -56,8 +56,8 @@ the OTS library:
 
     $ ./ots-sanitize sample.otf transcoded_sample.otf
     $ ./ots-sanitize malformed.ttf
-    WARNING at ots/src/ots.cc:158: bad range shift
-    ERROR at ots/src/ots.cc:199 (bool<unnamed>::do_ots_process(ots::Font*, ots::OTSStream*, const uint8_t*, size_t))
+    WARNING: bad range shift
+    ERROR at src/ots.cc:670 (ProcessGeneric)
     Failed to sanitize file!
 
 ## `ots-idempotent` — font transcoder
@@ -86,8 +86,8 @@ This tool is basically for OTS developers.
 
     $ ./ots-idempotent sample.otf
     $ ./ots-idempotent malformed.ttf
-    WARNING at ots/src/ots.cc:158: bad range shift
-    ERROR at ots/src/ots.cc:199 (bool<unnamed>::do_ots_process(ots::Font*, ots::OTSStream*, const uint8_t*, size_t))
+    WARNING: bad range shift
+    ERROR at src/ots.cc:670 (ProcessGeneric)
     Failed to sanitize file!
 
 ## `ots-validator-checker` — font validation checker
