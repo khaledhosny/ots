@@ -144,6 +144,7 @@ libbrotli_a_SOURCES = \
 
 libwoff2_a_SOURCES = \
   third_party/woff2/src/buffer.h \
+  third_party/woff2/src/port.h \
   third_party/woff2/src/round.h \
   third_party/woff2/src/store_bytes.h \
   third_party/woff2/src/table_tags.cc \
@@ -151,7 +152,6 @@ libwoff2_a_SOURCES = \
   third_party/woff2/src/variable_length.cc \
   third_party/woff2/src/variable_length.h \
   third_party/woff2/src/woff2_common.cc \
-  third_party/woff2/src/woff2_common.h \
   third_party/woff2/src/woff2_common.h \
   third_party/woff2/src/woff2_dec.cc \
   third_party/woff2/src/woff2_dec.h \
