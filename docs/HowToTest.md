@@ -13,7 +13,7 @@ will be used.
 Then, put malicious fonts in `tests/fonts/malicious/`. For details, please
 check http://code.google.com/p/chromium/issues/detail?id=27139#c2. Currently
 access to the issue is limited to chromium-security team members for security
-reasons.
+reasons:
 
     $ cd tests/fonts/malicious/
     $ tar xjf ~/ttf-testsuite.tar.bz2
@@ -21,6 +21,7 @@ reasons.
 ## Running the tests
 
 Simply run:
+
     $ make ckeck
 
 Which will run tests to verify that:
@@ -48,9 +49,11 @@ the OTS library:
     OutputToStdout(transcoded_font);
 
 ### Usage:
+
     $ ./ots-sanitize ttf_or_otf_file [transcoded_file]
 
 ### Example:
+
     $ ./ots-sanitize sample.otf transcoded_sample.otf
     $ ./ots-sanitize malformed.ttf
     WARNING at ots/src/ots.cc:158: bad range shift
@@ -76,9 +79,11 @@ transcoded fonts are identical:
 This tool is basically for OTS developers.
 
 ### Usage:
+
     $ ./ots-idempotent ttf_or_otf_file
 
 ### Example:
+
     $ ./ots-idempotent sample.otf
     $ ./ots-idempotent malformed.ttf
     WARNING at ots/src/ots.cc:158: bad range shift
@@ -105,9 +110,11 @@ valgrind command so that you can easily verify that all transformed fonts don't
 crash the library (see the example below).
 
 ### Usage:
+
     $ catchsegv ./validator_checker malicous_ttf_or_otf_file
 
 ### Example:
+
     $ for f in malformed/*.ttf ; do catchsegv ./ots-validator-checker "$f" ; done
     OK: the malicious font was filtered: malformed/1.ttf
     OK: the malicious font was filtered: malformed/2.ttf
@@ -125,9 +132,11 @@ OTS, then prints the elapsed time:
     Print(elapsed_time_in_us / N);
 
 ### Usage:
+
     $ ./ots-perf ttf_or_otf_file
 
 ### Example:
+
     $ ./ots-perf sample.ttf
     903 [us] sample.ttf (139332 bytes, 154 [byte/us])
     $ ./ots-perf sample-bold.otf
@@ -156,9 +165,11 @@ Note: This tool doesn't check kerning (GPOS/kern) nor font substitution
 (GSUB). These should be tested in Layout tests if necessary.
 
 ### Usage:
+
     $ ./ots-side-by-side ttf_or_otf_file
 
 ### Example:
+
     $ ./ots-side-by-side linux/kochi-gothic.ttf  # no problem
     $ ./ots-side-by-side free/kredit1.ttf        # this is known issue of OTS.
     bitmap metrics doesn't match! (14, 57), (37, 45)
