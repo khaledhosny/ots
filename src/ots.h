@@ -5,6 +5,8 @@
 #ifndef OTS_H_
 #define OTS_H_
 
+#include "config.h"
+
 #include <stddef.h>
 #include <cstdarg>
 #include <cstddef>

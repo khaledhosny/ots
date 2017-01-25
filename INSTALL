@@ -35,9 +35,9 @@ Building on Windows:
 Developer build instructions:
 
   1. If you would like to see the source code lines related to reported 
-     errors, then run make with:
+     errors, then replace configure call above with:
 
-     $ make CXXFLAGS=-DOTS_DEBUG
+     $ ./configure --enable-debug
 
      For example,
 
