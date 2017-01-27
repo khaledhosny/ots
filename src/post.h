@@ -13,7 +13,15 @@
 
 namespace ots {
 
-struct OpenTypePOST {
+class OpenTypePOST : public Table {
+ public:
+  explicit OpenTypePOST(Font *font)
+      : Table(font, OTS_TAG('p','o','s','t')) { }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+
+private:
   uint32_t version;
   uint32_t italic_angle;
   int16_t underline;
