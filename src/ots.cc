@@ -875,6 +875,52 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
 
 namespace ots {
 
+Table::Table(Font *font, uint32_t tag)
+: m_tag(tag),
+  m_font(font),
+  m_shouldSerialize(true) {
+}
+
+bool Table::ShouldSerialize() {
+  return m_shouldSerialize;
+}
+
+void Table::Message(int level, const char *format, va_list va) {
+  char msg[206] = { OTS_UNTAG(m_tag), ':', ' ' };
+  std::vsnprintf(msg + 6, 200, format, va);
+  m_font->file->context->Message(level, msg);
+}
+
+bool Table::Error(const char *format, ...) {
+  va_list va;
+  va_start(va, format);
+  Message(0, format, va);
+  va_end(va);
+
+  return false;
+}
+
+bool Table::Warning(const char *format, ...) {
+  va_list va;
+  va_start(va, format);
+  Message(1, format, va);
+  va_end(va);
+
+  return true;
+}
+
+bool Table::Drop(const char *format, ...) {
+  m_shouldSerialize = false;
+
+  va_list va;
+  va_start(va, format);
+  Message(0, format, va);
+  m_font->file->context->Message(0, "Table discarded");
+  va_end(va);
+
+  return true;
+}
+
 bool IsValidVersionTag(uint32_t tag) {
   return tag == 0x000010000 ||
          // OpenType fonts with CFF data have 'OTTO' tag.

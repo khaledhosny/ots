@@ -232,6 +232,28 @@ void ots_##name##_free(Font *f);
 FOR_EACH_TABLE_TYPE
 #undef F
 
+class Table {
+ public:
+  explicit Table(Font *font, uint32_t tag);
+
+  virtual bool Parse(const uint8_t *data, size_t length) = 0;
+  virtual bool Serialize(OTSStream *out) = 0;
+  virtual bool ShouldSerialize();
+
+  Font* GetFont() { return m_font; }
+
+  bool Error(const char *format, ...);
+  bool Warning(const char *format, ...);
+  bool Drop(const char *format, ...);
+
+ private:
+  void Message(int level, const char *format, va_list va);
+
+  uint32_t m_tag;
+  Font *m_font;
+  bool m_shouldSerialize;
+};
+
 struct Font {
   explicit Font(const OpenTypeFile *f)
       : file(f),
