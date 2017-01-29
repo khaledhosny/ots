@@ -35,9 +35,11 @@ struct OpenTypeCMAPSubtableVSRecord {
   std::vector<OpenTypeCMAPSubtableVSMapping> mappings;
 };
 
-struct OpenTypeCMAP {
-  OpenTypeCMAP()
-      : subtable_0_3_4_data(NULL),
+class OpenTypeCMAP : public Table {
+ public:
+  explicit OpenTypeCMAP(Font *font)
+      : Table(font, OTS_TAG('c','m','a','p')),
+        subtable_0_3_4_data(NULL),
         subtable_0_3_4_length(0),
         subtable_0_5_14_length(0),
         subtable_3_0_4_data(NULL),
@@ -46,6 +48,10 @@ struct OpenTypeCMAP {
         subtable_3_1_4_length(0) {
   }
 
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+
+ private:
   // Platform 0, Encoding 3, Format 4, Unicode BMP table.
   const uint8_t *subtable_0_3_4_data;
   size_t subtable_0_3_4_length;
@@ -67,6 +73,13 @@ struct OpenTypeCMAP {
   std::vector<OpenTypeCMAPSubtableRange> subtable_3_10_13;
   // Platform 1, Encoding 0, Format 0, Mac Roman table.
   std::vector<uint8_t> subtable_1_0_0;
+
+  bool ParseFormat4(int platform, int encoding, const uint8_t *data,
+                    size_t length, uint16_t num_glyphs);
+  bool Parse31012(const uint8_t *data, size_t length, uint16_t num_glyphs);
+  bool Parse31013(const uint8_t *data, size_t length, uint16_t num_glyphs);
+  bool Parse0514(const uint8_t *data, size_t length, uint16_t num_glyphs);
+  bool Parse100(const uint8_t *data, size_t length);
 };
 
 }  // namespace ots
