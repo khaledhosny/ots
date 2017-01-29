@@ -7,48 +7,52 @@
 // cvt - Control Value Table
 // http://www.microsoft.com/typography/otspec/cvt.htm
 
-#define TABLE_NAME "cvt"
-
 namespace ots {
 
-bool ots_cvt_parse(Font *font, const uint8_t *data, size_t length) {
+bool OpenTypeCVT::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
-  OpenTypeCVT *cvt = new OpenTypeCVT;
-  font->cvt = cvt;
-
   if (length >= 128 * 1024u) {
-    return OTS_FAILURE_MSG("Length (%d) > 120K");  // almost all cvt tables are less than 4k bytes.
+    return Error("Length (%d) > 120K");  // almost all cvt tables are less than 4k bytes.
   }
 
   if (length % 2 != 0) {
-    return OTS_FAILURE_MSG("Uneven cvt length (%d)", length);
+    return Error("Uneven cvt length (%d)", length);
   }
 
   if (!table.Skip(length)) {
-    return OTS_FAILURE_MSG("Length too high");
+    return Error("Length too high");
   }
 
-  cvt->data = data;
-  cvt->length = length;
+  this->data = data;
+  this->length = length;
   return true;
+}
+
+bool OpenTypeCVT::Serialize(OTSStream *out) {
+  if (!out->Write(this->data, this->length)) {
+    return Error("Failed to write cvt table");
+  }
+
+  return true;
+}
+
+bool OpenTypeCVT::ShouldSerialize() {
+  return Table::ShouldSerialize() &&
+         GetFont()->glyf != NULL; // this table is not for CFF fonts.
+}
+
+bool ots_cvt_parse(Font *font, const uint8_t *data, size_t length) {
+  font->cvt = new OpenTypeCVT(font);
+  return font->cvt->Parse(data, length);
 }
 
 bool ots_cvt_should_serialise(Font *font) {
-  if (!font->glyf) {
-    return false;  // this table is not for CFF fonts.
-  }
-  return font->cvt != NULL;
+  return font->cvt != NULL && font->cvt->ShouldSerialize();
 }
 
 bool ots_cvt_serialise(OTSStream *out, Font *font) {
-  const OpenTypeCVT *cvt = font->cvt;
-
-  if (!out->Write(cvt->data, cvt->length)) {
-    return OTS_FAILURE_MSG("Failed to write CVT table");
-  }
-
-  return true;
+  return font->cvt->Serialize(out);
 }
 
 void ots_cvt_reuse(Font *font, Font *other) {
@@ -61,5 +65,3 @@ void ots_cvt_free(Font *font) {
 }
 
 }  // namespace ots
-
-#undef TABLE_NAME

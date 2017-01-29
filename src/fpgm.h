@@ -9,7 +9,16 @@
 
 namespace ots {
 
-struct OpenTypeFPGM {
+class OpenTypeFPGM : public Table {
+ public:
+  explicit OpenTypeFPGM(Font *font)
+      : Table(font, OTS_TAG('f','p','g','m')) { }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+  bool ShouldSerialize();
+
+ private:
   const uint8_t *data;
   uint32_t length;
 };

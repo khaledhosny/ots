@@ -9,7 +9,16 @@
 
 namespace ots {
 
-struct OpenTypeCVT {
+class OpenTypeCVT : public Table {
+ public:
+  explicit OpenTypeCVT(Font *font)
+      : Table(font, OTS_TAG('c','v','t',' ')) { }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+  bool ShouldSerialize();
+
+ private:
   const uint8_t *data;
   uint32_t length;
 };
