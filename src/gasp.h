@@ -13,7 +13,15 @@
 
 namespace ots {
 
-struct OpenTypeGASP {
+class OpenTypeGASP : public Table {
+ public:
+  explicit OpenTypeGASP(Font *font)
+      : Table(font, OTS_TAG('g','a','s','p')) { }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+
+ private:
   uint16_t version;
   // A array of (max PPEM, GASP behavior) pairs.
   std::vector<std::pair<uint16_t, uint16_t> > gasp_ranges;
