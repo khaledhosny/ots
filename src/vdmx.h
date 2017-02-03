@@ -31,7 +31,16 @@ struct OpenTypeVDMXGroup {
   std::vector<OpenTypeVDMXVTable> entries;
 };
 
-struct OpenTypeVDMX {
+class OpenTypeVDMX : public Table {
+ public:
+  explicit OpenTypeVDMX(Font *font)
+      : Table(font, OTS_TAG('V','D','M','X')) { }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+  bool ShouldSerialize();
+
+ private:
   uint16_t version;
   uint16_t num_recs;
   uint16_t num_ratios;

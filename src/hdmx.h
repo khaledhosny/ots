@@ -17,7 +17,16 @@ struct OpenTypeHDMXDeviceRecord {
   std::vector<uint8_t> widths;
 };
 
-struct OpenTypeHDMX {
+class OpenTypeHDMX : public Table {
+ public:
+  explicit OpenTypeHDMX(Font *font)
+      : Table(font, OTS_TAG('h','d','m','x')) { }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+  bool ShouldSerialize();
+
+ private:
   uint16_t version;
   int32_t size_device_record;
   int32_t pad_len;
