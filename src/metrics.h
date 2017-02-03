@@ -13,7 +13,14 @@
 
 namespace ots {
 
-struct OpenTypeMetricsHeader {
+class OpenTypeMetricsHeader : public Table {
+ public:
+  explicit OpenTypeMetricsHeader(Font *font, uint32_t tag)
+      : Table(font, tag) { }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+
   uint32_t version;
   int16_t ascent;
   int16_t descent;
@@ -28,27 +35,22 @@ struct OpenTypeMetricsHeader {
   uint16_t num_metrics;
 };
 
-struct OpenTypeMetricsTable {
+struct OpenTypeMetricsTable : public Table {
+ public:
+  explicit OpenTypeMetricsTable(Font *font, uint32_t tag,
+                                OpenTypeMetricsHeader *header)
+      : Table(font, tag), m_header(header) { }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+
+ private:
+  const OpenTypeMetricsHeader *m_header;
+
   std::vector<std::pair<uint16_t, int16_t> > entries;
   std::vector<int16_t> sbs;
 };
 
-bool ParseMetricsHeader(Font *font, Buffer *table,
-                        OpenTypeMetricsHeader *header);
-bool SerialiseMetricsHeader(const ots::Font *font,
-                            OTSStream *out,
-                            const OpenTypeMetricsHeader *header);
-
-bool ParseMetricsTable(const ots::Font *font,
-                       Buffer *table,
-                       const uint16_t num_glyphs,
-                       const OpenTypeMetricsHeader *header,
-                       OpenTypeMetricsTable *metrics);
-bool SerialiseMetricsTable(const ots::Font *font,
-                           OTSStream *out,
-                           const OpenTypeMetricsTable *metrics);
-
 }  // namespace ots
 
 #endif  // OTS_METRICS_H_
-

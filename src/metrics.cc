@@ -11,149 +11,147 @@
 // http://www.microsoft.com/typography/otspec/hhea.htm
 // http://www.microsoft.com/typography/otspec/vhea.htm
 
-#define TABLE_NAME "metrics" // XXX: use individual table names
-
 namespace ots {
 
-bool ParseMetricsHeader(Font *font, Buffer *table,
-                        OpenTypeMetricsHeader *header) {
-  if (!table->ReadS16(&header->ascent) ||
-      !table->ReadS16(&header->descent) ||
-      !table->ReadS16(&header->linegap) ||
-      !table->ReadU16(&header->adv_width_max) ||
-      !table->ReadS16(&header->min_sb1) ||
-      !table->ReadS16(&header->min_sb2) ||
-      !table->ReadS16(&header->max_extent) ||
-      !table->ReadS16(&header->caret_slope_rise) ||
-      !table->ReadS16(&header->caret_slope_run) ||
-      !table->ReadS16(&header->caret_offset)) {
-    return OTS_FAILURE_MSG("Failed to read metrics header");
+bool OpenTypeMetricsHeader::Parse(const uint8_t *data, size_t length) {
+  Buffer table(data, length);
+
+  // Skip already read version.
+  if (!table.Skip(4)) {
+    return false;
   }
 
-  if (header->ascent < 0) {
-    OTS_WARNING("bad ascent: %d", header->ascent);
-    header->ascent = 0;
-  }
-  if (header->linegap < 0) {
-    OTS_WARNING("bad linegap: %d", header->linegap);
-    header->linegap = 0;
+  if (!table.ReadS16(&this->ascent) ||
+      !table.ReadS16(&this->descent) ||
+      !table.ReadS16(&this->linegap) ||
+      !table.ReadU16(&this->adv_width_max) ||
+      !table.ReadS16(&this->min_sb1) ||
+      !table.ReadS16(&this->min_sb2) ||
+      !table.ReadS16(&this->max_extent) ||
+      !table.ReadS16(&this->caret_slope_rise) ||
+      !table.ReadS16(&this->caret_slope_run) ||
+      !table.ReadS16(&this->caret_offset)) {
+    return Error("Failed to read metrics header");
   }
 
-  if (!font->head) {
-    return OTS_FAILURE_MSG("Missing head font table");
+  if (this->ascent < 0) {
+    Warning("bad ascent: %d", this->ascent);
+    this->ascent = 0;
+  }
+  if (this->linegap < 0) {
+    Warning("bad linegap: %d", this->linegap);
+    this->linegap = 0;
+  }
+
+  if (!GetFont()->head) {
+    return Error("Missing head font table");
   }
 
   // if the font is non-slanted, caret_offset should be zero.
-  if (!(font->head->mac_style & 2) &&
-      (header->caret_offset != 0)) {
-    OTS_WARNING("bad caret offset: %d", header->caret_offset);
-    header->caret_offset = 0;
+  if (!(GetFont()->head->mac_style & 2) &&
+      (this->caret_offset != 0)) {
+    Warning("bad caret offset: %d", this->caret_offset);
+    this->caret_offset = 0;
   }
 
   // skip the reserved bytes
-  if (!table->Skip(8)) {
-    return OTS_FAILURE_MSG("Failed to skip reserverd bytes");
+  if (!table.Skip(8)) {
+    return Error("Failed to skip reserverd bytes");
   }
 
   int16_t data_format;
-  if (!table->ReadS16(&data_format)) {
-    return OTS_FAILURE_MSG("Failed to read data format");
+  if (!table.ReadS16(&data_format)) {
+    return Error("Failed to read data format");
   }
   if (data_format) {
-    return OTS_FAILURE_MSG("Bad data format %d", data_format);
+    return Error("Bad data format %d", data_format);
   }
 
-  if (!table->ReadU16(&header->num_metrics)) {
-    return OTS_FAILURE_MSG("Failed to read number of metrics");
+  if (!table.ReadU16(&this->num_metrics)) {
+    return Error("Failed to read number of metrics");
   }
 
-  if (!font->maxp) {
-    return OTS_FAILURE_MSG("Missing maxp font table");
+  if (!GetFont()->maxp) {
+    return Error("Missing maxp font table");
   }
 
-  if (header->num_metrics > font->maxp->num_glyphs) {
-    return OTS_FAILURE_MSG("Bad number of metrics %d", header->num_metrics);
+  if (this->num_metrics > GetFont()->maxp->num_glyphs) {
+    return Error("Bad number of metrics %d", this->num_metrics);
   }
 
   return true;
 }
 
-bool SerialiseMetricsHeader(const ots::Font *font,
-                            OTSStream *out,
-                            const OpenTypeMetricsHeader *header) {
-  if (!out->WriteU32(header->version) ||
-      !out->WriteS16(header->ascent) ||
-      !out->WriteS16(header->descent) ||
-      !out->WriteS16(header->linegap) ||
-      !out->WriteU16(header->adv_width_max) ||
-      !out->WriteS16(header->min_sb1) ||
-      !out->WriteS16(header->min_sb2) ||
-      !out->WriteS16(header->max_extent) ||
-      !out->WriteS16(header->caret_slope_rise) ||
-      !out->WriteS16(header->caret_slope_run) ||
-      !out->WriteS16(header->caret_offset) ||
+bool OpenTypeMetricsHeader::Serialize(OTSStream *out) {
+  if (!out->WriteU32(this->version) ||
+      !out->WriteS16(this->ascent) ||
+      !out->WriteS16(this->descent) ||
+      !out->WriteS16(this->linegap) ||
+      !out->WriteU16(this->adv_width_max) ||
+      !out->WriteS16(this->min_sb1) ||
+      !out->WriteS16(this->min_sb2) ||
+      !out->WriteS16(this->max_extent) ||
+      !out->WriteS16(this->caret_slope_rise) ||
+      !out->WriteS16(this->caret_slope_run) ||
+      !out->WriteS16(this->caret_offset) ||
       !out->WriteR64(0) ||  // reserved
       !out->WriteS16(0) ||  // metric data format
-      !out->WriteU16(header->num_metrics)) {
-    return OTS_FAILURE_MSG("Failed to write metrics");
+      !out->WriteU16(this->num_metrics)) {
+    return Error("Failed to write metrics");
   }
 
   return true;
 }
 
-bool ParseMetricsTable(const ots::Font *font,
-                       Buffer *table,
-                       const uint16_t num_glyphs,
-                       const OpenTypeMetricsHeader *header,
-                       OpenTypeMetricsTable *metrics) {
+bool OpenTypeMetricsTable::Parse(const uint8_t *data, size_t length) {
+  Buffer table(data, length);
+
   // |num_metrics| is a uint16_t, so it's bounded < 65536. This limits that
   // amount of memory that we'll allocate for this to a sane amount.
-  const unsigned num_metrics = header->num_metrics;
+  const unsigned num_metrics = m_header->num_metrics;
 
-  if (num_metrics > num_glyphs) {
-    return OTS_FAILURE_MSG("Bad number of metrics %d", num_metrics);
+  if (num_metrics > GetFont()->maxp->num_glyphs) {
+    return Error("Bad number of metrics %d", num_metrics);
   }
   if (!num_metrics) {
-    return OTS_FAILURE_MSG("No metrics!");
+    return Error("No metrics!");
   }
-  const unsigned num_sbs = num_glyphs - num_metrics;
+  const unsigned num_sbs = GetFont()->maxp->num_glyphs - num_metrics;
 
-  metrics->entries.reserve(num_metrics);
+  this->entries.reserve(num_metrics);
   for (unsigned i = 0; i < num_metrics; ++i) {
     uint16_t adv = 0;
     int16_t sb = 0;
-    if (!table->ReadU16(&adv) || !table->ReadS16(&sb)) {
-      return OTS_FAILURE_MSG("Failed to read metric %d", i);
+    if (!table.ReadU16(&adv) || !table.ReadS16(&sb)) {
+      return Error("Failed to read metric %d", i);
     }
-    metrics->entries.push_back(std::make_pair(adv, sb));
+    this->entries.push_back(std::make_pair(adv, sb));
   }
 
-  metrics->sbs.reserve(num_sbs);
+  this->sbs.reserve(num_sbs);
   for (unsigned i = 0; i < num_sbs; ++i) {
     int16_t sb;
-    if (!table->ReadS16(&sb)) {
+    if (!table.ReadS16(&sb)) {
       // Some Japanese fonts (e.g., mona.ttf) fail this test.
-      return OTS_FAILURE_MSG("Failed to read side bearing %d", i + num_metrics);
+      return Error("Failed to read side bearing %d", i + num_metrics);
     }
-    metrics->sbs.push_back(sb);
+    this->sbs.push_back(sb);
   }
 
   return true;
 }
 
-bool SerialiseMetricsTable(const ots::Font *font,
-                           OTSStream *out,
-                           const OpenTypeMetricsTable *metrics) {
-  for (unsigned i = 0; i < metrics->entries.size(); ++i) {
-    if (!out->WriteU16(metrics->entries[i].first) ||
-        !out->WriteS16(metrics->entries[i].second)) {
-      return OTS_FAILURE_MSG("Failed to write metric %d", i);
+bool OpenTypeMetricsTable::Serialize(OTSStream *out) {
+  for (unsigned i = 0; i < this->entries.size(); ++i) {
+    if (!out->WriteU16(this->entries[i].first) ||
+        !out->WriteS16(this->entries[i].second)) {
+      return Error("Failed to write metric %d", i);
     }
   }
 
-  for (unsigned i = 0; i < metrics->sbs.size(); ++i) {
-    if (!out->WriteS16(metrics->sbs[i])) {
-      return OTS_FAILURE_MSG("Failed to write side bearing %ld", i + metrics->entries.size());
+  for (unsigned i = 0; i < this->sbs.size(); ++i) {
+    if (!out->WriteS16(this->sbs[i])) {
+      return Error("Failed to write side bearing %ld", i + this->entries.size());
     }
   }
 
@@ -161,5 +159,3 @@ bool SerialiseMetricsTable(const ots::Font *font,
 }
 
 }  // namespace ots
-
-#undef TABLE_NAME

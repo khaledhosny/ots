@@ -11,11 +11,11 @@
 #include "vmtx.h"
 
 #define SET_TABLE(name, capname) \
-  do { font->name = new ots::OpenType##capname; } while (0)
+  do { font->name = new ots::OpenType##capname(font); } while (0)
 #define SET_LAYOUT_TABLE(name, capname)                    \
   do {                                                     \
     if (!font->name) {                                      \
-      SET_TABLE(name, capname);                            \
+      font->name = new ots::OpenType##capname;             \
     }                                                      \
     font->name->data = reinterpret_cast<const uint8_t*>(1); \
     font->name->length = 1;                                 \

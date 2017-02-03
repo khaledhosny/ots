@@ -10,38 +10,36 @@
 // hhea - Horizontal Header
 // http://www.microsoft.com/typography/otspec/hhea.htm
 
-#define TABLE_NAME "hhea"
-
 namespace ots {
 
-bool ots_hhea_parse(Font *font, const uint8_t *data, size_t length) {
+bool OpenTypeHHEA::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
-  OpenTypeHHEA *hhea = new OpenTypeHHEA;
-  font->hhea = hhea;
 
-  if (!table.ReadU32(&hhea->header.version)) {
-    return OTS_FAILURE_MSG("Failed to read hhea version");
+  if (!table.ReadU32(&this->version)) {
+    return Error("Failed to read table version");
   }
-  if (hhea->header.version >> 16 != 1) {
-    return OTS_FAILURE_MSG("Bad hhea version of %d", hhea->header.version);
+  if (this->version >> 16 != 1) {
+    return Error("Bad table version of %d", this->version);
   }
 
-  if (!ParseMetricsHeader(font, &table, &hhea->header)) {
-    return OTS_FAILURE_MSG("Failed to parse horizontal metrics");
-  }
+  return OpenTypeMetricsHeader::Parse(data, length);
+}
 
-  return true;
+bool OpenTypeHHEA::Serialize(OTSStream *out) {
+  return OpenTypeMetricsHeader::Serialize(out);
+}
+
+bool ots_hhea_parse(Font *font, const uint8_t *data, size_t length) {
+  font->hhea = new OpenTypeHHEA(font);
+  return font->hhea->Parse(data, length);
 }
 
 bool ots_hhea_should_serialise(Font *font) {
-  return font->hhea != NULL;
+  return font->hhea != NULL && font->hhea->ShouldSerialize();
 }
 
 bool ots_hhea_serialise(OTSStream *out, Font *font) {
-  if (!SerialiseMetricsHeader(font, out, &font->hhea->header)) {
-    return OTS_FAILURE_MSG("Failed to serialise horizontal metrics");
-  }
-  return true;
+  return font->hhea->Serialize(out);
 }
 
 void ots_hhea_reuse(Font *font, Font *other) {
@@ -54,5 +52,3 @@ void ots_hhea_free(Font *font) {
 }
 
 }  // namespace ots
-
-#undef TABLE_NAME

@@ -6,12 +6,19 @@
 #define OTS_VMTX_H_
 
 #include "metrics.h"
+#include "vhea.h"
 #include "ots.h"
 
 namespace ots {
 
-struct OpenTypeVMTX {
-  OpenTypeMetricsTable metrics;
+struct OpenTypeVMTX : public OpenTypeMetricsTable {
+ public:
+  explicit OpenTypeVMTX(Font *font)
+      : OpenTypeMetricsTable(font, OTS_TAG('v','m','t','x'), font->vhea) { }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+  bool ShouldSerialize();
 };
 
 }  // namespace ots

@@ -10,37 +10,36 @@
 // vmtx - Vertical Metrics Table
 // http://www.microsoft.com/typography/otspec/vmtx.htm
 
-#define TABLE_NAME "vmtx"
-
 namespace ots {
 
 bool ots_vmtx_parse(Font *font, const uint8_t *data, size_t length) {
-  Buffer table(data, length);
-  OpenTypeVMTX *vmtx = new OpenTypeVMTX;
-  font->vmtx = vmtx;
+  font->vmtx = new OpenTypeVMTX(font);
+  return font->vmtx->Parse(data, length);
+}
 
-  if (!font->vhea || !font->maxp) {
-    return OTS_FAILURE_MSG("vhea or maxp table missing as needed by vmtx");
+bool OpenTypeVMTX::Parse(const uint8_t *data, size_t length) {
+  if (!GetFont()->vhea || !GetFont()->maxp) {
+    return Error("vhea or maxp table missing as needed by vmtx");
   }
 
-  if (!ParseMetricsTable(font, &table, font->maxp->num_glyphs,
-                         &font->vhea->header, &vmtx->metrics)) {
-    return OTS_FAILURE_MSG("Failed to parse vmtx metrics");
-  }
+  return OpenTypeMetricsTable::Parse(data, length);
+}
 
-  return true;
+bool OpenTypeVMTX::Serialize(OTSStream *out) {
+  return OpenTypeMetricsTable::Serialize(out);
+}
+
+bool OpenTypeVMTX::ShouldSerialize() {
+  return OpenTypeMetricsTable::ShouldSerialize() &&
+         GetFont()->vhea != NULL; // vmtx should serialise when vhea is preserved.
 }
 
 bool ots_vmtx_should_serialise(Font *font) {
-  // vmtx should serialise when vhea is preserved.
-  return font->vmtx != NULL && font->vhea != NULL;
+  return font->vmtx != NULL && font->vmtx->ShouldSerialize();
 }
 
 bool ots_vmtx_serialise(OTSStream *out, Font *font) {
-  if (!SerialiseMetricsTable(font, out, &font->vmtx->metrics)) {
-    return OTS_FAILURE_MSG("Failed to write vmtx metrics");
-  }
-  return true;
+  return font->vmtx->Serialize(out);
 }
 
 void ots_vmtx_reuse(Font *font, Font *other) {
@@ -53,5 +52,3 @@ void ots_vmtx_free(Font *font) {
 }
 
 }  // namespace ots
-
-#undef TABLE_NAME

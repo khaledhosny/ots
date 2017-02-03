@@ -10,8 +10,13 @@
 
 namespace ots {
 
-struct OpenTypeHHEA {
-  OpenTypeMetricsHeader header;
+class OpenTypeHHEA : public OpenTypeMetricsHeader {
+ public:
+  explicit OpenTypeHHEA(Font *font)
+      : OpenTypeMetricsHeader(font, OTS_TAG('h','h','e','a')) { }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
 };
 
 }  // namespace ots
