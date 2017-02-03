@@ -30,7 +30,16 @@ struct OpenTypeKERNFormat0 {
 // WebFonts unlikely use it. I've checked thousands of proprietary fonts and
 // free fonts, and found no font uses the format.
 
-struct OpenTypeKERN {
+class OpenTypeKERN : public Table {
+ public:
+  explicit OpenTypeKERN(Font *font)
+      : Table(font, OTS_TAG('k','e','r','n')) { }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+  bool ShouldSerialize();
+
+ private:
   uint16_t version;
   std::vector<OpenTypeKERNFormat0> subtables;
 };
