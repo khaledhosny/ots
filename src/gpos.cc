@@ -357,7 +357,7 @@ bool ParsePairPosFormat2(const ots::Font *font,
 
   size_t value_record1_size = CalcValueRecordSize(value_format1);
   size_t value_record2_size = CalcValueRecordSize(value_format2);
-  size_t value_records_size = class1_count * class2_count *
+  size_t value_records_size = size_t(class1_count) * size_t(class2_count) *
     (value_record1_size + value_record2_size);
 
   // Check the validity of class definition offsets.
