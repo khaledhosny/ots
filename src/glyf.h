@@ -13,7 +13,28 @@
 
 namespace ots {
 
-struct OpenTypeGLYF {
+class OpenTypeGLYF : public Table {
+ public:
+  explicit OpenTypeGLYF(Font *font)
+      : Table(font, OTS_TAG('g','l','y','f')) { }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+
+ private:
+  bool ParseFlagsForSimpleGlyph(ots::Buffer *table,
+                                uint32_t gly_length,
+                                uint32_t num_flags,
+                                uint32_t *flags_count_logical,
+                                uint32_t *flags_count_physical,
+                                uint32_t *xy_coordinates_length);
+  bool ParseSimpleGlyph(const uint8_t *data,
+                        ots::Buffer *table,
+                        int16_t num_contours,
+                        uint32_t gly_offset,
+                        uint32_t gly_length,
+                        uint32_t *new_size);
+
   std::vector<std::pair<const uint8_t*, size_t> > iov;
 };
 
