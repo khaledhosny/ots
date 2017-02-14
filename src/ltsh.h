@@ -11,7 +11,16 @@
 
 namespace ots {
 
-struct OpenTypeLTSH {
+class OpenTypeLTSH : public Table {
+ public:
+  explicit OpenTypeLTSH(Font *font)
+      : Table(font, OTS_TAG('L','T','S','H')) { }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+  bool ShouldSerialize();
+
+ private:
   uint16_t version;
   std::vector<uint8_t> ypels;
 };
