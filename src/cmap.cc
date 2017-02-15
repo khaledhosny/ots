@@ -194,15 +194,15 @@ bool OpenTypeCMAP::ParseFormat4(int platform, int encoding,
 
     // On many fonts, the value of {first, last}_char_index are incorrect.
     // Fix them.
-    if (os2->first_char_index != 0xFFFF &&
+    if (os2->table.first_char_index != 0xFFFF &&
         ranges[i].start_range != 0xFFFF &&
-        os2->first_char_index > ranges[i].start_range) {
-      os2->first_char_index = ranges[i].start_range;
+        os2->table.first_char_index > ranges[i].start_range) {
+      os2->table.first_char_index = ranges[i].start_range;
     }
-    if (os2->last_char_index != 0xFFFF &&
+    if (os2->table.last_char_index != 0xFFFF &&
         ranges[i].end_range != 0xFFFF &&
-        os2->last_char_index < ranges[i].end_range) {
-      os2->last_char_index = ranges[i].end_range;
+        os2->table.last_char_index < ranges[i].end_range) {
+      os2->table.last_char_index = ranges[i].end_range;
     }
   }
 
