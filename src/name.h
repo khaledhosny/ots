@@ -43,7 +43,15 @@ struct NameRecord {
   }
 };
 
-struct OpenTypeNAME {
+class OpenTypeNAME : public Table {
+ public:
+  explicit OpenTypeNAME(Font *font)
+      : Table(font, OTS_TAG('n','a','m','e')) { }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+
+ private:
   std::vector<NameRecord> names;
   std::vector<std::string> lang_tags;
 };
