@@ -16,7 +16,16 @@ struct OpenTypeVORGMetrics {
   int16_t vert_origin_y;
 };
 
-struct OpenTypeVORG {
+class OpenTypeVORG : public Table {
+ public:
+  explicit OpenTypeVORG(Font *font)
+      : Table(font, OTS_TAG('V','O','R','G')) { }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+  bool ShouldSerialize();
+
+ private:
   uint16_t major_version;
   uint16_t minor_version;
   int16_t default_vert_origin_y;
