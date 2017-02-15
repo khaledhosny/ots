@@ -7,42 +7,48 @@
 // prep - Control Value Program
 // http://www.microsoft.com/typography/otspec/prep.htm
 
-#define TABLE_NAME "prep"
-
 namespace ots {
 
-bool ots_prep_parse(Font *font, const uint8_t *data, size_t length) {
+bool OpenTypePREP::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
-  OpenTypePREP *prep = new OpenTypePREP;
-  font->prep = prep;
-
   if (length >= 128 * 1024u) {
-    return OTS_FAILURE_MSG("table length %ld > 120K", length);  // almost all prep tables are less than 9k bytes.
+    return Error("table length %ld > 120K", length);  // almost all prep tables are less than 9k bytes.
   }
 
   if (!table.Skip(length)) {
-    return OTS_FAILURE_MSG("Failed to read table of length %ld", length);
+    return Error("Failed to read table of length %ld", length);
   }
 
-  prep->data = data;
-  prep->length = length;
+  this->m_data = data;
+  this->m_length = length;
   return true;
+}
+
+bool OpenTypePREP::Serialize(OTSStream *out) {
+  if (!out->Write(this->m_data, this->m_length)) {
+    return Error("Failed to write table length");
+  }
+
+  return true;
+}
+
+bool OpenTypePREP::ShouldSerialize() {
+  return Table::ShouldSerialize() &&
+         GetFont()->glyf != NULL; // this table is not for CFF fonts.
+}
+
+bool ots_prep_parse(Font *font, const uint8_t *data, size_t length) {
+  font->prep = new OpenTypePREP(font);
+  return font->prep->Parse(data, length);
 }
 
 bool ots_prep_should_serialise(Font *font) {
-  if (!font->glyf) return false;  // this table is not for CFF fonts.
-  return font->prep != NULL;
+  return font->prep != NULL && font->prep->ShouldSerialize();
 }
 
 bool ots_prep_serialise(OTSStream *out, Font *font) {
-  const OpenTypePREP *prep = font->prep;
-
-  if (!out->Write(prep->data, prep->length)) {
-    return OTS_FAILURE_MSG("Failed to write table length");
-  }
-
-  return true;
+  return font->prep->Serialize(out);
 }
 
 void ots_prep_reuse(Font *font, Font *other) {
@@ -55,5 +61,3 @@ void ots_prep_free(Font *font) {
 }
 
 }  // namespace ots
-
-#undef TABLE_NAME

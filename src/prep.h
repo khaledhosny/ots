@@ -9,9 +9,18 @@
 
 namespace ots {
 
-struct OpenTypePREP {
-  const uint8_t *data;
-  uint32_t length;
+class OpenTypePREP : public Table {
+ public:
+  explicit OpenTypePREP(Font *font)
+      : Table(font, OTS_TAG('p','r','e','p')) { }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+  bool ShouldSerialize();
+
+ private:
+  const uint8_t *m_data;
+  uint32_t m_length;
 };
 
 }  // namespace ots
