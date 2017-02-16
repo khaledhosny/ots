@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
   std::vector<uint8_t> in((std::istreambuf_iterator<char>(ifs)),
                           (std::istreambuf_iterator<char>()));
 
-  ots::TestContext context(g_quite ? -1 : 0);
+  ots::TestContext context(g_quite ? -1 : 4);
 
   FileStream output(out_filename);
   const bool result = context.Process(&output, in.data(), in.size(), font_index);

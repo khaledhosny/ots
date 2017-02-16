@@ -13,7 +13,7 @@ namespace ots {
 
 class TestContext: public ots::OTSContext {
  public:
-  TestContext(unsigned level)
+  TestContext(int level)
     : level_(level)
   { }
 
