@@ -23,22 +23,21 @@ if [ ! -x "$CHECKER" ] ; then
 fi
 
 if [ $# -eq 0 ] ; then
-  # No font file is specified. Apply this script to all TT/OT files under the
-  # BASE_DIR below.
+  # No font file is specified. Apply this script to all TT/OT files we can find
+  # on the system.
 
-  # On Ubuntu Linux (>= 8.04), You can install ~1800 TrueType/OpenType fonts
-  # to /usr/share/fonts/truetype by:
-  #   % sudo apt-get install ttf-.*[^0]$
-  BASE_DIR=/usr/share/fonts/
-  if [ ! -d $BASE_DIR ] ; then
+  if $(command fc-list &>/dev/null);
+  then
+    FONTS=$(fc-list --format="%{file}\n")
+  else
     # Mac OS X
+    # TODO: Support Cygwin.
     BASE_DIR="/Library/Fonts/ /System/Library/Fonts/"
+    FONTS=$(find $BASE_DIR -type f -name '*tf' -o -name '*tc')
   fi
-  # TODO(yusukes): Support Cygwin.
 
   # Recursively call this script.
   FAILS=0
-  FONTS=`find $BASE_DIR -type f -name '*tf' -o -name '*tc'`
   IFS=$'\n'
   for f in $FONTS; do
     $0 "$f"
