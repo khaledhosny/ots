@@ -28,7 +28,9 @@ if [ $# -eq 0 ] ; then
 
   if $(command fc-list &>/dev/null);
   then
-    FONTS=$(fc-list --format="%{file}\n")
+    CFF=$(fc-list --format="%{file}\n" :fontformat=CFF)
+    TTF=$(fc-list --format="%{file}\n" :fontformat=TrueType)
+    FONTS="$CFF"$'\n'"$TTF"
   else
     # Mac OS X
     # TODO: Support Cygwin.
