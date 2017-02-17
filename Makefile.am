@@ -306,7 +306,7 @@ EXTRA_DIST = \
   docs/HowToFix.md \
   docs/HowToTest.md \
   tests/BLACKLIST.txt \
-  tests/fonts/malicious/.dummy \
+  tests/fonts/bad/.dummy \
   tests/test_fuzzed_fonts.sh \
   tests/test_bad_fonts.sh \
   tests/test_good_fonts.sh \

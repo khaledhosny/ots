@@ -7,9 +7,9 @@
 test "x$top_srcdir" = x && top_srcdir=.
 test "x$top_builddir" = x && top_builddir=.
 
-# Usage: ./test_malicious_fonts.sh [ttf_or_otf_file_name]
+# Usage: ./test_bad_fonts.sh [ttf_or_otf_file_name]
 
-BASE_DIR=$top_srcdir/tests/fonts/malicious/
+BASE_DIR=$top_srcdir/tests/fonts/bad/
 CHECKER=$top_builddir/ots-validator-checker$EXEEXT
 
 if [ ! -x "$CHECKER" ] ; then
@@ -36,7 +36,7 @@ if [ $# -gt 1 ] ; then
   exit 1
 fi
 
-# Confirm that the malicious font file does not crash OTS nor OS font renderer. 
+# Confirm that the bad font file does not crash OTS nor OS font renderer.
 base=`basename "$1"`
 "$CHECKER" "$1" > /dev/null 2>&1 || (echo ; echo "\nFAIL: $1 (Run $CHECKER $1 for more information.)")
 echo -n "."
