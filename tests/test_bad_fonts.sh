@@ -26,7 +26,7 @@ if [ $# -eq 0 ] ; then
   fi
 
   # Recursively call this script.
-  find $BASE_DIR -type f -name '*tf' -o -name '*tc' -exec "$0" {} \;
+  find $BASE_DIR -type f -exec "$0" {} \;
   echo
   exit 0
 fi
