@@ -10,14 +10,6 @@ On Ubuntu, install as many as possible TrueType and OpenType fonts:
 On Mac OS X, fonts installed on `/Library/Fonts/` and `/System/Library/Fonts/`
 will be used.
 
-Then, put malicious fonts in `tests/fonts/malicious/`. For details, please
-check http://code.google.com/p/chromium/issues/detail?id=27139#c2. Currently
-access to the issue is limited to chromium-security team members for security
-reasons:
-
-    $ cd tests/fonts/malicious/
-    $ tar xjf ~/ttf-testsuite.tar.bz2
-
 ## Running the tests
 
 Simply run:
