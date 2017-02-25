@@ -7,7 +7,7 @@
 test "x$top_srcdir" = x && top_srcdir=.
 test "x$top_builddir" = x && top_builddir=.
 
-# Usage: ./test_unmalicious_fonts.sh [ttf_or_otf_file_name]
+# Usage: ./test_good_fonts.sh [ttf_or_otf_file_name]
 
 BLACKLIST=$top_srcdir/tests/BLACKLIST.txt
 CHECKER=$top_builddir/ots-idempotent$EXEEXT
