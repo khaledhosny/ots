@@ -10,7 +10,7 @@ test "x$top_builddir" = x && top_builddir=.
 # Usage: ./test_bad_fonts.sh [ttf_or_otf_file_name]
 
 BASE_DIR=$top_srcdir/tests/fonts/bad/
-CHECKER=$top_builddir/ots-validator-checker$EXEEXT
+CHECKER=$top_builddir/ots-sanitize$EXEEXT
 
 if [ ! -x "$CHECKER" ] ; then
   echo "$CHECKER is not found."
@@ -25,10 +25,22 @@ if [ $# -eq 0 ] ; then
     exit 1
   fi
 
+  FONTS=$(find $BASE_DIR -type f)
   # Recursively call this script.
-  find $BASE_DIR -type f -exec "$0" {} \;
-  echo
-  exit 0
+  FAILS=0
+  IFS=$'\n'
+  for f in $FONTS; do
+    $0 "$f"
+    FAILS=$((FAILS+$?))
+  done
+
+  if [ $FAILS != 0 ]; then
+    echo "$FAILS fonts failed."
+    exit 1
+  else
+    echo "All fonts passed"
+    exit 0
+  fi
 fi
 
 if [ $# -gt 1 ] ; then
@@ -36,7 +48,13 @@ if [ $# -gt 1 ] ; then
   exit 1
 fi
 
-# Confirm that the bad font file does not crash OTS nor OS font renderer.
-base=`basename "$1"`
-"$CHECKER" "$1" > /dev/null 2>&1 || (echo ; echo "\nFAIL: $1 (Run $CHECKER $1 for more information.)")
-echo -n "."
+# Confirm that the bad font file is rejected by OTS.
+$CHECKER "$1"
+RET=$?
+if [ $RET != 0 ]; then
+  echo "PASSED: $1"
+  exit 0
+else
+  echo "FAILED: $1"
+  exit 1
+fi
