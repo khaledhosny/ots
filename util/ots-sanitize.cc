@@ -14,17 +14,17 @@
 
 namespace {
 
-bool g_quite = false;
+bool g_quiet = false;
 
 
 int Log(const std::string& msg) {
-  if (!g_quite)
+  if (!g_quiet)
     std::cout << msg << std::endl;
   return 0;
 }
 
 int Error(const std::string& msg) {
-  if (!g_quite)
+  if (!g_quiet)
     std::cerr << msg << std::endl;
   return 1;
 }
@@ -83,8 +83,8 @@ int main(int argc, char **argv) {
     if (arg.at(0) == '-') {
       if (arg == "--version")
         return Log(PACKAGE_STRING);
-      else if (arg == "--quite")
-        g_quite = true;
+      else if (arg == "--quiet")
+        g_quiet = true;
       else
         return Error("Unrecognized option: " + arg);
     }
@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
   std::vector<uint8_t> in((std::istreambuf_iterator<char>(ifs)),
                           (std::istreambuf_iterator<char>()));
 
-  ots::TestContext context(g_quite ? -1 : 4);
+  ots::TestContext context(g_quiet ? -1 : 4);
 
   FileStream output(out_filename);
   const bool result = context.Process(&output, in.data(), in.size(), font_index);
