@@ -17,7 +17,7 @@ class TestContext: public ots::OTSContext {
     : level_(level)
   { }
 
-  virtual void Message(int level, const char *format, ...) {
+  void Message(int level, const char *format, ...) {
     va_list va;
 
     if (level > level_)
@@ -33,7 +33,7 @@ class TestContext: public ots::OTSContext {
     va_end(va);
   }
 
-  virtual ots::TableAction GetTableAction(uint32_t tag) {
+  ots::TableAction GetTableAction(uint32_t tag) {
     switch (tag) {
       case OTS_TAG('S','i','l','f'):
       case OTS_TAG('S','i','l','l'):
