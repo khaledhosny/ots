@@ -30,6 +30,8 @@ class OpenTypeCFF : public Table {
         m_length(0) {
   }
 
+  ~OpenTypeCFF();
+
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);
 

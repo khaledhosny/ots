@@ -1024,6 +1024,16 @@ bool OpenTypeCFF::Serialize(OTSStream *out) {
   return true;
 }
 
+OpenTypeCFF::~OpenTypeCFF() {
+  for (size_t i = 0; i < this->char_strings_array.size(); ++i) {
+    delete (this->char_strings_array)[i];
+  }
+  for (size_t i = 0; i < this->local_subrs_per_font.size(); ++i) {
+    delete (this->local_subrs_per_font)[i];
+  }
+  delete this->local_subrs;
+}
+
 bool ots_cff_parse(Font *font, const uint8_t *data, size_t length) {
   font->cff = new OpenTypeCFF(font);
   return font->cff->Parse(data, length);
@@ -1044,13 +1054,6 @@ void ots_cff_reuse(Font *font, Font *other) {
 
 void ots_cff_free(Font *font) {
   if (font->cff) {
-    for (size_t i = 0; i < font->cff->char_strings_array.size(); ++i) {
-      delete (font->cff->char_strings_array)[i];
-    }
-    for (size_t i = 0; i < font->cff->local_subrs_per_font.size(); ++i) {
-      delete (font->cff->local_subrs_per_font)[i];
-    }
-    delete font->cff->local_subrs;
     delete font->cff;
   }
 }
