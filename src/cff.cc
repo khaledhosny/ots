@@ -904,14 +904,15 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
 
 namespace ots {
 
-bool ots_cff_parse(Font *font, const uint8_t *data, size_t length) {
+bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
-  font->cff = new OpenTypeCFF;
-  font->cff->data = data;
-  font->cff->length = length;
-  font->cff->font_dict_length = 0;
-  font->cff->local_subrs = NULL;
+  Font *font = GetFont();
+
+  this->m_data = data;
+  this->m_length = length;
+  this->font_dict_length = 0;
+  this->local_subrs = NULL;
 
   // parse "6. Header" in the Adobe Compact Font Format Specification
   uint8_t major = 0;
@@ -949,7 +950,7 @@ bool ots_cff_parse(Font *font, const uint8_t *data, size_t length) {
   if (!ParseIndex(&table, &name_index)) {
     return OTS_FAILURE();
   }
-  if (!ParseNameData(&table, name_index, &(font->cff->name))) {
+  if (!ParseNameData(&table, name_index, &(this->name))) {
     return OTS_FAILURE();
   }
 
@@ -980,7 +981,7 @@ bool ots_cff_parse(Font *font, const uint8_t *data, size_t length) {
   // parse "9. Top DICT Data"
   if (!ParseDictData(data, length, top_dict_index,
                      num_glyphs, sid_max,
-                     DICT_DATA_TOPLEVEL, font->cff)) {
+                     DICT_DATA_TOPLEVEL, this)) {
     return OTS_FAILURE();
   }
 
@@ -993,40 +994,47 @@ bool ots_cff_parse(Font *font, const uint8_t *data, size_t length) {
 
   // Check if all fd_index in FDSelect are valid.
   std::map<uint16_t, uint8_t>::const_iterator iter;
-  std::map<uint16_t, uint8_t>::const_iterator end = font->cff->fd_select.end();
-  for (iter = font->cff->fd_select.begin(); iter != end; ++iter) {
-    if (iter->second >= font->cff->font_dict_length) {
+  std::map<uint16_t, uint8_t>::const_iterator end = this->fd_select.end();
+  for (iter = this->fd_select.begin(); iter != end; ++iter) {
+    if (iter->second >= this->font_dict_length) {
       return OTS_FAILURE();
     }
   }
 
   // Check if all charstrings (font hinting code for each glyph) are valid.
-  for (size_t i = 0; i < font->cff->char_strings_array.size(); ++i) {
+  for (size_t i = 0; i < this->char_strings_array.size(); ++i) {
     if (!ValidateType2CharStringIndex(font,
-                                      *(font->cff->char_strings_array.at(i)),
+                                      *(this->char_strings_array.at(i)),
                                       global_subrs_index,
-                                      font->cff->fd_select,
-                                      font->cff->local_subrs_per_font,
-                                      font->cff->local_subrs,
+                                      this->fd_select,
+                                      this->local_subrs_per_font,
+                                      this->local_subrs,
                                       &table)) {
-      return OTS_FAILURE_MSG("Failed validating charstring set %d", (int) i);
+      return Error("Failed validating charstring set %d", (int) i);
     }
   }
 
   return true;
 }
 
+bool OpenTypeCFF::Serialize(OTSStream *out) {
+  if (!out->Write(this->m_data, this->m_length)) {
+    return Error("Failed to write table");
+  }
+  return true;
+}
+
+bool ots_cff_parse(Font *font, const uint8_t *data, size_t length) {
+  font->cff = new OpenTypeCFF(font);
+  return font->cff->Parse(data, length);
+}
+
 bool ots_cff_should_serialise(Font *font) {
-  return font->cff != NULL;
+  return font->cff != NULL && font->cff->ShouldSerialize();
 }
 
 bool ots_cff_serialise(OTSStream *out, Font *font) {
-  // TODO(yusukes): would be better to transcode the data,
-  //                rather than simple memcpy.
-  if (!out->Write(font->cff->data, font->cff->length)) {
-    return OTS_FAILURE();
-  }
-  return true;
+  return font->cff->Serialize(out);
 }
 
 void ots_cff_reuse(Font *font, Font *other) {
