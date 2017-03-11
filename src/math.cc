@@ -580,26 +580,4 @@ bool OpenTypeMATH::ShouldSerialize() {
   return Table::ShouldSerialize() && this->m_data != NULL;
 }
 
-bool ots_math_parse(Font *font, const uint8_t *data, size_t length) {
-  font->math = new OpenTypeMATH(font);
-  return font->math->Parse(data, length);
-}
-
-bool ots_math_should_serialise(Font *font) {
-  return font->math != NULL && font->math->ShouldSerialize();
-}
-
-bool ots_math_serialise(OTSStream *out, Font *font) {
-  return font->math->Serialize(out);
-}
-
-void ots_math_reuse(Font *font, Font *other) {
-  font->math = other->math;
-  font->math_reused = true;
-}
-
-void ots_math_free(Font *font) {
-  delete font->math;
-}
-
 }  // namespace ots

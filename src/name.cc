@@ -305,26 +305,4 @@ bool OpenTypeNAME::Serialize(OTSStream* out) {
   return true;
 }
 
-bool ots_name_parse(Font *font, const uint8_t* data, size_t length) {
-  font->name = new OpenTypeNAME(font);
-  return font->name->Parse(data, length);
-}
-
-bool ots_name_should_serialise(Font *font) {
-  return font->name != NULL && font->name->ShouldSerialize();
-}
-
-bool ots_name_serialise(OTSStream* out, Font *font) {
-  return font->name->Serialize(out);
-}
-
-void ots_name_reuse(Font *font, Font *other) {
-  font->name = other->name;
-  font->name_reused = true;
-}
-
-void ots_name_free(Font *font) {
-  delete font->name;
-}
-
 }  // namespace

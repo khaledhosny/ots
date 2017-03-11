@@ -24,26 +24,4 @@ bool OpenTypeHMTX::Serialize(OTSStream *out) {
   return OpenTypeMetricsTable::Serialize(out);
 }
 
-bool ots_hmtx_parse(Font *font, const uint8_t *data, size_t length) {
-  font->hmtx = new OpenTypeHMTX(font);
-  return font->hmtx->Parse(data, length);
-}
-
-bool ots_hmtx_should_serialise(Font *font) {
-  return font->hmtx != NULL && font->hmtx->ShouldSerialize();
-}
-
-bool ots_hmtx_serialise(OTSStream *out, Font *font) {
-  return font->hmtx->Serialize(out);
-}
-
-void ots_hmtx_reuse(Font *font, Font *other) {
-  font->hmtx = other->hmtx;
-  font->hmtx_reused = true;
-}
-
-void ots_hmtx_free(Font *font) {
-  delete font->hmtx;
-}
-
 }  // namespace ots

@@ -100,26 +100,4 @@ bool OpenTypeMAXP::Serialize(OTSStream *out) {
   return true;
 }
 
-bool ots_maxp_parse(Font *font, const uint8_t *data, size_t length) {
-  font->maxp = new OpenTypeMAXP(font);
-  return font->maxp->Parse(data, length);
-}
-
-bool ots_maxp_should_serialise(Font *font) {
-  return font->maxp != NULL && font->maxp->ShouldSerialize();
-}
-
-bool ots_maxp_serialise(OTSStream *out, Font *font) {
-  return font->maxp->Serialize(out);
-}
-
-void ots_maxp_reuse(Font *font, Font *other) {
-  font->maxp = other->maxp;
-  font->maxp_reused = true;
-}
-
-void ots_maxp_free(Font *font) {
-  delete font->maxp;
-}
-
 }  // namespace ots

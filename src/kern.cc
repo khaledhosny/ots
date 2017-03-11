@@ -172,26 +172,4 @@ bool OpenTypeKERN::ShouldSerialize() {
          GetFont()->glyf != NULL; // this table is not for CFF fonts.
 }
 
-bool ots_kern_parse(Font *font, const uint8_t *data, size_t length) {
-  font->kern = new OpenTypeKERN(font);
-  return font->kern->Parse(data, length);
-}
-
-bool ots_kern_should_serialise(Font *font) {
-  return font->kern != NULL && font->kern->ShouldSerialize();
-}
-
-bool ots_kern_serialise(OTSStream *out, Font *font) {
-  return font->kern->Serialize(out);
-}
-
-void ots_kern_reuse(Font *font, Font *other) {
-  font->kern = other->kern;
-  font->kern_reused = true;
-}
-
-void ots_kern_free(Font *font) {
-  delete font->kern;
-}
-
 }  // namespace ots

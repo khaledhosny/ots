@@ -87,26 +87,4 @@ bool OpenTypeLOCA::Serialize(OTSStream *out) {
   return true;
 }
 
-bool ots_loca_parse(Font *font, const uint8_t *data, size_t length) {
-  font->loca = new OpenTypeLOCA(font);
-  return font->loca->Parse(data, length);
-}
-
-bool ots_loca_should_serialise(Font *font) {
-  return font->loca != NULL && font->loca->ShouldSerialize();
-}
-
-bool ots_loca_serialise(OTSStream *out, Font *font) {
-  return font->loca->Serialize(out);
-}
-
-void ots_loca_reuse(Font *font, Font *other) {
-  font->loca = other->loca;
-  font->loca_reused = true;
-}
-
-void ots_loca_free(Font *font) {
-  delete font->loca;
-}
-
 }  // namespace ots

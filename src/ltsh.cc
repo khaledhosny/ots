@@ -66,26 +66,4 @@ bool OpenTypeLTSH::ShouldSerialize() {
          GetFont()->glyf != NULL; // this table is not for CFF fonts.
 }
 
-bool ots_ltsh_parse(Font *font, const uint8_t *data, size_t length) {
-  font->ltsh = new OpenTypeLTSH(font);
-  return font->ltsh->Parse(data, length);
-}
-
-bool ots_ltsh_should_serialise(Font *font) {
-  return font->ltsh != NULL && font->ltsh->ShouldSerialize();
-}
-
-bool ots_ltsh_serialise(OTSStream *out, Font *font) {
-  return font->ltsh->Serialize(out);
-}
-
-void ots_ltsh_reuse(Font *font, Font *other) {
-  font->ltsh = other->ltsh;
-  font->ltsh_reused = true;
-}
-
-void ots_ltsh_free(Font *font) {
-  delete font->ltsh;
-}
-
 }  // namespace ots

@@ -19,6 +19,58 @@
 // The OpenType Font File
 // http://www.microsoft.com/typography/otspec/cmap.htm
 
+#include "cff.h"
+#include "cmap.h"
+#include "cvt.h"
+#include "fpgm.h"
+#include "gasp.h"
+#include "gdef.h"
+#include "glyf.h"
+#include "gpos.h"
+#include "gsub.h"
+#include "hdmx.h"
+#include "head.h"
+#include "hhea.h"
+#include "hmtx.h"
+#include "kern.h"
+#include "loca.h"
+#include "ltsh.h"
+#include "math_.h"
+#include "maxp.h"
+#include "name.h"
+#include "os2.h"
+#include "ots.h"
+#include "post.h"
+#include "prep.h"
+#include "vdmx.h"
+#include "vhea.h"
+#include "vmtx.h"
+#include "vorg.h"
+
+namespace ots {
+
+#define F(name, capname) \
+bool ots_##name##_parse(Font *f, const uint8_t *d, size_t l) { \
+  f->name = new OpenType##capname(f);                          \
+  return f->name->Parse(d, l);                                 \
+}                                                              \
+bool ots_##name##_should_serialise(Font *f) {                  \
+  return f->name != NULL && f->name->ShouldSerialize();        \
+}                                                              \
+bool ots_##name##_serialise(OTSStream *s, Font *f) {           \
+   return f->name->Serialize(s);                               \
+}                                                              \
+void ots_##name##_reuse(Font *f, Font *o) {                    \
+  f->name = o->name; f->name##_reused = true;                  \
+}                                                              \
+void ots_##name##_free(Font *f) {                              \
+  delete f->name;                                              \
+}
+FOR_EACH_TABLE_TYPE
+#undef F
+
+}  // namespace ots
+
 namespace {
 
 // Generate a message with or without a table tag, when 'header' is the OpenTypeFile pointer

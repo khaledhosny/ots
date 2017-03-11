@@ -277,26 +277,4 @@ bool OpenTypeGLYF::Serialize(OTSStream *out) {
   return true;
 }
 
-bool ots_glyf_parse(Font *font, const uint8_t *data, size_t length) {
-  font->glyf = new OpenTypeGLYF(font);
-  return font->glyf->Parse(data, length);
-}
-
-bool ots_glyf_should_serialise(Font *font) {
-  return font->glyf != NULL && font->glyf->ShouldSerialize();
-}
-
-bool ots_glyf_serialise(OTSStream *out, Font *font) {
-  return font->glyf->Serialize(out);
-}
-
-void ots_glyf_reuse(Font *font, Font *other) {
-  font->glyf = other->glyf;
-  font->glyf_reused = true;
-}
-
-void ots_glyf_free(Font *font) {
-  delete font->glyf;
-}
-
 }  // namespace ots

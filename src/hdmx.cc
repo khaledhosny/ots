@@ -112,26 +112,4 @@ bool OpenTypeHDMX::Serialize(OTSStream *out) {
   return true;
 }
 
-bool ots_hdmx_parse(Font *font, const uint8_t *data, size_t length) {
-  font->hdmx = new OpenTypeHDMX(font);
-  return font->hdmx->Parse(data, length);
-}
-
-bool ots_hdmx_should_serialise(Font *font) {
-  return font->hdmx && font->hdmx->ShouldSerialize();
-}
-
-bool ots_hdmx_serialise(OTSStream *out, Font *font) {
-  return font->hdmx->Serialize(out);
-}
-
-void ots_hdmx_reuse(Font *font, Font *other) {
-  font->hdmx = other->hdmx;
-  font->hdmx_reused = true;
-}
-
-void ots_hdmx_free(Font *font) {
-  delete font->hdmx;
-}
-
 }  // namespace ots

@@ -38,26 +38,4 @@ bool OpenTypePREP::ShouldSerialize() {
          GetFont()->glyf != NULL; // this table is not for CFF fonts.
 }
 
-bool ots_prep_parse(Font *font, const uint8_t *data, size_t length) {
-  font->prep = new OpenTypePREP(font);
-  return font->prep->Parse(data, length);
-}
-
-bool ots_prep_should_serialise(Font *font) {
-  return font->prep != NULL && font->prep->ShouldSerialize();
-}
-
-bool ots_prep_serialise(OTSStream *out, Font *font) {
-  return font->prep->Serialize(out);
-}
-
-void ots_prep_reuse(Font *font, Font *other) {
-  font->prep = other->prep;
-  font->prep_reused = true;
-}
-
-void ots_prep_free(Font *font) {
-  delete font->prep;
-}
-
 }  // namespace ots

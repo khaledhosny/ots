@@ -136,26 +136,4 @@ bool OpenTypeHEAD::Serialize(OTSStream *out) {
   return true;
 }
 
-bool ots_head_parse(Font* font, const uint8_t *data, size_t length) {
-  font->head = new OpenTypeHEAD(font);
-  return font->head->Parse(data, length);
-}
-
-bool ots_head_should_serialise(Font *font) {
-  return font->head != NULL && font->head->ShouldSerialize();
-}
-
-bool ots_head_serialise(OTSStream *out, Font *font) {
-  return font->head->Serialize(out);
-}
-
-void ots_head_reuse(Font *font, Font *other) {
-  font->head = other->head;
-  font->head_reused = true;
-}
-
-void ots_head_free(Font *font) {
-  delete font->head;
-}
-
 }  // namespace

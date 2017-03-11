@@ -1034,30 +1034,6 @@ OpenTypeCFF::~OpenTypeCFF() {
   delete this->local_subrs;
 }
 
-bool ots_cff_parse(Font *font, const uint8_t *data, size_t length) {
-  font->cff = new OpenTypeCFF(font);
-  return font->cff->Parse(data, length);
-}
-
-bool ots_cff_should_serialise(Font *font) {
-  return font->cff != NULL && font->cff->ShouldSerialize();
-}
-
-bool ots_cff_serialise(OTSStream *out, Font *font) {
-  return font->cff->Serialize(out);
-}
-
-void ots_cff_reuse(Font *font, Font *other) {
-  font->cff = other->cff;
-  font->cff_reused = true;
-}
-
-void ots_cff_free(Font *font) {
-  if (font->cff) {
-    delete font->cff;
-  }
-}
-
 }  // namespace ots
 
 #undef TABLE_NAME

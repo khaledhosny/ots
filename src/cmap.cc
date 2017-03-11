@@ -561,11 +561,6 @@ bool OpenTypeCMAP::Parse100(const uint8_t *data, size_t length) {
   return true;
 }
 
-bool ots_cmap_parse(Font *font, const uint8_t *data, size_t length) {
-  font->cmap = new OpenTypeCMAP(font);
-  return font->cmap->Parse(data, length);
-}
-
 bool OpenTypeCMAP::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
@@ -1070,23 +1065,6 @@ bool OpenTypeCMAP::Serialize(OTSStream *out) {
   }
 
   return true;
-}
-
-bool ots_cmap_should_serialise(Font *font) {
-  return font->cmap != NULL && font->cmap->ShouldSerialize();
-}
-
-bool ots_cmap_serialise(OTSStream *out, Font *font) {
-  return font->cmap->Serialize(out);
-}
-
-void ots_cmap_reuse(Font *font, Font *other) {
-  font->cmap = other->cmap;
-  font->cmap_reused = true;
-}
-
-void ots_cmap_free(Font *font) {
-  delete font->cmap;
 }
 
 }  // namespace ots

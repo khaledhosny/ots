@@ -216,7 +216,7 @@ bool IsValidVersionTag(uint32_t tag);
   F(vhea, VHEA) \
   F(vmtx, VMTX)
 
-#define F(name, capname) struct OpenType##capname;
+#define F(name, capname) class OpenType##capname;
 FOR_EACH_TABLE_TYPE
 #undef F
 
@@ -312,7 +312,5 @@ struct OpenTypeFile {
 };
 
 }  // namespace ots
-
-#undef FOR_EACH_TABLE_TYPE
 
 #endif  // OTS_H_

@@ -151,26 +151,4 @@ bool OpenTypeVDMX::Serialize(OTSStream *out) {
   return true;
 }
 
-bool ots_vdmx_parse(Font *font, const uint8_t *data, size_t length) {
-  font->vdmx = new OpenTypeVDMX(font);
-  return font->vdmx->Parse(data, length);
-}
-
-bool ots_vdmx_should_serialise(Font *font) {
-  return font->vdmx != NULL && font->vdmx->ShouldSerialize();
-}
-
-bool ots_vdmx_serialise(OTSStream *out, Font *font) {
-  return font->vdmx->Serialize(out);
-}
-
-void ots_vdmx_reuse(Font *font, Font *other) {
-  font->vdmx = other->vdmx;
-  font->vdmx_reused = true;
-}
-
-void ots_vdmx_free(Font *font) {
-  delete font->vdmx;
-}
-
 }  // namespace ots

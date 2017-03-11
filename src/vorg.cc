@@ -79,26 +79,4 @@ bool OpenTypeVORG::ShouldSerialize() {
          GetFont()->cff != NULL; // this table is not for fonts with TT glyphs.
 }
 
-bool ots_vorg_parse(Font *font, const uint8_t *data, size_t length) {
-  font->vorg = new OpenTypeVORG(font);
-  return font->vorg->Parse(data, length);
-}
-
-bool ots_vorg_should_serialise(Font *font) {
-  return font->vorg != NULL && font->vorg->ShouldSerialize();
-}
-
-bool ots_vorg_serialise(OTSStream *out, Font *font) {
-  return font->vorg->Serialize(out);
-}
-
-void ots_vorg_reuse(Font *font, Font *other) {
-  font->vorg = other->vorg;
-  font->vorg_reused = true;
-}
-
-void ots_vorg_free(Font *font) {
-  delete font->vorg;
-}
-
 }  // namespace ots

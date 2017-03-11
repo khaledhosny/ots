@@ -29,26 +29,4 @@ bool OpenTypeHHEA::Serialize(OTSStream *out) {
   return OpenTypeMetricsHeader::Serialize(out);
 }
 
-bool ots_hhea_parse(Font *font, const uint8_t *data, size_t length) {
-  font->hhea = new OpenTypeHHEA(font);
-  return font->hhea->Parse(data, length);
-}
-
-bool ots_hhea_should_serialise(Font *font) {
-  return font->hhea != NULL && font->hhea->ShouldSerialize();
-}
-
-bool ots_hhea_serialise(OTSStream *out, Font *font) {
-  return font->hhea->Serialize(out);
-}
-
-void ots_hhea_reuse(Font *font, Font *other) {
-  font->hhea = other->hhea;
-  font->hhea_reused = true;
-}
-
-void ots_hhea_free(Font *font) {
-  delete font->hhea;
-}
-
 }  // namespace ots

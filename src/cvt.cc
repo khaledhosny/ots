@@ -42,26 +42,4 @@ bool OpenTypeCVT::ShouldSerialize() {
          GetFont()->glyf != NULL; // this table is not for CFF fonts.
 }
 
-bool ots_cvt_parse(Font *font, const uint8_t *data, size_t length) {
-  font->cvt = new OpenTypeCVT(font);
-  return font->cvt->Parse(data, length);
-}
-
-bool ots_cvt_should_serialise(Font *font) {
-  return font->cvt != NULL && font->cvt->ShouldSerialize();
-}
-
-bool ots_cvt_serialise(OTSStream *out, Font *font) {
-  return font->cvt->Serialize(out);
-}
-
-void ots_cvt_reuse(Font *font, Font *other) {
-  font->cvt = other->cvt;
-  font->cvt_reused = true;
-}
-
-void ots_cvt_free(Font *font) {
-  delete font->cvt;
-}
-
 }  // namespace ots

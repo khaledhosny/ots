@@ -312,26 +312,4 @@ bool OpenTypeOS2::Serialize(OTSStream *out) {
   return true;
 }
 
-bool ots_os2_parse(Font *font, const uint8_t *data, size_t length) {
-  font->os2 = new OpenTypeOS2(font);
-  return font->os2->Parse(data, length);
-}
-
-bool ots_os2_should_serialise(Font *font) {
-  return font->os2 != NULL && font->os2->ShouldSerialize();
-}
-
-bool ots_os2_serialise(OTSStream *out, Font *font) {
-  return font->os2->Serialize(out);
-}
-
-void ots_os2_reuse(Font *font, Font *other) {
-  font->os2 = other->os2;
-  font->os2_reused = true;
-}
-
-void ots_os2_free(Font *font) {
-  delete font->os2;
-}
-
 }  // namespace ots

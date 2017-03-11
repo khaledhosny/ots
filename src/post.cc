@@ -167,26 +167,4 @@ bool OpenTypePOST::Serialize(OTSStream *out) {
   return true;
 }
 
-bool ots_post_parse(Font *font, const uint8_t *data, size_t length) {
-  font->post = new OpenTypePOST(font);
-  return font->post->Parse(data, length);
-}
-
-bool ots_post_should_serialise(Font *font) {
-  return font->post != NULL && font->post->ShouldSerialize();
-}
-
-bool ots_post_serialise(OTSStream *out, Font *font) {
-  return font->post->Serialize(out);
-}
-
-void ots_post_reuse(Font *font, Font *other) {
-  font->post = other->post;
-  font->post_reused = true;
-}
-
-void ots_post_free(Font *font) {
-  delete font->post;
-}
-
 }  // namespace ots

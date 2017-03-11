@@ -35,26 +35,4 @@ bool OpenTypeVHEA::ShouldSerialize() {
          GetFont()->vmtx != NULL; // vhea should'nt serialise when vmtx doesn't exist.
 }
 
-bool ots_vhea_parse(Font *font, const uint8_t *data, size_t length) {
-  font->vhea = new OpenTypeVHEA(font);
-  return font->vhea->Parse(data, length);
-}
-
-bool ots_vhea_should_serialise(Font *font) {
-  return font->vhea != NULL && font->vhea->ShouldSerialize();
-}
-
-bool ots_vhea_serialise(OTSStream *out, Font *font) {
-  return font->vhea->Serialize(out);
-}
-
-void ots_vhea_reuse(Font *font, Font *other) {
-  font->vhea = other->vhea;
-  font->vhea_reused = true;
-}
-
-void ots_vhea_free(Font *font) {
-  delete font->vhea;
-}
-
 }  // namespace ots

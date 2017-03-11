@@ -80,26 +80,5 @@ bool OpenTypeGASP::Serialize(OTSStream *out) {
 
   return true;
 }
-bool ots_gasp_parse(Font *font, const uint8_t *data, size_t length) {
-  font->gasp = new OpenTypeGASP(font);
-  return font->gasp->Parse(data, length);
-}
-
-bool ots_gasp_should_serialise(Font *font) {
-  return font->gasp != NULL;
-}
-
-bool ots_gasp_serialise(OTSStream *out, Font *font) {
-  return font->gasp->Serialize(out);
-}
-
-void ots_gasp_reuse(Font *font, Font *other) {
-  font->gasp = other->gasp;
-  font->gasp_reused = true;
-}
-
-void ots_gasp_free(Font *font) {
-  delete font->gasp;
-}
 
 }  // namespace ots

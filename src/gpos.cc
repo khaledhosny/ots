@@ -776,28 +776,6 @@ bool OpenTypeGPOS::Serialize(OTSStream *out) {
   return true;
 }
 
-bool ots_gpos_parse(Font *font, const uint8_t *data, size_t length) {
-  font->gpos = new OpenTypeGPOS(font);
-  return font->gpos->Parse(data, length);
-}
-
-bool ots_gpos_should_serialise(Font *font) {
-  return font->gpos != NULL && font->gpos->ShouldSerialize();
-}
-
-bool ots_gpos_serialise(OTSStream *out, Font *font) {
-  return font->gpos->Serialize(out);
-}
-
-void ots_gpos_reuse(Font *font, Font *other) {
-  font->gpos = other->gpos;
-  font->gpos_reused = true;
-}
-
-void ots_gpos_free(Font *font) {
-  delete font->gpos;
-}
-
 }  // namespace ots
 
 #undef TABLE_NAME

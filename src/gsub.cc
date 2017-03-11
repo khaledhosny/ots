@@ -604,28 +604,6 @@ bool OpenTypeGSUB::Serialize(OTSStream *out) {
   return true;
 }
 
-bool ots_gsub_parse(Font *font, const uint8_t *data, size_t length) {
-  font->gsub = new OpenTypeGSUB(font);
-  return font->gsub->Parse(data, length);
-}
-
-bool ots_gsub_should_serialise(Font *font) {
-  return font->gsub != NULL && font->gsub->ShouldSerialize();
-}
-
-bool ots_gsub_serialise(OTSStream *out, Font *font) {
-  return font->gsub->Serialize(out);
-}
-
-void ots_gsub_reuse(Font *font, Font *other) {
-  font->gsub = other->gsub;
-  font->gsub_reused = true;
-}
-
-void ots_gsub_free(Font *font) {
-  delete font->gsub;
-}
-
 }  // namespace ots
 
 #undef TABLE_NAME

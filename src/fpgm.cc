@@ -38,26 +38,4 @@ bool OpenTypeFPGM::ShouldSerialize() {
          GetFont()->glyf != NULL; // this table is not for CFF fonts.
 }
 
-bool ots_fpgm_parse(Font *font, const uint8_t *data, size_t length) {
-  font->fpgm = new OpenTypeFPGM(font);
-  return font->fpgm->Parse(data, length);
-}
-
-bool ots_fpgm_should_serialise(Font *font) {
-  return font->fpgm != NULL && font->fpgm->ShouldSerialize();
-}
-
-bool ots_fpgm_serialise(OTSStream *out, Font *font) {
-  return font->fpgm->Serialize(out);
-}
-
-void ots_fpgm_reuse(Font *font, Font *other) {
-  font->fpgm = other->fpgm;
-  font->fpgm_reused = true;
-}
-
-void ots_fpgm_free(Font *font) {
-  delete font->fpgm;
-}
-
 }  // namespace ots

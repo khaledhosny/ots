@@ -334,26 +334,4 @@ bool OpenTypeGDEF::Serialize(OTSStream *out) {
   return true;
 }
 
-bool ots_gdef_parse(Font *font, const uint8_t *data, size_t length) {
-  font->gdef = new OpenTypeGDEF(font);
-  return font->gdef->Parse(data, length);
-}
-
-bool ots_gdef_should_serialise(Font *font) {
-  return font->gdef != NULL && font->gdef->ShouldSerialize();
-}
-
-bool ots_gdef_serialise(OTSStream *out, Font *font) {
-  return font->gdef->Serialize(out);
-}
-
-void ots_gdef_reuse(Font *font, Font *other) {
-  font->gdef = other->gdef;
-  font->gdef_reused = true;
-}
-
-void ots_gdef_free(Font *font) {
-  delete font->gdef;
-}
-
 }  // namespace ots
