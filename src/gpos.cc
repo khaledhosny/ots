@@ -701,16 +701,15 @@ bool ParseExtensionPositioning(const ots::Font *font,
 
 namespace ots {
 
-bool ots_gpos_parse(Font *font, const uint8_t *data, size_t length) {
+bool OpenTypeGPOS::Parse(const uint8_t *data, size_t length) {
+  Font *font = GetFont();
+
   // Parsing GPOS table requires num_glyphs which is contained in maxp table.
   if (!font->maxp) {
-    return OTS_FAILURE_MSG("missing maxp table needed in GPOS");
+    return Error("missing maxp table needed in GPOS");
   }
 
   Buffer table(data, length);
-
-  OpenTypeGPOS *gpos = new OpenTypeGPOS;
-  font->gpos = gpos;
 
   uint32_t version = 0;
   uint16_t offset_script_list = 0;
@@ -720,65 +719,74 @@ bool ots_gpos_parse(Font *font, const uint8_t *data, size_t length) {
       !table.ReadU16(&offset_script_list) ||
       !table.ReadU16(&offset_feature_list) ||
       !table.ReadU16(&offset_lookup_list)) {
-    return OTS_FAILURE_MSG("Incomplete table");
+    return Error("Incomplete table");
   }
 
   if (version != 0x00010000) {
-    return OTS_FAILURE_MSG("Bad version");
+    return Error("Bad version");
   }
 
   if (offset_lookup_list) {
     if (offset_lookup_list < kGposHeaderSize || offset_lookup_list >= length) {
-      return OTS_FAILURE_MSG("Bad lookup list offset in table header");
+      return Error("Bad lookup list offset in table header");
     }
 
     if (!ParseLookupListTable(font, data + offset_lookup_list,
                               length - offset_lookup_list,
                               &kGposLookupSubtableParser,
-                              &gpos->num_lookups)) {
-      return OTS_FAILURE_MSG("Failed to parse lookup list table");
+                              &this->num_lookups)) {
+      return Error("Failed to parse lookup list table");
     }
   }
 
   uint16_t num_features = 0;
   if (offset_feature_list) {
     if (offset_feature_list < kGposHeaderSize || offset_feature_list >= length) {
-      return OTS_FAILURE_MSG("Bad feature list offset in table header");
+      return Error("Bad feature list offset in table header");
     }
 
     if (!ParseFeatureListTable(font, data + offset_feature_list,
-                               length - offset_feature_list, gpos->num_lookups,
+                               length - offset_feature_list, this->num_lookups,
                                &num_features)) {
-      return OTS_FAILURE_MSG("Failed to parse feature list table");
+      return Error("Failed to parse feature list table");
     }
   }
 
   if (offset_script_list) {
     if (offset_script_list < kGposHeaderSize || offset_script_list >= length) {
-      return OTS_FAILURE_MSG("Bad script list offset in table header");
+      return Error("Bad script list offset in table header");
     }
 
     if (!ParseScriptListTable(font, data + offset_script_list,
                               length - offset_script_list, num_features)) {
-      return OTS_FAILURE_MSG("Failed to parse script list table");
+      return Error("Failed to parse script list table");
     }
   }
 
-  gpos->data = data;
-  gpos->length = length;
+  this->m_data = data;
+  this->m_length = length;
   return true;
 }
 
-bool ots_gpos_should_serialise(Font *font) {
-  return font->gpos != NULL && font->gpos->data != NULL;
-}
-
-bool ots_gpos_serialise(OTSStream *out, Font *font) {
-  if (!out->Write(font->gpos->data, font->gpos->length)) {
-    return OTS_FAILURE_MSG("Failed to write GPOS table");
+bool OpenTypeGPOS::Serialize(OTSStream *out) {
+  if (!out->Write(this->m_data, this->m_length)) {
+    return Error("Failed to write GPOS table");
   }
 
   return true;
+}
+
+bool ots_gpos_parse(Font *font, const uint8_t *data, size_t length) {
+  font->gpos = new OpenTypeGPOS(font);
+  return font->gpos->Parse(data, length);
+}
+
+bool ots_gpos_should_serialise(Font *font) {
+  return font->gpos != NULL && font->gpos->ShouldSerialize();
+}
+
+bool ots_gpos_serialise(OTSStream *out, Font *font) {
+  return font->gpos->Serialize(out);
 }
 
 void ots_gpos_reuse(Font *font, Font *other) {
