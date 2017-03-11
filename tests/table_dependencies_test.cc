@@ -15,10 +15,10 @@
 #define SET_LAYOUT_TABLE(name, capname)                    \
   do {                                                     \
     if (!font->name) {                                      \
-      font->name = new ots::OpenType##capname;             \
+      font->name = new ots::OpenType##capname(font);        \
     }                                                      \
-    font->name->data = reinterpret_cast<const uint8_t*>(1); \
-    font->name->length = 1;                                 \
+    font->name->m_data = reinterpret_cast<const uint8_t*>(1); \
+    font->name->m_length = 1;                                 \
   } while (0)
 #define DROP_TABLE(name) \
   do { delete font->name; font->name = NULL; } while (0)

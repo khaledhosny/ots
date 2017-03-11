@@ -9,18 +9,24 @@
 
 namespace ots {
 
-struct OpenTypeGSUB {
-  OpenTypeGSUB()
-      : num_lookups(0),
-        data(NULL),
-        length(0) {
+class OpenTypeGSUB : public Table {
+ public:
+  explicit OpenTypeGSUB(Font *font)
+      : Table(font, OTS_TAG('G','S','U','B')),
+        num_lookups(0),
+        m_data(NULL),
+        m_length(0) {
   }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
 
   // Number of lookups in GPSUB table
   uint16_t num_lookups;
 
-  const uint8_t *data;
-  size_t length;
+ //private:
+  const uint8_t *m_data;
+  size_t m_length;
 };
 
 }  // namespace ots

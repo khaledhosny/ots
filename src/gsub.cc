@@ -530,16 +530,14 @@ bool ParseReverseChainingContextSingleSubstitution(
 
 namespace ots {
 
-bool ots_gsub_parse(Font *font, const uint8_t *data, size_t length) {
+bool OpenTypeGSUB::Parse(const uint8_t *data, size_t length) {
   // Parsing gsub table requires |font->maxp->num_glyphs|
+  Font *font = GetFont();
   if (!font->maxp) {
-    return OTS_FAILURE_MSG("Missing maxp table in font, needed by GSUB");
+    return Error("Missing maxp table in font, needed by GSUB");
   }
 
   Buffer table(data, length);
-
-  OpenTypeGSUB *gsub = new OpenTypeGSUB;
-  font->gsub = gsub;
 
   uint32_t version = 0;
   uint16_t offset_script_list = 0;
@@ -549,65 +547,74 @@ bool ots_gsub_parse(Font *font, const uint8_t *data, size_t length) {
       !table.ReadU16(&offset_script_list) ||
       !table.ReadU16(&offset_feature_list) ||
       !table.ReadU16(&offset_lookup_list)) {
-    return OTS_FAILURE_MSG("Incomplete table");
+    return Error("Incomplete table");
   }
 
   if (version != 0x00010000) {
-    return OTS_FAILURE_MSG("Bad version");
+    return Error("Bad version");
   }
 
   if (offset_lookup_list) {
     if (offset_lookup_list < kGsubHeaderSize || offset_lookup_list >= length) {
-      return OTS_FAILURE_MSG("Bad lookup list offset in table header");
+      return Error("Bad lookup list offset in table header");
     }
 
     if (!ParseLookupListTable(font, data + offset_lookup_list,
                               length - offset_lookup_list,
                               &kGsubLookupSubtableParser,
-                              &gsub->num_lookups)) {
-      return OTS_FAILURE_MSG("Failed to parse lookup list table");
+                              &this->num_lookups)) {
+      return Error("Failed to parse lookup list table");
     }
   }
 
   uint16_t num_features = 0;
   if (offset_feature_list) {
     if (offset_feature_list < kGsubHeaderSize || offset_feature_list >= length) {
-      return OTS_FAILURE_MSG("Bad feature list offset in table header");
+      return Error("Bad feature list offset in table header");
     }
 
     if (!ParseFeatureListTable(font, data + offset_feature_list,
-                               length - offset_feature_list, gsub->num_lookups,
+                               length - offset_feature_list, this->num_lookups,
                                &num_features)) {
-      return OTS_FAILURE_MSG("Failed to parse feature list table");
+      return Error("Failed to parse feature list table");
     }
   }
 
   if (offset_script_list) {
     if (offset_script_list < kGsubHeaderSize || offset_script_list >= length) {
-      return OTS_FAILURE_MSG("Bad script list offset in table header");
+      return Error("Bad script list offset in table header");
     }
 
     if (!ParseScriptListTable(font, data + offset_script_list,
                               length - offset_script_list, num_features)) {
-      return OTS_FAILURE_MSG("Failed to parse script list table");
+      return Error("Failed to parse script list table");
     }
   }
 
-  gsub->data = data;
-  gsub->length = length;
+  this->m_data = data;
+  this->m_length = length;
   return true;
 }
 
-bool ots_gsub_should_serialise(Font *font) {
-  return font->gsub != NULL && font->gsub->data != NULL;
-}
-
-bool ots_gsub_serialise(OTSStream *out, Font *font) {
-  if (!out->Write(font->gsub->data, font->gsub->length)) {
-    return OTS_FAILURE_MSG("Failed to write GSUB table");
+bool OpenTypeGSUB::Serialize(OTSStream *out) {
+  if (!out->Write(this->m_data, this->m_length)) {
+    return Error("Failed to write GSUB table");
   }
 
   return true;
+}
+
+bool ots_gsub_parse(Font *font, const uint8_t *data, size_t length) {
+  font->gsub = new OpenTypeGSUB(font);
+  return font->gsub->Parse(data, length);
+}
+
+bool ots_gsub_should_serialise(Font *font) {
+  return font->gsub != NULL && font->gsub->ShouldSerialize();
+}
+
+bool ots_gsub_serialise(OTSStream *out, Font *font) {
+  return font->gsub->Serialize(out);
 }
 
 void ots_gsub_reuse(Font *font, Font *other) {
