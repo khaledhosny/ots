@@ -16,7 +16,7 @@ namespace ots {
 class OpenTypeGLYF : public Table {
  public:
   explicit OpenTypeGLYF(Font *font)
-      : Table(font, OTS_TAG('g','l','y','f')) { }
+      : Table(font, OTS_TAG_GLYF) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

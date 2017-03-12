@@ -20,7 +20,7 @@ struct OpenTypeHDMXDeviceRecord {
 class OpenTypeHDMX : public Table {
  public:
   explicit OpenTypeHDMX(Font *font)
-      : Table(font, OTS_TAG('h','d','m','x')) { }
+      : Table(font, OTS_TAG_HDMX) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

@@ -14,7 +14,7 @@ namespace ots {
 struct OpenTypeVMTX : public OpenTypeMetricsTable {
  public:
   explicit OpenTypeVMTX(Font *font)
-      : OpenTypeMetricsTable(font, OTS_TAG('v','m','t','x'), font->vhea) { }
+      : OpenTypeMetricsTable(font, OTS_TAG_VMTX, font->vhea) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

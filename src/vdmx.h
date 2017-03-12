@@ -34,7 +34,7 @@ struct OpenTypeVDMXGroup {
 class OpenTypeVDMX : public Table {
  public:
   explicit OpenTypeVDMX(Font *font)
-      : Table(font, OTS_TAG('V','D','M','X')) { }
+      : Table(font, OTS_TAG_VDMX) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

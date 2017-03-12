@@ -54,7 +54,7 @@ struct OS2Data {
 class OpenTypeOS2 : public Table {
  public:
   explicit OpenTypeOS2(Font *font)
-      : Table(font, OTS_TAG('O','S','/','2')) { }
+      : Table(font, OTS_TAG_OS2) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

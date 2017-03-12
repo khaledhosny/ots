@@ -12,7 +12,7 @@ namespace ots {
 class OpenTypeMAXP : public Table {
  public:
   explicit OpenTypeMAXP(Font *font)
-      : Table(font, OTS_TAG('m','a','x','p')) { }
+      : Table(font, OTS_TAG_MAXP) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

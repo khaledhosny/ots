@@ -14,7 +14,7 @@ namespace ots {
 class OpenTypeLTSH : public Table {
  public:
   explicit OpenTypeLTSH(Font *font)
-      : Table(font, OTS_TAG('L','T','S','H')) { }
+      : Table(font, OTS_TAG_LTSH) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

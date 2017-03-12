@@ -12,7 +12,7 @@ namespace ots {
 class OpenTypeFPGM : public Table {
  public:
   explicit OpenTypeFPGM(Font *font)
-      : Table(font, OTS_TAG('f','p','g','m')) { }
+      : Table(font, OTS_TAG_FPGM) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

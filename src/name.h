@@ -46,7 +46,7 @@ struct NameRecord {
 class OpenTypeNAME : public Table {
  public:
   explicit OpenTypeNAME(Font *font)
-      : Table(font, OTS_TAG('n','a','m','e')) { }
+      : Table(font, OTS_TAG_NAME) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

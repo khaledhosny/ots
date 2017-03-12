@@ -33,7 +33,7 @@ struct OpenTypeKERNFormat0 {
 class OpenTypeKERN : public Table {
  public:
   explicit OpenTypeKERN(Font *font)
-      : Table(font, OTS_TAG('k','e','r','n')) { }
+      : Table(font, OTS_TAG_KERN) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

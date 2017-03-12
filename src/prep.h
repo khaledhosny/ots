@@ -12,7 +12,7 @@ namespace ots {
 class OpenTypePREP : public Table {
  public:
   explicit OpenTypePREP(Font *font)
-      : Table(font, OTS_TAG('p','r','e','p')) { }
+      : Table(font, OTS_TAG_PREP) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

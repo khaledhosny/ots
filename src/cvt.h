@@ -12,7 +12,7 @@ namespace ots {
 class OpenTypeCVT : public Table {
  public:
   explicit OpenTypeCVT(Font *font)
-      : Table(font, OTS_TAG('c','v','t',' ')) { }
+      : Table(font, OTS_TAG_CVT) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

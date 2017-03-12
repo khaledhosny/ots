@@ -38,7 +38,7 @@ struct OpenTypeCMAPSubtableVSRecord {
 class OpenTypeCMAP : public Table {
  public:
   explicit OpenTypeCMAP(Font *font)
-      : Table(font, OTS_TAG('c','m','a','p')),
+      : Table(font, OTS_TAG_CMAP),
         subtable_0_3_4_data(NULL),
         subtable_0_3_4_length(0),
         subtable_0_5_14_length(0),

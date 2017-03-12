@@ -12,7 +12,7 @@ namespace ots {
 class OpenTypeGPOS : public Table {
  public:
   explicit OpenTypeGPOS(Font *font)
-      : Table(font, OTS_TAG('G','P','O','S')),
+      : Table(font, OTS_TAG_GPOS),
         num_lookups(0),
         m_data(NULL),
         m_length(0) {

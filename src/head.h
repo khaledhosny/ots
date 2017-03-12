@@ -12,7 +12,7 @@ namespace ots {
 class OpenTypeHEAD : public Table {
  public:
   explicit OpenTypeHEAD(Font *font)
-      : Table(font, OTS_TAG('h','e','a','d')) { }
+      : Table(font, OTS_TAG_HEAD) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

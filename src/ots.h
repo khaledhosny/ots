@@ -188,6 +188,33 @@ template<typename T> T Round2(T value) {
 
 bool IsValidVersionTag(uint32_t tag);
 
+#define OTS_TAG_CFF  OTS_TAG('C','F','F',' ')
+#define OTS_TAG_CMAP OTS_TAG('c','m','a','p')
+#define OTS_TAG_CVT  OTS_TAG('c','v','t',' ')
+#define OTS_TAG_FPGM OTS_TAG('f','p','g','m')
+#define OTS_TAG_GASP OTS_TAG('g','a','s','p')
+#define OTS_TAG_GDEF OTS_TAG('G','D','E','F')
+#define OTS_TAG_GLYF OTS_TAG('g','l','y','f')
+#define OTS_TAG_GPOS OTS_TAG('G','P','O','S')
+#define OTS_TAG_GSUB OTS_TAG('G','S','U','B')
+#define OTS_TAG_HDMX OTS_TAG('h','d','m','x')
+#define OTS_TAG_HEAD OTS_TAG('h','e','a','d')
+#define OTS_TAG_HHEA OTS_TAG('h','h','e','a')
+#define OTS_TAG_HMTX OTS_TAG('h','m','t','x')
+#define OTS_TAG_KERN OTS_TAG('k','e','r','n')
+#define OTS_TAG_LOCA OTS_TAG('l','o','c','a')
+#define OTS_TAG_LTSH OTS_TAG('L','T','S','H')
+#define OTS_TAG_MATH OTS_TAG('M','A','T','H')
+#define OTS_TAG_MAXP OTS_TAG('m','a','x','p')
+#define OTS_TAG_NAME OTS_TAG('n','a','m','e')
+#define OTS_TAG_OS2  OTS_TAG('O','S','/','2')
+#define OTS_TAG_POST OTS_TAG('p','o','s','t')
+#define OTS_TAG_PREP OTS_TAG('p','r','e','p')
+#define OTS_TAG_VDMX OTS_TAG('V','D','M','X')
+#define OTS_TAG_VHEA OTS_TAG('v','h','e','a')
+#define OTS_TAG_VMTX OTS_TAG('v','m','t','x')
+#define OTS_TAG_VORG OTS_TAG('V','O','R','G')
+
 #define FOR_EACH_TABLE_TYPE \
   F(cff, CFF) \
   F(cmap, CMAP) \

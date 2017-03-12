@@ -14,7 +14,7 @@ namespace ots {
 class OpenTypeLOCA : public Table {
  public:
   explicit OpenTypeLOCA(Font *font)
-      : Table(font, OTS_TAG('l','o','c','a')) { }
+      : Table(font, OTS_TAG_LOCA) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);
