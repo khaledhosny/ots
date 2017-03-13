@@ -47,67 +47,6 @@
 #include "vmtx.h"
 #include "vorg.h"
 
-namespace ots {
-
-Font::~Font() {
-  m_tables.clear();
-}
-
-bool Font::ParseTable(uint32_t tag, const uint8_t* data, size_t length) {
-  Table *table = NULL;
-  bool ret = false;
-
-  switch (tag) {
-    case OTS_TAG_CFF:  table = new OpenTypeCFF(this);  break;
-    case OTS_TAG_CMAP: table = new OpenTypeCMAP(this); break;
-    case OTS_TAG_CVT:  table = new OpenTypeCVT(this);  break;
-    case OTS_TAG_FPGM: table = new OpenTypeFPGM(this); break;
-    case OTS_TAG_GASP: table = new OpenTypeGASP(this); break;
-    case OTS_TAG_GDEF: table = new OpenTypeGDEF(this); break;
-    case OTS_TAG_GLYF: table = new OpenTypeGLYF(this); break;
-    case OTS_TAG_GPOS: table = new OpenTypeGPOS(this); break;
-    case OTS_TAG_GSUB: table = new OpenTypeGSUB(this); break;
-    case OTS_TAG_HDMX: table = new OpenTypeHDMX(this); break;
-    case OTS_TAG_HEAD: table = new OpenTypeHEAD(this); break;
-    case OTS_TAG_HHEA: table = new OpenTypeHHEA(this); break;
-    case OTS_TAG_HMTX: table = new OpenTypeHMTX(this); break;
-    case OTS_TAG_KERN: table = new OpenTypeKERN(this); break;
-    case OTS_TAG_LOCA: table = new OpenTypeLOCA(this); break;
-    case OTS_TAG_LTSH: table = new OpenTypeLTSH(this); break;
-    case OTS_TAG_MATH: table = new OpenTypeMATH(this); break;
-    case OTS_TAG_MAXP: table = new OpenTypeMAXP(this); break;
-    case OTS_TAG_NAME: table = new OpenTypeNAME(this); break;
-    case OTS_TAG_OS2:  table = new OpenTypeOS2(this);  break;
-    case OTS_TAG_POST: table = new OpenTypePOST(this); break;
-    case OTS_TAG_PREP: table = new OpenTypePREP(this); break;
-    case OTS_TAG_VDMX: table = new OpenTypeVDMX(this); break;
-    case OTS_TAG_VORG: table = new OpenTypeVORG(this); break;
-    case OTS_TAG_VHEA: table = new OpenTypeVHEA(this); break;
-    case OTS_TAG_VMTX: table = new OpenTypeVMTX(this); break;
-    default: break;
-  }
-
-  if (table) {
-    // FIXME: Parsing some tables will fail if the table is not added to
-    // m_tables first.
-    m_tables[tag] = table;
-    ret = table->Parse(data, length);
-    if (!ret)
-      m_tables.erase(tag);
-  }
-
-  return ret;
-}
-
-Table* Font::GetTable(uint32_t tag) const {
-  const std::map<uint32_t, Table*>::const_iterator it = m_tables.find(tag);
-  if (it != m_tables.end())
-    return it->second;
-  return NULL;
-}
-
-}  // namespace ots
-
 namespace {
 
 // Generate a message with or without a table tag, when 'header' is the FontFile pointer
@@ -927,6 +866,63 @@ bool ProcessGeneric(ots::FontFile *header,
 }  // namespace
 
 namespace ots {
+
+Font::~Font() {
+  m_tables.clear();
+}
+
+bool Font::ParseTable(uint32_t tag, const uint8_t* data, size_t length) {
+  Table *table = NULL;
+  bool ret = false;
+
+  switch (tag) {
+    case OTS_TAG_CFF:  table = new OpenTypeCFF(this);  break;
+    case OTS_TAG_CMAP: table = new OpenTypeCMAP(this); break;
+    case OTS_TAG_CVT:  table = new OpenTypeCVT(this);  break;
+    case OTS_TAG_FPGM: table = new OpenTypeFPGM(this); break;
+    case OTS_TAG_GASP: table = new OpenTypeGASP(this); break;
+    case OTS_TAG_GDEF: table = new OpenTypeGDEF(this); break;
+    case OTS_TAG_GLYF: table = new OpenTypeGLYF(this); break;
+    case OTS_TAG_GPOS: table = new OpenTypeGPOS(this); break;
+    case OTS_TAG_GSUB: table = new OpenTypeGSUB(this); break;
+    case OTS_TAG_HDMX: table = new OpenTypeHDMX(this); break;
+    case OTS_TAG_HEAD: table = new OpenTypeHEAD(this); break;
+    case OTS_TAG_HHEA: table = new OpenTypeHHEA(this); break;
+    case OTS_TAG_HMTX: table = new OpenTypeHMTX(this); break;
+    case OTS_TAG_KERN: table = new OpenTypeKERN(this); break;
+    case OTS_TAG_LOCA: table = new OpenTypeLOCA(this); break;
+    case OTS_TAG_LTSH: table = new OpenTypeLTSH(this); break;
+    case OTS_TAG_MATH: table = new OpenTypeMATH(this); break;
+    case OTS_TAG_MAXP: table = new OpenTypeMAXP(this); break;
+    case OTS_TAG_NAME: table = new OpenTypeNAME(this); break;
+    case OTS_TAG_OS2:  table = new OpenTypeOS2(this);  break;
+    case OTS_TAG_POST: table = new OpenTypePOST(this); break;
+    case OTS_TAG_PREP: table = new OpenTypePREP(this); break;
+    case OTS_TAG_VDMX: table = new OpenTypeVDMX(this); break;
+    case OTS_TAG_VORG: table = new OpenTypeVORG(this); break;
+    case OTS_TAG_VHEA: table = new OpenTypeVHEA(this); break;
+    case OTS_TAG_VMTX: table = new OpenTypeVMTX(this); break;
+    default: break;
+  }
+
+  if (table) {
+    // FIXME: Parsing some tables will fail if the table is not added to
+    // m_tables first.
+    m_tables[tag] = table;
+    ret = table->Parse(data, length);
+    if (!ret)
+      m_tables.erase(tag);
+  }
+
+  return ret;
+}
+
+Table* Font::GetTable(uint32_t tag) const {
+  const std::map<uint32_t, Table*>::const_iterator it = m_tables.find(tag);
+  if (it != m_tables.end())
+    return it->second;
+  return NULL;
+}
 
 Table::Table(Font *font, uint32_t tag)
 : m_tag(tag),
