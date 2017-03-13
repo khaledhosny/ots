@@ -734,7 +734,7 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
 
       if (action == ots::TABLE_ACTION_SANITIZE &&
           !font->ParseTable(tag, table_data, table_length)) {
-        return OTS_FAILURE();
+        return OTS_FAILURE_MSG_TAG("Failed to parse table", tag);
       }
   //} else if (action == ots::TABLE_ACTION_SANITIZE) {
   //  table_parsers[i].reuse(font, ot->second.first);
