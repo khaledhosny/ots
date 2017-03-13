@@ -82,7 +82,9 @@ bool ParseSingleSubstitution(const ots::Font *font,
     return OTS_FAILURE_MSG("Failed to read single subst table header");
   }
 
-  const uint16_t num_glyphs = font->maxp->num_glyphs;
+  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
+      font->GetTable(OTS_TAG_MAXP));
+  const uint16_t num_glyphs = maxp->num_glyphs;
   if (format == 1) {
     // Parse SingleSubstFormat1
     int16_t delta_glyph_id = 0;
@@ -170,7 +172,9 @@ bool ParseMutipleSubstitution(const ots::Font *font,
     return OTS_FAILURE_MSG("Bad multiple subst table format %d", format);
   }
 
-  const uint16_t num_glyphs = font->maxp->num_glyphs;
+  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
+      font->GetTable(OTS_TAG_MAXP));
+  const uint16_t num_glyphs = maxp->num_glyphs;
   const unsigned sequence_end = static_cast<unsigned>(6) +
       sequence_count * 2;
   if (sequence_end > std::numeric_limits<uint16_t>::max()) {
@@ -245,7 +249,9 @@ bool ParseAlternateSubstitution(const ots::Font *font,
     return OTS_FAILURE_MSG("Bad alternate subst table format %d", format);
   }
 
-  const uint16_t num_glyphs = font->maxp->num_glyphs;
+  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
+      font->GetTable(OTS_TAG_MAXP));
+  const uint16_t num_glyphs = maxp->num_glyphs;
   const unsigned alternate_set_end = static_cast<unsigned>(6) +
       alternate_set_count * 2;
   if (alternate_set_end > std::numeric_limits<uint16_t>::max()) {
@@ -362,7 +368,9 @@ bool ParseLigatureSubstitution(const ots::Font *font,
     return OTS_FAILURE_MSG("Bad ligature substitution table format %d", format);
   }
 
-  const uint16_t num_glyphs = font->maxp->num_glyphs;
+  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
+      font->GetTable(OTS_TAG_MAXP));
+  const uint16_t num_glyphs = maxp->num_glyphs;
   const unsigned ligature_set_end = static_cast<unsigned>(6) +
       lig_set_count * 2;
   if (ligature_set_end > std::numeric_limits<uint16_t>::max()) {
@@ -398,8 +406,12 @@ bool ParseLigatureSubstitution(const ots::Font *font,
 // Contextual Substitution Subtable
 bool ParseContextSubstitution(const ots::Font *font,
                               const uint8_t *data, const size_t length) {
-  return ots::ParseContextSubtable(font, data, length, font->maxp->num_glyphs,
-                                   font->gsub->num_lookups);
+  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
+      font->GetTable(OTS_TAG_MAXP));
+  ots::OpenTypeGSUB *gsub = dynamic_cast<ots::OpenTypeGSUB*>(
+      font->GetTable(OTS_TAG_GSUB));
+  return ots::ParseContextSubtable(font, data, length, maxp->num_glyphs,
+                                   gsub->num_lookups);
 }
 
 // Lookup Type 6:
@@ -407,9 +419,13 @@ bool ParseContextSubstitution(const ots::Font *font,
 bool ParseChainingContextSubstitution(const ots::Font *font,
                                       const uint8_t *data,
                                       const size_t length) {
+  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
+      font->GetTable(OTS_TAG_MAXP));
+  ots::OpenTypeGSUB *gsub = dynamic_cast<ots::OpenTypeGSUB*>(
+      font->GetTable(OTS_TAG_GSUB));
   return ots::ParseChainingContextSubtable(font, data, length,
-                                           font->maxp->num_glyphs,
-                                           font->gsub->num_lookups);
+                                           maxp->num_glyphs,
+                                           gsub->num_lookups);
 }
 
 // Lookup Type 7:
@@ -434,7 +450,9 @@ bool ParseReverseChainingContextSingleSubstitution(
     return OTS_FAILURE_MSG("Failed to read reverse chaining header");
   }
 
-  const uint16_t num_glyphs = font->maxp->num_glyphs;
+  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
+      font->GetTable(OTS_TAG_MAXP));
+  const uint16_t num_glyphs = maxp->num_glyphs;
 
   uint16_t backtrack_glyph_count = 0;
   if (!subtable.ReadU16(&backtrack_glyph_count)) {
@@ -531,9 +549,11 @@ bool ParseReverseChainingContextSingleSubstitution(
 namespace ots {
 
 bool OpenTypeGSUB::Parse(const uint8_t *data, size_t length) {
-  // Parsing gsub table requires |font->maxp->num_glyphs|
+  // Parsing gsub table requires |maxp->num_glyphs|
   Font *font = GetFont();
-  if (!font->maxp) {
+  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
+      font->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
     return Error("Missing maxp table in font, needed by GSUB");
   }
 

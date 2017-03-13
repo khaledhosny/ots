@@ -67,7 +67,8 @@ bool OpenTypeCMAP::ParseFormat4(int platform, int encoding,
   // whole thing and recompacting it, we validate it and include it verbatim
   // in the output.
 
-  OpenTypeOS2 *os2 = GetFont()->os2;
+  OpenTypeOS2 *os2 = dynamic_cast<OpenTypeOS2*>(
+      GetFont()->GetTable(OTS_TAG_OS2));
   if (!os2) {
     return Error("Required OS/2 table missing");
   }
@@ -717,10 +718,12 @@ bool OpenTypeCMAP::Parse(const uint8_t *data, size_t length) {
 
   // we grab the number of glyphs in the file from the maxp table to make sure
   // that the character map isn't referencing anything beyound this range.
-  if (!this->GetFont()->maxp) {
+  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
+      GetFont()->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
     return Error("No maxp table in font! Needed by cmap.");
   }
-  const uint16_t num_glyphs = this->GetFont()->maxp->num_glyphs;
+  const uint16_t num_glyphs = maxp->num_glyphs;
 
   // We only support a subset of the possible character map tables. Microsoft
   // 'strongly recommends' that everyone supports the Unicode BMP table with

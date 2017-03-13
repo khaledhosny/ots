@@ -39,7 +39,8 @@ bool OpenTypeCVT::Serialize(OTSStream *out) {
 
 bool OpenTypeCVT::ShouldSerialize() {
   return Table::ShouldSerialize() &&
-         GetFont()->glyf != NULL; // this table is not for CFF fonts.
+         // this table is not for CFF fonts.
+         GetFont()->GetTable(OTS_TAG_GLYF) != NULL;
 }
 
 }  // namespace ots

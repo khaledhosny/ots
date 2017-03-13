@@ -13,7 +13,8 @@
 namespace ots {
 
 bool OpenTypeVMTX::Parse(const uint8_t *data, size_t length) {
-  if (!GetFont()->vhea || !GetFont()->maxp) {
+  if (!GetFont()->GetTable(OTS_TAG_VHEA) ||
+      !GetFont()->GetTable(OTS_TAG_MAXP)) {
     return Error("vhea or maxp table missing as needed by vmtx");
   }
 
@@ -26,7 +27,8 @@ bool OpenTypeVMTX::Serialize(OTSStream *out) {
 
 bool OpenTypeVMTX::ShouldSerialize() {
   return OpenTypeMetricsTable::ShouldSerialize() &&
-         GetFont()->vhea != NULL; // vmtx should serialise when vhea is preserved.
+         // vmtx should serialise when vhea is preserved.
+         GetFont()->GetTable(OTS_TAG_VHEA) != NULL;
 }
 
 }  // namespace ots

@@ -14,7 +14,8 @@ namespace ots {
 bool OpenTypeLTSH::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
-  OpenTypeMAXP* maxp = GetFont()->maxp;
+  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
+      GetFont()->GetTable(OTS_TAG_MAXP));
   if (!maxp) {
     return Error("Missing maxp table from font needed by ltsh");
   }
@@ -63,7 +64,8 @@ bool OpenTypeLTSH::Serialize(OTSStream *out) {
 
 bool OpenTypeLTSH::ShouldSerialize() {
   return Table::ShouldSerialize() &&
-         GetFont()->glyf != NULL; // this table is not for CFF fonts.
+         // this table is not for CFF fonts.
+         GetFont()->GetTable(OTS_TAG_GLYF) != NULL;
 }
 
 }  // namespace ots

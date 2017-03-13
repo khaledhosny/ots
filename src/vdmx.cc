@@ -105,7 +105,8 @@ bool OpenTypeVDMX::Parse(const uint8_t *data, size_t length) {
 
 bool OpenTypeVDMX::ShouldSerialize() {
   return Table::ShouldSerialize() &&
-         GetFont()->glyf != NULL; // this table is not for CFF fonts.
+         // this table is not for CFF fonts.
+         GetFont()->GetTable(OTS_TAG_GLYF) != NULL;
 }
 
 bool OpenTypeVDMX::Serialize(OTSStream *out) {

@@ -76,7 +76,8 @@ bool OpenTypeVORG::Serialize(OTSStream *out) {
 
 bool OpenTypeVORG::ShouldSerialize() {
   return Table::ShouldSerialize() &&
-         GetFont()->cff != NULL; // this table is not for fonts with TT glyphs.
+         // this table is not for fonts with TT glyphs.
+         GetFont()->GetTable(OTS_TAG_CFF) != NULL;
 }
 
 }  // namespace ots

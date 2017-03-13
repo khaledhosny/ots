@@ -974,7 +974,9 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
     return OTS_FAILURE();
   }
 
-  const uint16_t num_glyphs = font->maxp->num_glyphs;
+  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
+      font->GetTable(OTS_TAG_MAXP));
+  const uint16_t num_glyphs = maxp->num_glyphs;
   const size_t sid_max = string_index.count + kNStdString;
   // string_index.count == 0 is allowed.
 

@@ -49,25 +49,68 @@
 
 namespace ots {
 
-#define F(name, capname) \
-bool ots_##name##_parse(Font *f, const uint8_t *d, size_t l) { \
-  f->name = new OpenType##capname(f);                          \
-  return f->name->Parse(d, l);                                 \
-}                                                              \
-bool ots_##name##_should_serialise(Font *f) {                  \
-  return f->name != NULL && f->name->ShouldSerialize();        \
-}                                                              \
-bool ots_##name##_serialise(OTSStream *s, Font *f) {           \
-   return f->name->Serialize(s);                               \
-}                                                              \
-void ots_##name##_reuse(Font *f, Font *o) {                    \
-  f->name = o->name; f->name##_reused = true;                  \
-}                                                              \
-void ots_##name##_free(Font *f) {                              \
-  delete f->name;                                              \
+Font::~Font() {
+  m_tables.clear();
 }
-FOR_EACH_TABLE_TYPE
+
+#define FOR_EACH_TABLE_TYPE \
+  F(CFF)  \
+  F(CMAP) \
+  F(CVT)  \
+  F(FPGM) \
+  F(GASP) \
+  F(GDEF) \
+  F(GLYF) \
+  F(GPOS) \
+  F(GSUB) \
+  F(HDMX) \
+  F(HEAD) \
+  F(HHEA) \
+  F(HMTX) \
+  F(KERN) \
+  F(LOCA) \
+  F(LTSH) \
+  F(MATH) \
+  F(MAXP) \
+  F(NAME) \
+  F(OS2)  \
+  F(POST) \
+  F(PREP) \
+  F(VDMX) \
+  F(VORG) \
+  F(VHEA) \
+  F(VMTX)
+
+bool Font::ParseTable(uint32_t tag, const uint8_t* data, size_t length) {
+  Table *table;
+  bool ret = false;
+  switch (tag) {
+#define F(name)                                \
+    case OTS_TAG_##name:                       \
+      table = new OpenType##name(this);        \
+      m_tables[tag] = table;                   \
+      ret = table->Parse(data, length);        \
+      if (!ret)                                \
+        m_tables.erase(tag);                   \
+      break;                                   \
+
+  FOR_EACH_TABLE_TYPE
 #undef F
+    default:
+      break;
+  }
+
+  return ret;
+}
+
+#undef FOR_EACH_TABLE_TYPE
+
+Table* Font::GetTable(uint32_t tag) const {
+  const std::map<uint32_t, Table*>::const_iterator it = m_tables.find(tag);
+  if (it != m_tables.end())
+    return it->second;
+  return NULL;
+}
 
 }  // namespace ots
 
@@ -119,67 +162,37 @@ struct Arena {
 
 const struct {
   uint32_t tag;
-  bool (*parse)(ots::Font *font, const uint8_t *data, size_t length);
-  bool (*serialise)(ots::OTSStream *out, ots::Font *font);
-  bool (*should_serialise)(ots::Font *font);
-  void (*reuse)(ots::Font *font, ots::Font *other);
   bool required;
-} table_parsers[] = {
-  { OTS_TAG('m','a','x','p'), ots::ots_maxp_parse, ots::ots_maxp_serialise,
-    ots::ots_maxp_should_serialise, ots::ots_maxp_reuse, true },
-  { OTS_TAG('h','e','a','d'), ots::ots_head_parse, ots::ots_head_serialise,
-    ots::ots_head_should_serialise, ots::ots_head_reuse, true },
-  { OTS_TAG('O','S','/','2'), ots::ots_os2_parse, ots::ots_os2_serialise,
-    ots::ots_os2_should_serialise, ots::ots_os2_reuse, true },
-  { OTS_TAG('c','m','a','p'), ots::ots_cmap_parse, ots::ots_cmap_serialise,
-    ots::ots_cmap_should_serialise, ots::ots_cmap_reuse, true },
-  { OTS_TAG('h','h','e','a'), ots::ots_hhea_parse, ots::ots_hhea_serialise,
-    ots::ots_hhea_should_serialise, ots::ots_hhea_reuse, true },
-  { OTS_TAG('h','m','t','x'), ots::ots_hmtx_parse, ots::ots_hmtx_serialise,
-    ots::ots_hmtx_should_serialise, ots::ots_hmtx_reuse, true },
-  { OTS_TAG('n','a','m','e'), ots::ots_name_parse, ots::ots_name_serialise,
-    ots::ots_name_should_serialise, ots::ots_name_reuse, true },
-  { OTS_TAG('p','o','s','t'), ots::ots_post_parse, ots::ots_post_serialise,
-    ots::ots_post_should_serialise, ots::ots_post_reuse, true },
-  { OTS_TAG('l','o','c','a'), ots::ots_loca_parse, ots::ots_loca_serialise,
-    ots::ots_loca_should_serialise, ots::ots_loca_reuse, false },
-  { OTS_TAG('g','l','y','f'), ots::ots_glyf_parse, ots::ots_glyf_serialise,
-    ots::ots_glyf_should_serialise, ots::ots_glyf_reuse, false },
-  { OTS_TAG('C','F','F',' '), ots::ots_cff_parse, ots::ots_cff_serialise,
-    ots::ots_cff_should_serialise, ots::ots_cff_reuse, false },
-  { OTS_TAG('V','D','M','X'), ots::ots_vdmx_parse, ots::ots_vdmx_serialise,
-    ots::ots_vdmx_should_serialise, ots::ots_vdmx_reuse, false },
-  { OTS_TAG('h','d','m','x'), ots::ots_hdmx_parse, ots::ots_hdmx_serialise,
-    ots::ots_hdmx_should_serialise, ots::ots_hdmx_reuse, false },
-  { OTS_TAG('g','a','s','p'), ots::ots_gasp_parse, ots::ots_gasp_serialise,
-    ots::ots_gasp_should_serialise, ots::ots_gasp_reuse, false },
-  { OTS_TAG('c','v','t',' '), ots::ots_cvt_parse, ots::ots_cvt_serialise,
-    ots::ots_cvt_should_serialise, ots::ots_cvt_reuse, false },
-  { OTS_TAG('f','p','g','m'), ots::ots_fpgm_parse, ots::ots_fpgm_serialise,
-    ots::ots_fpgm_should_serialise, ots::ots_fpgm_reuse, false },
-  { OTS_TAG('p','r','e','p'), ots::ots_prep_parse, ots::ots_prep_serialise,
-    ots::ots_prep_should_serialise, ots::ots_prep_reuse, false },
-  { OTS_TAG('L','T','S','H'), ots::ots_ltsh_parse, ots::ots_ltsh_serialise,
-    ots::ots_ltsh_should_serialise, ots::ots_ltsh_reuse, false },
-  { OTS_TAG('V','O','R','G'), ots::ots_vorg_parse, ots::ots_vorg_serialise,
-    ots::ots_vorg_should_serialise, ots::ots_vorg_reuse, false },
-  { OTS_TAG('k','e','r','n'), ots::ots_kern_parse, ots::ots_kern_serialise,
-    ots::ots_kern_should_serialise, ots::ots_kern_reuse, false },
+} supported_tables[] = {
+  { OTS_TAG_MAXP, true },
+  { OTS_TAG_HEAD, true },
+  { OTS_TAG_OS2,  true },
+  { OTS_TAG_CMAP, true },
+  { OTS_TAG_HHEA, true },
+  { OTS_TAG_HMTX, true },
+  { OTS_TAG_NAME, true },
+  { OTS_TAG_POST, true },
+  { OTS_TAG_LOCA, false },
+  { OTS_TAG_GLYF, false },
+  { OTS_TAG_CFF,  false },
+  { OTS_TAG_VDMX, false },
+  { OTS_TAG_HDMX, false },
+  { OTS_TAG_GASP, false },
+  { OTS_TAG_CVT,  false },
+  { OTS_TAG_FPGM, false },
+  { OTS_TAG_PREP, false },
+  { OTS_TAG_LTSH, false },
+  { OTS_TAG_VORG, false },
+  { OTS_TAG_KERN, false },
   // We need to parse GDEF table in advance of parsing GSUB/GPOS tables
   // because they could refer GDEF table.
-  { OTS_TAG('G','D','E','F'), ots::ots_gdef_parse, ots::ots_gdef_serialise,
-    ots::ots_gdef_should_serialise, ots::ots_gdef_reuse, false },
-  { OTS_TAG('G','P','O','S'), ots::ots_gpos_parse, ots::ots_gpos_serialise,
-    ots::ots_gpos_should_serialise, ots::ots_gpos_reuse, false },
-  { OTS_TAG('G','S','U','B'), ots::ots_gsub_parse, ots::ots_gsub_serialise,
-    ots::ots_gsub_should_serialise, ots::ots_gsub_reuse, false },
-  { OTS_TAG('v','h','e','a'), ots::ots_vhea_parse, ots::ots_vhea_serialise,
-    ots::ots_vhea_should_serialise, ots::ots_vhea_reuse, false },
-  { OTS_TAG('v','m','t','x'), ots::ots_vmtx_parse, ots::ots_vmtx_serialise,
-    ots::ots_vmtx_should_serialise, ots::ots_vmtx_reuse, false },
-  { OTS_TAG('M','A','T','H'), ots::ots_math_parse, ots::ots_math_serialise,
-    ots::ots_math_should_serialise, ots::ots_math_reuse, false },
-  { 0, NULL, NULL, NULL, NULL, false },
+  { OTS_TAG_GDEF, false },
+  { OTS_TAG_GPOS, false },
+  { OTS_TAG_GSUB, false },
+  { OTS_TAG_VHEA, false },
+  { OTS_TAG_VMTX, false },
+  { OTS_TAG_MATH, false },
+  { 0, false },
 };
 
 bool ProcessGeneric(ots::OpenTypeFile *header,
@@ -552,9 +565,9 @@ ots::TableAction GetTableAction(ots::OpenTypeFile *header, uint32_t tag) {
     action = ots::TABLE_ACTION_DROP;
 
     for (unsigned i = 0; ; ++i) {
-      if (table_parsers[i].parse == NULL) break;
+      if (supported_tables[i].tag == 0) break;
 
-      if (table_parsers[i].tag == tag) {
+      if (supported_tables[i].tag == tag) {
         action = ots::TABLE_ACTION_SANITIZE;
         break;
       }
@@ -694,15 +707,15 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
   Arena arena;
 
   for (unsigned i = 0; ; ++i) {
-    if (table_parsers[i].parse == NULL) break;
+    if (supported_tables[i].tag == 0) break;
 
-    uint32_t tag = table_parsers[i].tag;
+    uint32_t tag = supported_tables[i].tag;
     const std::map<uint32_t, OpenTypeTable>::const_iterator it = table_map.find(tag);
 
     ots::TableAction action = GetTableAction(header, tag);
     if (it == table_map.end()) {
-      if (table_parsers[i].required && action == ots::TABLE_ACTION_SANITIZE) {
-        return OTS_FAILURE_MSG_TAG("missing required table", table_parsers[i].tag);
+      if (supported_tables[i].required && action == ots::TABLE_ACTION_SANITIZE) {
+        return OTS_FAILURE_MSG_TAG("missing required table", tag);
       }
       continue;
     }
@@ -714,15 +727,15 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
       size_t table_length;
 
       if (!GetTableData(data, it->second, &arena, &table_length, &table_data)) {
-        return OTS_FAILURE_MSG_TAG("uncompress failed", table_parsers[i].tag);
+        return OTS_FAILURE_MSG_TAG("uncompress failed", tag);
       }
 
       if (action == ots::TABLE_ACTION_SANITIZE &&
-          !table_parsers[i].parse(font, table_data, table_length)) {
+          !font->ParseTable(tag, table_data, table_length)) {
         return OTS_FAILURE();
       }
     } else if (action == ots::TABLE_ACTION_SANITIZE) {
-      table_parsers[i].reuse(font, ot->second.first);
+      assert(false); // FIXME: table_parsers[i].reuse(font, ot->second.first);
     }
   }
 
@@ -732,17 +745,17 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
    GetTableAction(header, OTS_TAG(c1,c2,c3,c4)) == ots::TABLE_ACTION_PASSTHRU \
   )
 
-  if (font->cff) {
+  if (font->GetTable(OTS_TAG_CFF)) {
     // font with PostScript glyph
     if (font->version != OTS_TAG('O','T','T','O')) {
       return OTS_FAILURE_MSG_HDR("wrong font version for PostScript glyph data");
     }
-    if (font->glyf || font->loca) {
+    if (font->GetTable(OTS_TAG_GLYF) || font->GetTable(OTS_TAG_LOCA)) {
       // mixing outline formats is not recommended
       return OTS_FAILURE_MSG_HDR("font contains both PS and TT glyphs");
     }
   } else {
-    if (!font->glyf || !font->loca) {
+    if (!font->GetTable(OTS_TAG_GLYF) || !font->GetTable(OTS_TAG_LOCA)) {
       // No TrueType glyph found.
       //
       // We don't sanitize bitmap tables, but don’t reject bitmap-only fonts if
@@ -763,13 +776,9 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
     if (action == ots::TABLE_ACTION_PASSTHRU) {
       num_output_tables++;
     } else {
-      for (unsigned i = 0; table_parsers[i].parse != NULL; ++i) {
-        if (table_parsers[i].tag == it->first &&
-            table_parsers[i].should_serialise(font)) {
-          num_output_tables++;
-          break;
-        }
-      }
+      ots::Table *table = font->GetTable(it->first);
+      if (table != NULL && table->ShouldSerialize())
+        num_output_tables++;
     }
   }
 
@@ -818,7 +827,7 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
         head_table_offset = out.offset;
       }
 
-      ots::TableAction action = GetTableAction(header, it->first);
+      ots::TableAction action = GetTableAction(header, out.tag);
       if (action == ots::TABLE_ACTION_PASSTHRU) {
         output->ResetChecksum();
         const uint8_t* table_data;
@@ -848,32 +857,28 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
         out_tables.push_back(out);
         header->tables[input_offset] = std::make_pair(font, out);
       } else {
-        for (unsigned i = 0; table_parsers[i].parse != NULL; ++i) {
-          if (table_parsers[i].tag == it->first &&
-              table_parsers[i].should_serialise(font)) {
-            output->ResetChecksum();
-            if (!table_parsers[i].serialise(output, font)) {
-              return OTS_FAILURE_MSG_TAG("failed to serialize table", table_parsers[i].tag);
-            }
-
-            const size_t end_offset = output->Tell();
-            if (end_offset <= out.offset) {
-              // paranoid check. |end_offset| is supposed to be greater than the offset,
-              // as long as the Tell() interface is implemented correctly.
-              return OTS_FAILURE_MSG_HDR("error writing output");
-            }
-            out.length = end_offset - out.offset;
-
-            // align tables to four bytes
-            if (!output->Pad((4 - (end_offset & 3)) % 4)) {
-              return OTS_FAILURE_MSG_HDR("error writing output");
-            }
-            out.chksum = output->chksum();
-            out_tables.push_back(out);
-            header->tables[input_offset] = std::make_pair(font, out);
-
-            break;
+        ots::Table *table = font->GetTable(out.tag);
+        if (table != NULL && table->ShouldSerialize()) {
+          output->ResetChecksum();
+          if (!table->Serialize(output)) {
+            return OTS_FAILURE_MSG_TAG("failed to serialize table", out.tag);
           }
+
+          const size_t end_offset = output->Tell();
+          if (end_offset <= out.offset) {
+            // paranoid check. |end_offset| is supposed to be greater than the offset,
+            // as long as the Tell() interface is implemented correctly.
+            return OTS_FAILURE_MSG_HDR("error writing output");
+          }
+          out.length = end_offset - out.offset;
+
+          // align tables to four bytes
+          if (!output->Pad((4 - (end_offset & 3)) % 4)) {
+            return OTS_FAILURE_MSG_HDR("error writing output");
+          }
+          out.chksum = output->chksum();
+          out_tables.push_back(out);
+          header->tables[input_offset] = std::make_pair(font, out);
         }
       }
     }

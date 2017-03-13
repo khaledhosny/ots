@@ -100,7 +100,8 @@ bool OpenTypeGLYF::ParseSimpleGlyph(const uint8_t *data,
     return Error("Can't read bytecode length");
   }
 
-  OpenTypeMAXP* maxp = GetFont()->maxp;
+  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
+      GetFont()->GetTable(OTS_TAG_MAXP));
   if (maxp->version_1 &&
       (maxp->max_size_glyf_instructions < bytecode_length)) {
     return Error("Bytecode length too high %d", bytecode_length);
@@ -159,9 +160,12 @@ bool OpenTypeGLYF::ParseSimpleGlyph(const uint8_t *data,
 bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
-  OpenTypeMAXP* maxp = GetFont()->maxp;
-  OpenTypeLOCA* loca = GetFont()->loca;
-  OpenTypeHEAD* head = GetFont()->head;
+  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
+      GetFont()->GetTable(OTS_TAG_MAXP));
+  OpenTypeLOCA *loca = dynamic_cast<OpenTypeLOCA*>(
+      GetFont()->GetTable(OTS_TAG_LOCA));
+  OpenTypeHEAD *head = dynamic_cast<OpenTypeHEAD*>(
+      GetFont()->GetTable(OTS_TAG_HEAD));
   if (!maxp || !loca || !head) {
     return Error("Missing maxp or loca or head table needed by glyf table");
   }

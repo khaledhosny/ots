@@ -221,6 +221,9 @@ bool ParseSingleAdjustment(const ots::Font *font, const uint8_t *data,
                            const size_t length) {
   ots::Buffer subtable(data, length);
 
+  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
+      font->GetTable(OTS_TAG_MAXP));
+
   uint16_t format = 0;
   uint16_t offset_coverage = 0;
   uint16_t value_format = 0;
@@ -255,7 +258,7 @@ bool ParseSingleAdjustment(const ots::Font *font, const uint8_t *data,
 
   if (!ots::ParseCoverageTable(font, data + offset_coverage,
                                length - offset_coverage,
-                               font->maxp->num_glyphs)) {
+                               maxp->num_glyphs)) {
     return OTS_FAILURE_MSG("Failed to parse coverage table in single adjustment table");
   }
 
@@ -405,6 +408,9 @@ bool ParsePairAdjustment(const ots::Font *font, const uint8_t *data,
                          const size_t length) {
   ots::Buffer subtable(data, length);
 
+  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
+      font->GetTable(OTS_TAG_MAXP));
+
   uint16_t format = 0;
   uint16_t offset_coverage = 0;
   uint16_t value_format1 = 0;
@@ -418,12 +424,12 @@ bool ParsePairAdjustment(const ots::Font *font, const uint8_t *data,
 
   if (format == 1) {
     if (!ParsePairPosFormat1(font, data, length, value_format1, value_format2,
-                             font->maxp->num_glyphs)) {
+                             maxp->num_glyphs)) {
       return OTS_FAILURE_MSG("Failed to parse pair pos format 1");
     }
   } else if (format == 2) {
     if (!ParsePairPosFormat2(font, data, length, value_format1, value_format2,
-                             font->maxp->num_glyphs)) {
+                             maxp->num_glyphs)) {
       return OTS_FAILURE_MSG("Failed to parse pair format 2");
     }
   } else {
@@ -435,7 +441,7 @@ bool ParsePairAdjustment(const ots::Font *font, const uint8_t *data,
   }
   if (!ots::ParseCoverageTable(font, data + offset_coverage,
                                length - offset_coverage,
-                               font->maxp->num_glyphs)) {
+                               maxp->num_glyphs)) {
     return OTS_FAILURE_MSG("Failed to parse coverage table");
   }
 
@@ -447,6 +453,9 @@ bool ParsePairAdjustment(const ots::Font *font, const uint8_t *data,
 bool ParseCursiveAttachment(const ots::Font *font, const uint8_t *data,
                             const size_t length) {
   ots::Buffer subtable(data, length);
+
+  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
+      font->GetTable(OTS_TAG_MAXP));
 
   uint16_t format = 0;
   uint16_t offset_coverage = 0;
@@ -502,7 +511,7 @@ bool ParseCursiveAttachment(const ots::Font *font, const uint8_t *data,
   }
   if (!ots::ParseCoverageTable(font, data + offset_coverage,
                                length - offset_coverage,
-                               font->maxp->num_glyphs)) {
+                               maxp->num_glyphs)) {
     return OTS_FAILURE_MSG("Failed to parse coverage table in cursive attachment");
   }
 
@@ -576,6 +585,9 @@ bool ParseMarkToAttachmentSubtables(const ots::Font *font,
                                     const GPOS_TYPE type) {
   ots::Buffer subtable(data, length);
 
+  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
+      font->GetTable(OTS_TAG_MAXP));
+
   uint16_t format = 0;
   uint16_t offset_coverage1 = 0;
   uint16_t offset_coverage2 = 0;
@@ -604,7 +616,7 @@ bool ParseMarkToAttachmentSubtables(const ots::Font *font,
   }
   if (!ots::ParseCoverageTable(font, data + offset_coverage1,
                                length - offset_coverage1,
-                               font->maxp->num_glyphs)) {
+                               maxp->num_glyphs)) {
     return OTS_FAILURE_MSG("Failed to parse converge 1 table");
   }
   if (offset_coverage2 < header_end || offset_coverage2 >= length) {
@@ -612,7 +624,7 @@ bool ParseMarkToAttachmentSubtables(const ots::Font *font,
   }
   if (!ots::ParseCoverageTable(font, data + offset_coverage2,
                                length - offset_coverage2,
-                               font->maxp->num_glyphs)) {
+                               maxp->num_glyphs)) {
     return OTS_FAILURE_MSG("Failed to parse coverage table 2");
   }
 
@@ -676,17 +688,25 @@ bool ParseMarkToMarkAttachment(const ots::Font *font,
 // Contextual Positioning Subtables
 bool ParseContextPositioning(const ots::Font *font,
                              const uint8_t *data, const size_t length) {
-  return ots::ParseContextSubtable(font, data, length, font->maxp->num_glyphs,
-                                   font->gpos->num_lookups);
+  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
+      font->GetTable(OTS_TAG_MAXP));
+  ots::OpenTypeGPOS *gpos = dynamic_cast<ots::OpenTypeGPOS*>(
+      font->GetTable(OTS_TAG_GPOS));
+  return ots::ParseContextSubtable(font, data, length, maxp->num_glyphs,
+                                   gpos->num_lookups);
 }
 
 // Lookup Type 8:
 // Chaining Contexual Positioning Subtable
 bool ParseChainedContextPositioning(const ots::Font *font,
                                     const uint8_t *data, const size_t length) {
+  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
+      font->GetTable(OTS_TAG_MAXP));
+  ots::OpenTypeGPOS *gpos = dynamic_cast<ots::OpenTypeGPOS*>(
+      font->GetTable(OTS_TAG_GPOS));
   return ots::ParseChainingContextSubtable(font, data, length,
-                                           font->maxp->num_glyphs,
-                                           font->gpos->num_lookups);
+                                           maxp->num_glyphs,
+                                           gpos->num_lookups);
 }
 
 // Lookup Type 9:
@@ -705,7 +725,9 @@ bool OpenTypeGPOS::Parse(const uint8_t *data, size_t length) {
   Font *font = GetFont();
 
   // Parsing GPOS table requires num_glyphs which is contained in maxp table.
-  if (!font->maxp) {
+  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
+      font->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
     return Error("missing maxp table needed in GPOS");
   }
 

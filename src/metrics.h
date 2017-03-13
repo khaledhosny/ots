@@ -38,14 +38,14 @@ class OpenTypeMetricsHeader : public Table {
 struct OpenTypeMetricsTable : public Table {
  public:
   explicit OpenTypeMetricsTable(Font *font, uint32_t tag,
-                                OpenTypeMetricsHeader *header)
-      : Table(font, tag), m_header(header) { }
+                                uint32_t header_tag)
+      : Table(font, tag), m_header_tag(header_tag) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);
 
  private:
-  const OpenTypeMetricsHeader *m_header;
+  uint32_t m_header_tag;
 
   std::vector<std::pair<uint16_t, int16_t> > entries;
   std::vector<int16_t> sbs;

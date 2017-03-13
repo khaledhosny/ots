@@ -43,12 +43,14 @@ bool OpenTypeMetricsHeader::Parse(const uint8_t *data, size_t length) {
     this->linegap = 0;
   }
 
-  if (!GetFont()->head) {
+  OpenTypeHEAD *head = dynamic_cast<OpenTypeHEAD*>(
+      GetFont()->GetTable(OTS_TAG_HEAD));
+  if (!head) {
     return Error("Missing head font table");
   }
 
   // if the font is non-slanted, caret_offset should be zero.
-  if (!(GetFont()->head->mac_style & 2) &&
+  if (!(head->mac_style & 2) &&
       (this->caret_offset != 0)) {
     Warning("bad caret offset: %d", this->caret_offset);
     this->caret_offset = 0;
@@ -71,11 +73,13 @@ bool OpenTypeMetricsHeader::Parse(const uint8_t *data, size_t length) {
     return Error("Failed to read number of metrics");
   }
 
-  if (!GetFont()->maxp) {
+  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
+      GetFont()->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
     return Error("Missing maxp font table");
   }
 
-  if (this->num_metrics > GetFont()->maxp->num_glyphs) {
+  if (this->num_metrics > maxp->num_glyphs) {
     return Error("Bad number of metrics %d", this->num_metrics);
   }
 
@@ -106,17 +110,21 @@ bool OpenTypeMetricsHeader::Serialize(OTSStream *out) {
 bool OpenTypeMetricsTable::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
+  OpenTypeMetricsHeader *header = dynamic_cast<OpenTypeMetricsHeader*>(
+      GetFont()->GetTable(m_header_tag));
   // |num_metrics| is a uint16_t, so it's bounded < 65536. This limits that
   // amount of memory that we'll allocate for this to a sane amount.
-  const unsigned num_metrics = m_header->num_metrics;
+  const unsigned num_metrics = header->num_metrics;
 
-  if (num_metrics > GetFont()->maxp->num_glyphs) {
+  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
+      GetFont()->GetTable(OTS_TAG_MAXP));
+  if (num_metrics > maxp->num_glyphs) {
     return Error("Bad number of metrics %d", num_metrics);
   }
   if (!num_metrics) {
     return Error("No metrics!");
   }
-  const unsigned num_sbs = GetFont()->maxp->num_glyphs - num_metrics;
+  const unsigned num_sbs = maxp->num_glyphs - num_metrics;
 
   this->entries.reserve(num_metrics);
   for (unsigned i = 0; i < num_metrics; ++i) {

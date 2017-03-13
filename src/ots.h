@@ -215,49 +215,8 @@ bool IsValidVersionTag(uint32_t tag);
 #define OTS_TAG_VMTX OTS_TAG('v','m','t','x')
 #define OTS_TAG_VORG OTS_TAG('V','O','R','G')
 
-#define FOR_EACH_TABLE_TYPE \
-  F(cff, CFF) \
-  F(cmap, CMAP) \
-  F(cvt, CVT) \
-  F(fpgm, FPGM) \
-  F(gasp, GASP) \
-  F(gdef, GDEF) \
-  F(glyf, GLYF) \
-  F(gpos, GPOS) \
-  F(gsub, GSUB) \
-  F(hdmx, HDMX) \
-  F(head, HEAD) \
-  F(hhea, HHEA) \
-  F(hmtx, HMTX) \
-  F(kern, KERN) \
-  F(loca, LOCA) \
-  F(ltsh, LTSH) \
-  F(math, MATH) \
-  F(maxp, MAXP) \
-  F(name, NAME) \
-  F(os2, OS2) \
-  F(post, POST) \
-  F(prep, PREP) \
-  F(vdmx, VDMX) \
-  F(vorg, VORG) \
-  F(vhea, VHEA) \
-  F(vmtx, VMTX)
-
-#define F(name, capname) class OpenType##capname;
-FOR_EACH_TABLE_TYPE
-#undef F
-
 struct Font;
 struct OpenTypeFile;
-
-#define F(name, capname) \
-bool ots_##name##_parse(Font *f, const uint8_t *d, size_t l); \
-bool ots_##name##_should_serialise(Font *f); \
-bool ots_##name##_serialise(OTSStream *s, Font *f); \
-void ots_##name##_reuse(Font *f, Font *o);\
-void ots_##name##_free(Font *f);
-FOR_EACH_TABLE_TYPE
-#undef F
 
 class Table {
  public:
@@ -289,21 +248,12 @@ struct Font {
         search_range(0),
         entry_selector(0),
         range_shift(0) {
-#define F(name, capname) \
-    name = NULL; \
-    name##_reused = false;
-    FOR_EACH_TABLE_TYPE
-#undef F
   }
 
-  ~Font() {
-#define F(name, capname) \
-    if (!name##_reused) {\
-      ots_##name##_free(this); \
-    }
-    FOR_EACH_TABLE_TYPE
-#undef F
-  }
+  ~Font();
+
+  bool ParseTable(uint32_t tag, const uint8_t* data, size_t length);
+  Table* GetTable(uint32_t tag) const;
 
   const OpenTypeFile *file;
 
@@ -313,11 +263,8 @@ struct Font {
   uint16_t entry_selector;
   uint16_t range_shift;
 
-#define F(name, capname) \
-  OpenType##capname *name; \
-  bool name##_reused;
-FOR_EACH_TABLE_TYPE
-#undef F
+ private:
+  std::map<uint32_t, Table*> m_tables;
 };
 
 struct OutputTable {

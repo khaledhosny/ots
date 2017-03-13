@@ -14,11 +14,15 @@ namespace ots {
 bool OpenTypeHDMX::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
-  if (!GetFont()->head || !GetFont()->maxp) {
+  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
+      GetFont()->GetTable(OTS_TAG_MAXP));
+  OpenTypeHEAD *head = dynamic_cast<OpenTypeHEAD*>(
+      GetFont()->GetTable(OTS_TAG_HEAD));
+  if (!head || !maxp) {
     return Error("Missing maxp or head tables in font, needed by hdmx");
   }
 
-  if ((GetFont()->head->flags & 0x14) == 0) {
+  if ((head->flags & 0x14) == 0) {
     // http://www.microsoft.com/typography/otspec/recom.htm
     return Drop("the table should not be present when bit 2 and 4 of the "
                 "head->flags are not set");
@@ -36,7 +40,7 @@ bool OpenTypeHDMX::Parse(const uint8_t *data, size_t length) {
   if (num_recs <= 0) {
     return Drop("bad num_recs: %d", num_recs);
   }
-  const int32_t actual_size_device_record = GetFont()->maxp->num_glyphs + 2;
+  const int32_t actual_size_device_record = maxp->num_glyphs + 2;
   if (this->size_device_record < actual_size_device_record) {
     return Drop("bad size_device_record: %d", this->size_device_record);
   }
@@ -61,8 +65,8 @@ bool OpenTypeHDMX::Parse(const uint8_t *data, size_t length) {
     }
     last_pixel_size = rec.pixel_size;
 
-    rec.widths.reserve(GetFont()->maxp->num_glyphs);
-    for (unsigned j = 0; j < GetFont()->maxp->num_glyphs; ++j) {
+    rec.widths.reserve(maxp->num_glyphs);
+    for (unsigned j = 0; j < maxp->num_glyphs; ++j) {
       uint8_t width;
       if (!table.ReadU8(&width)) {
         return Error("Failed to read glyph width %d in record %d", j, i);
@@ -83,7 +87,8 @@ bool OpenTypeHDMX::Parse(const uint8_t *data, size_t length) {
 
 bool OpenTypeHDMX::ShouldSerialize() {
   return Table::ShouldSerialize() &&
-         GetFont()->glyf != NULL; // this table is not for CFF fonts.
+         // this table is not for CFF fonts.
+         GetFont()->GetTable(OTS_TAG_GLYF) != NULL;
 }
 
 bool OpenTypeHDMX::Serialize(OTSStream *out) {

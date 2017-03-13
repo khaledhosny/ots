@@ -32,7 +32,8 @@ bool OpenTypeVHEA::Serialize(OTSStream *out) {
 
 bool OpenTypeVHEA::ShouldSerialize() {
   return OpenTypeMetricsHeader::ShouldSerialize() &&
-         GetFont()->vmtx != NULL; // vhea should'nt serialise when vmtx doesn't exist.
+         // vhea shouldn't serialise when vmtx doesn't exist.
+         GetFont()->GetTable(OTS_TAG_VMTX) != NULL;
 }
 
 }  // namespace ots

@@ -126,7 +126,8 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
 
   // the settings of bits 0 and 1 must be reflected in the macStyle bits
   // in the 'head' table.
-  OpenTypeHEAD* head = GetFont()->head;
+  OpenTypeHEAD *head = dynamic_cast<OpenTypeHEAD*>(
+      GetFont()->GetTable(OTS_TAG_HEAD));
   if (!head) {
     return Error("Needed head table is missing from the font");
   }

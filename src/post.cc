@@ -48,12 +48,14 @@ bool OpenTypePOST::Parse(const uint8_t *data, size_t length) {
     return Error("Failed to read number of glyphs");
   }
 
-  if (!GetFont()->maxp) {
+  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
+      GetFont()->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
     return Error("No maxp table required by post table");
   }
 
   if (num_glyphs == 0) {
-    if (GetFont()->maxp->num_glyphs > 258) {
+    if (maxp->num_glyphs > 258) {
       return Error("Can't have no glyphs in the post table if there are more than 256 glyphs in the font");
     }
     // workaround for fonts in http://www.fontsquirrel.com/fontface
@@ -62,7 +64,7 @@ bool OpenTypePOST::Parse(const uint8_t *data, size_t length) {
     return Warning("table version is 1, but no glyf names are found");
   }
 
-  if (num_glyphs != GetFont()->maxp->num_glyphs) {
+  if (num_glyphs != maxp->num_glyphs) {
     // Note: Fixedsys500c.ttf seems to have inconsistent num_glyphs values.
     return Error("Bad number of glyphs in post table %d", num_glyphs);
   }
@@ -116,7 +118,7 @@ bool OpenTypePOST::Parse(const uint8_t *data, size_t length) {
 
 bool OpenTypePOST::Serialize(OTSStream *out) {
   // OpenType with CFF glyphs must have v3 post table.
-  if (GetFont()->cff && this->version != 0x00030000) {
+  if (GetFont()->GetTable(OTS_TAG_CFF) && this->version != 0x00030000) {
     return Error("Bad post version %x", this->version);
   }
 
