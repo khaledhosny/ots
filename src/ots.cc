@@ -721,8 +721,10 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
     }
 
     uint32_t input_offset = it->second.offset;
-    const ots::TableMap::const_iterator ot = header->tables.find(input_offset);
-    if (ot == header->tables.end()) {
+    // FIXME: we are re-parsing and duplicating shared tables in collections
+    // move parsed tables owenership to the file?
+  //const ots::TableMap::const_iterator ot = header->tables.find(input_offset);
+  //if (ot == header->tables.end()) {
       const uint8_t* table_data;
       size_t table_length;
 
@@ -734,9 +736,9 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
           !font->ParseTable(tag, table_data, table_length)) {
         return OTS_FAILURE();
       }
-    } else if (action == ots::TABLE_ACTION_SANITIZE) {
-      assert(false); // FIXME: table_parsers[i].reuse(font, ot->second.first);
-    }
+  //} else if (action == ots::TABLE_ACTION_SANITIZE) {
+  //  table_parsers[i].reuse(font, ot->second.first);
+  //}
   }
 
 #define PASSTHRU(c1,c2,c3,c4) \
