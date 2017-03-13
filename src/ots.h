@@ -62,7 +62,7 @@ namespace ots {
 
 // Convenience macros for use in files that only handle a single table tag,
 // defined as TABLE_NAME at the top of the file; the 'file' variable is
-// expected to be the current OpenTypeFile pointer.
+// expected to be the current FontFile pointer.
 #define OTS_FAILURE_MSG(...) OTS_FAILURE_MSG_(font->file, TABLE_NAME ": " __VA_ARGS__)
 
 #define OTS_WARNING(...) OTS_WARNING_MSG_(font->file, TABLE_NAME ": " __VA_ARGS__)
@@ -216,7 +216,7 @@ bool IsValidVersionTag(uint32_t tag);
 #define OTS_TAG_VORG OTS_TAG('V','O','R','G')
 
 struct Font;
-struct OpenTypeFile;
+struct FontFile;
 
 class Table {
  public:
@@ -241,7 +241,7 @@ class Table {
 };
 
 struct Font {
-  explicit Font(const OpenTypeFile *f)
+  explicit Font(const FontFile *f)
       : file(f),
         version(0),
         num_tables(0),
@@ -255,7 +255,7 @@ struct Font {
   bool ParseTable(uint32_t tag, const uint8_t* data, size_t length);
   Table* GetTable(uint32_t tag) const;
 
-  const OpenTypeFile *file;
+  const FontFile *file;
 
   uint32_t version;
   uint16_t num_tables;
@@ -280,7 +280,7 @@ struct OutputTable {
 
 typedef std::map<uint32_t, std::pair<Font*, OutputTable> > TableMap;
 
-struct OpenTypeFile {
+struct FontFile {
   OTSContext *context;
   TableMap tables;
 };

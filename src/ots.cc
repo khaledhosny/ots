@@ -110,7 +110,7 @@ Table* Font::GetTable(uint32_t tag) const {
 
 namespace {
 
-// Generate a message with or without a table tag, when 'header' is the OpenTypeFile pointer
+// Generate a message with or without a table tag, when 'header' is the FontFile pointer
 #define OTS_FAILURE_MSG_TAG(msg_,tag_) OTS_FAILURE_MSG_TAG_(header, msg_, tag_)
 #define OTS_FAILURE_MSG_HDR(msg_)      OTS_FAILURE_MSG_(header, msg_)
 #define OTS_WARNING_MSG_HDR(msg_)      OTS_WARNING_MSG_(header, msg_)
@@ -189,7 +189,7 @@ const struct {
   { 0, false },
 };
 
-bool ProcessGeneric(ots::OpenTypeFile *header,
+bool ProcessGeneric(ots::FontFile *header,
                     ots::Font *font,
                     uint32_t signature,
                     ots::OTSStream *output,
@@ -197,7 +197,7 @@ bool ProcessGeneric(ots::OpenTypeFile *header,
                     const std::vector<OpenTypeTable>& tables,
                     ots::Buffer& file);
 
-bool ProcessTTF(ots::OpenTypeFile *header,
+bool ProcessTTF(ots::FontFile *header,
                 ots::Font *font,
                 ots::OTSStream *output, const uint8_t *data, size_t length,
                 uint32_t offset = 0) {
@@ -280,7 +280,7 @@ bool ProcessTTF(ots::OpenTypeFile *header,
                         tables, file);
 }
 
-bool ProcessTTC(ots::OpenTypeFile *header,
+bool ProcessTTC(ots::FontFile *header,
                 ots::OTSStream *output,
                 const uint8_t *data,
                 size_t length,
@@ -367,7 +367,7 @@ bool ProcessTTC(ots::OpenTypeFile *header,
   }
 }
 
-bool ProcessWOFF(ots::OpenTypeFile *header,
+bool ProcessWOFF(ots::FontFile *header,
                  ots::Font *font,
                  ots::OTSStream *output, const uint8_t *data, size_t length) {
   ots::Buffer file(data, length);
@@ -522,7 +522,7 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
   return ProcessGeneric(header, font, woff_tag, output, data, length, tables, file);
 }
 
-bool ProcessWOFF2(ots::OpenTypeFile *header,
+bool ProcessWOFF2(ots::FontFile *header,
                   ots::OTSStream *output,
                   const uint8_t *data,
                   size_t length,
@@ -552,7 +552,7 @@ bool ProcessWOFF2(ots::OpenTypeFile *header,
   }
 }
 
-ots::TableAction GetTableAction(ots::OpenTypeFile *header, uint32_t tag) {
+ots::TableAction GetTableAction(ots::FontFile *header, uint32_t tag) {
   ots::TableAction action = header->context->GetTableAction(tag);
 
   if (action == ots::TABLE_ACTION_DEFAULT) {
@@ -596,7 +596,7 @@ bool GetTableData(const uint8_t *data,
   return true;
 }
 
-bool ProcessGeneric(ots::OpenTypeFile *header,
+bool ProcessGeneric(ots::FontFile *header,
                     ots::Font *font,
                     uint32_t signature,
                     ots::OTSStream *output,
@@ -987,7 +987,7 @@ bool OTSContext::Process(OTSStream *output,
                          const uint8_t *data,
                          size_t length,
                          uint32_t index) {
-  OpenTypeFile header;
+  FontFile header;
   Font font(&header);
   header.context = this;
 
