@@ -924,12 +924,6 @@ Table* Font::GetTable(uint32_t tag) const {
   return NULL;
 }
 
-Table::Table(Font *font, uint32_t tag)
-: m_tag(tag),
-  m_font(font),
-  m_shouldSerialize(true) {
-}
-
 bool Table::ShouldSerialize() {
   return m_shouldSerialize;
 }

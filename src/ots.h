@@ -220,7 +220,11 @@ struct FontFile;
 
 class Table {
  public:
-  explicit Table(Font *font, uint32_t tag);
+  explicit Table(Font *font, uint32_t tag)
+      : m_tag(tag),
+        m_font(font),
+        m_shouldSerialize(true) {
+  }
 
   virtual bool Parse(const uint8_t *data, size_t length) = 0;
   virtual bool Serialize(OTSStream *out) = 0;
