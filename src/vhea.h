@@ -12,8 +12,8 @@ namespace ots {
 
 class OpenTypeVHEA : public OpenTypeMetricsHeader {
  public:
-  explicit OpenTypeVHEA(Font *font)
-      : OpenTypeMetricsHeader(font, OTS_TAG_VHEA) { }
+  explicit OpenTypeVHEA(Font *font, uint32_t tag)
+      : OpenTypeMetricsHeader(font, tag) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

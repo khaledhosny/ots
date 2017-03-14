@@ -824,32 +824,32 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data) {
     table = new TablePassthru(this, tag);
   } else {
     switch (tag) {
-      case OTS_TAG_CFF:  table = new OpenTypeCFF(this);  break;
-      case OTS_TAG_CMAP: table = new OpenTypeCMAP(this); break;
-      case OTS_TAG_CVT:  table = new OpenTypeCVT(this);  break;
-      case OTS_TAG_FPGM: table = new OpenTypeFPGM(this); break;
-      case OTS_TAG_GASP: table = new OpenTypeGASP(this); break;
-      case OTS_TAG_GDEF: table = new OpenTypeGDEF(this); break;
-      case OTS_TAG_GLYF: table = new OpenTypeGLYF(this); break;
-      case OTS_TAG_GPOS: table = new OpenTypeGPOS(this); break;
-      case OTS_TAG_GSUB: table = new OpenTypeGSUB(this); break;
-      case OTS_TAG_HDMX: table = new OpenTypeHDMX(this); break;
-      case OTS_TAG_HEAD: table = new OpenTypeHEAD(this); break;
-      case OTS_TAG_HHEA: table = new OpenTypeHHEA(this); break;
-      case OTS_TAG_HMTX: table = new OpenTypeHMTX(this); break;
-      case OTS_TAG_KERN: table = new OpenTypeKERN(this); break;
-      case OTS_TAG_LOCA: table = new OpenTypeLOCA(this); break;
-      case OTS_TAG_LTSH: table = new OpenTypeLTSH(this); break;
-      case OTS_TAG_MATH: table = new OpenTypeMATH(this); break;
-      case OTS_TAG_MAXP: table = new OpenTypeMAXP(this); break;
-      case OTS_TAG_NAME: table = new OpenTypeNAME(this); break;
-      case OTS_TAG_OS2:  table = new OpenTypeOS2(this);  break;
-      case OTS_TAG_POST: table = new OpenTypePOST(this); break;
-      case OTS_TAG_PREP: table = new OpenTypePREP(this); break;
-      case OTS_TAG_VDMX: table = new OpenTypeVDMX(this); break;
-      case OTS_TAG_VORG: table = new OpenTypeVORG(this); break;
-      case OTS_TAG_VHEA: table = new OpenTypeVHEA(this); break;
-      case OTS_TAG_VMTX: table = new OpenTypeVMTX(this); break;
+      case OTS_TAG_CFF:  table = new OpenTypeCFF(this,  tag); break;
+      case OTS_TAG_CMAP: table = new OpenTypeCMAP(this, tag); break;
+      case OTS_TAG_CVT:  table = new OpenTypeCVT(this,  tag); break;
+      case OTS_TAG_FPGM: table = new OpenTypeFPGM(this, tag); break;
+      case OTS_TAG_GASP: table = new OpenTypeGASP(this, tag); break;
+      case OTS_TAG_GDEF: table = new OpenTypeGDEF(this, tag); break;
+      case OTS_TAG_GLYF: table = new OpenTypeGLYF(this, tag); break;
+      case OTS_TAG_GPOS: table = new OpenTypeGPOS(this, tag); break;
+      case OTS_TAG_GSUB: table = new OpenTypeGSUB(this, tag); break;
+      case OTS_TAG_HDMX: table = new OpenTypeHDMX(this, tag); break;
+      case OTS_TAG_HEAD: table = new OpenTypeHEAD(this, tag); break;
+      case OTS_TAG_HHEA: table = new OpenTypeHHEA(this, tag); break;
+      case OTS_TAG_HMTX: table = new OpenTypeHMTX(this, tag); break;
+      case OTS_TAG_KERN: table = new OpenTypeKERN(this, tag); break;
+      case OTS_TAG_LOCA: table = new OpenTypeLOCA(this, tag); break;
+      case OTS_TAG_LTSH: table = new OpenTypeLTSH(this, tag); break;
+      case OTS_TAG_MATH: table = new OpenTypeMATH(this, tag); break;
+      case OTS_TAG_MAXP: table = new OpenTypeMAXP(this, tag); break;
+      case OTS_TAG_NAME: table = new OpenTypeNAME(this, tag); break;
+      case OTS_TAG_OS2:  table = new OpenTypeOS2(this,  tag); break;
+      case OTS_TAG_POST: table = new OpenTypePOST(this, tag); break;
+      case OTS_TAG_PREP: table = new OpenTypePREP(this, tag); break;
+      case OTS_TAG_VDMX: table = new OpenTypeVDMX(this, tag); break;
+      case OTS_TAG_VORG: table = new OpenTypeVORG(this, tag); break;
+      case OTS_TAG_VHEA: table = new OpenTypeVHEA(this, tag); break;
+      case OTS_TAG_VMTX: table = new OpenTypeVMTX(this, tag); break;
       default: break;
     }
   }

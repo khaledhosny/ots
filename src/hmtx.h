@@ -13,8 +13,8 @@ namespace ots {
 
 class OpenTypeHMTX : public OpenTypeMetricsTable {
  public:
-  explicit OpenTypeHMTX(Font *font)
-      : OpenTypeMetricsTable(font, OTS_TAG_HMTX, OTS_TAG_HHEA) { }
+  explicit OpenTypeHMTX(Font *font, uint32_t tag)
+      : OpenTypeMetricsTable(font, tag, OTS_TAG_HHEA) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

@@ -15,8 +15,8 @@ namespace ots {
 
 class OpenTypePOST : public Table {
  public:
-  explicit OpenTypePOST(Font *font)
-      : Table(font, OTS_TAG_POST) { }
+  explicit OpenTypePOST(Font *font, uint32_t tag)
+      : Table(font, tag) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

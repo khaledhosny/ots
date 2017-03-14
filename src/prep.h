@@ -11,8 +11,8 @@ namespace ots {
 
 class OpenTypePREP : public Table {
  public:
-  explicit OpenTypePREP(Font *font)
-      : Table(font, OTS_TAG_PREP) { }
+  explicit OpenTypePREP(Font *font, uint32_t tag)
+      : Table(font, tag) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

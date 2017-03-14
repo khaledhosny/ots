@@ -11,8 +11,8 @@ namespace ots {
 
 class OpenTypeMATH : public Table {
  public:
-  explicit OpenTypeMATH(Font *font)
-      : Table(font, OTS_TAG_MATH),
+  explicit OpenTypeMATH(Font *font, uint32_t tag)
+      : Table(font, tag),
         m_data(NULL),
         m_length(0) { }
 
