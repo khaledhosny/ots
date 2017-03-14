@@ -217,6 +217,7 @@ bool IsValidVersionTag(uint32_t tag);
 
 struct Font;
 struct FontFile;
+struct TableEntry;
 
 class Table {
  public:
@@ -244,6 +245,22 @@ class Table {
   bool m_shouldSerialize;
 };
 
+class TablePassthru : public Table {
+ public:
+  explicit TablePassthru(Font *font, uint32_t tag)
+      : Table(font, tag),
+        m_data(NULL),
+        m_length(0) {
+  }
+
+  bool Parse(const uint8_t *data, size_t length);
+  bool Serialize(OTSStream *out);
+
+ private:
+  const uint8_t *m_data;
+  size_t m_length;
+};
+
 struct Font {
   explicit Font(const FontFile *f)
       : file(f),
@@ -256,7 +273,7 @@ struct Font {
 
   ~Font();
 
-  bool ParseTable(uint32_t tag, const uint8_t* data, size_t length);
+  bool ParseTable(const TableEntry& tableinfo, const uint8_t* data);
   Table* GetTable(uint32_t tag) const;
 
   const FontFile *file;
@@ -271,18 +288,19 @@ struct Font {
   std::map<uint32_t, Table*> m_tables;
 };
 
-struct OutputTable {
+struct TableEntry {
   uint32_t tag;
-  size_t offset;
-  size_t length;
+  uint32_t offset;
+  uint32_t length;
+  uint32_t uncompressed_length;
   uint32_t chksum;
 
-  bool operator<(const OutputTable& other) const {
+  bool operator<(const TableEntry& other) const {
     return tag < other.tag;
   }
 };
 
-typedef std::map<uint32_t, std::pair<Font*, OutputTable> > TableMap;
+typedef std::map<uint32_t, std::pair<Font*, TableEntry> > TableMap;
 
 struct FontFile {
   OTSContext *context;
