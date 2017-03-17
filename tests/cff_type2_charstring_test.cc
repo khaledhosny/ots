@@ -154,13 +154,18 @@ bool Validate(const int *char_string, size_t char_string_len,
   ots::OpenTypeFile* file = new ots::OpenTypeFile();
   ots::Font* font = new ots::Font(file);
   file->context = new ots::OTSContext();
-  return ots::ValidateType2CharStringIndex(font,
+  bool ret = ots::ValidateType2CharStringIndex(font,
                                            char_strings_index,
                                            global_subrs_index,
                                            fd_select,
                                            local_subrs_per_font,
                                            &local_subrs_index,
                                            &ots_buffer);
+  delete file->context;
+  delete file;
+  delete font;
+
+  return ret;
 }
 
 // Validates |char_string| and returns true if it's valid.

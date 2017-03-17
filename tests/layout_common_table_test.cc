@@ -259,6 +259,12 @@ class TableTest : public ::testing::Test {
     font = new ots::Font(file);
   }
 
+  virtual void TearDown() {
+    delete font->file->context;
+    delete font->file;
+    delete font;
+  }
+
   TestStream out;
   ots::Font *font;
 };

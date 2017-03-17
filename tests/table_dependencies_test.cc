@@ -22,8 +22,6 @@
   } while (0)
 #define DROP_TABLE(name) \
   do { delete font->name; font->name = NULL; } while (0)
-#define DROP_LAYOUT_TABLE(name) \
-  do { font->name->data = NULL; font->name->length = 0; } while (0)
 
 namespace {
 
@@ -37,6 +35,8 @@ class TableDependenciesTest : public ::testing::Test {
   }
 
   virtual void TearDown() {
+    delete font->file;
+    delete font;
     DROP_TABLE(gsub);
     DROP_TABLE(vhea);
     DROP_TABLE(vmtx);
