@@ -27,7 +27,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
       uint32_t num_fonts;
       if (file.Skip(sizeof(uint32_t)) && file.ReadU32(&num_fonts)) {
         for (uint32_t i = 0; i < num_fonts; i++) {
-          fprintf(stderr, "numFonts=%d, i=%d\n", num_fonts, i);
           stream.Seek(0);
           context.Process(&stream, data, size, i);
         }
