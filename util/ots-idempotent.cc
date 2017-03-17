@@ -25,7 +25,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <memory>
+#include <vector>
 
 #include "test-context.h"
 #include "ots-memory-stream.h"
@@ -37,7 +39,6 @@ int Usage(const char *argv0) {
   return 1;
 }
 
-bool ReadFile(const char *file_name, uint8_t **data, size_t *file_size);
 bool DumpResults(const uint8_t *result1, const size_t len1,
                  const uint8_t *result2, const size_t len2);
 
@@ -46,25 +47,6 @@ bool DumpResults(const uint8_t *result1, const size_t len1,
 #else
 #define ADDITIONAL_OPEN_FLAGS 0
 #endif
-
-bool ReadFile(const char *file_name, uint8_t **data, size_t *file_size) {
-  const int fd = open(file_name, O_RDONLY | ADDITIONAL_OPEN_FLAGS);
-  if (fd < 0) {
-    return false;
-  }
-
-  struct stat st;
-  fstat(fd, &st);
-
-  *file_size = st.st_size;
-  *data = new uint8_t[st.st_size];
-  if (read(fd, *data, st.st_size) != st.st_size) {
-    close(fd);
-    return false;
-  }
-  close(fd);
-  return true;
-}
 
 bool DumpResults(const uint8_t *result1, const size_t len1,
                  const uint8_t *result2, const size_t len2) {
@@ -156,12 +138,13 @@ bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
 int main(int argc, char **argv) {
   if (argc != 2) return Usage(argv[0]);
 
-  size_t file_size = 0;
-  uint8_t *data = 0;
-  if (!ReadFile(argv[1], &data, &file_size)) {
+  std::ifstream ifs(argv[1]);
+  if (!ifs.good()) {
     std::fprintf(stderr, "Failed to read file!\n");
     return 1;
   }
+  std::vector<uint8_t> in((std::istreambuf_iterator<char>(ifs)),
+                          (std::istreambuf_iterator<char>()));
 
   // A transcoded font is usually smaller than an original font.
   // However, it can be slightly bigger than the original one due to
@@ -169,19 +152,17 @@ int main(int argc, char **argv) {
   //
   // However, a WOFF font gets decompressed and so can be *much* larger than
   // the original.
-  std::unique_ptr<uint8_t> result(new uint8_t[file_size * 8]);
-  ots::MemoryStream output(result.get(), file_size * 8);
+  std::unique_ptr<uint8_t> result(new uint8_t[in.size() * 8]);
+  ots::MemoryStream output(result.get(), in.size() * 8);
 
   ots::TestContext context(0);
 
-  bool r = context.Process(&output, data, file_size);
+  bool r = context.Process(&output, in.data(), in.size());
   if (!r) {
     std::fprintf(stderr, "Failed to sanitize file!\n");
-    delete[] data;
     return 1;
   }
   const size_t result_len = output.Tell();
-  delete[] data;
 
   std::unique_ptr<uint8_t> result2(new uint8_t[result_len]);
   ots::MemoryStream output2(result2.get(), result_len);
