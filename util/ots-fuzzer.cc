@@ -12,12 +12,29 @@
 
 #include "opentype-sanitiser.h"
 #include "ots-memory-stream.h"
+#include "ots.h"
 
 // Entry point for LibFuzzer.
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   ots::OTSContext context;
   ots::ExpandingMemoryStream stream(size /*initial*/, size * 8 /*limit*/);
   context.Process(&stream, data, size);
+
+  if (size > sizeof(uint32_t) * 3) {
+    ots::Buffer file(data, size);
+    uint32_t tag;
+    if (file.ReadU32(&tag) && tag == OTS_TAG('t','t','c','f')) {
+      uint32_t num_fonts;
+      if (file.Skip(sizeof(uint32_t)) && file.ReadU32(&num_fonts)) {
+        for (uint32_t i = 0; i < num_fonts; i++) {
+          fprintf(stderr, "numFonts=%d, i=%d\n", num_fonts, i);
+          stream.Seek(0);
+          context.Process(&stream, data, size, i);
+        }
+      }
+    }
+  }
+
   return 0;
 }
 
