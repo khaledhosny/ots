@@ -25,6 +25,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 
 #include "test-context.h"
 #include "ots-memory-stream.h"
@@ -126,6 +127,7 @@ bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
     return false;
   }
   ::FT_Done_Face(dummy);
+  ::FT_Done_FreeType(library);
   return true;
 }
 
@@ -167,22 +169,23 @@ int main(int argc, char **argv) {
   //
   // However, a WOFF font gets decompressed and so can be *much* larger than
   // the original.
-  uint8_t *result = new uint8_t[file_size * 8];
-  ots::MemoryStream output(result, file_size * 8);
+  std::unique_ptr<uint8_t> result(new uint8_t[file_size * 8]);
+  ots::MemoryStream output(result.get(), file_size * 8);
 
   ots::TestContext context(0);
 
   bool r = context.Process(&output, data, file_size);
   if (!r) {
     std::fprintf(stderr, "Failed to sanitize file!\n");
+    delete[] data;
     return 1;
   }
   const size_t result_len = output.Tell();
   delete[] data;
 
-  uint8_t *result2 = new uint8_t[result_len];
-  ots::MemoryStream output2(result2, result_len);
-  r = context.Process(&output2, result, result_len);
+  std::unique_ptr<uint8_t> result2(new uint8_t[result_len]);
+  ots::MemoryStream output2(result2.get(), result_len);
+  r = context.Process(&output2, result.get(), result_len);
   if (!r) {
     std::fprintf(stderr, "Failed to sanitize previous output!\n");
     return 1;
@@ -193,14 +196,14 @@ int main(int argc, char **argv) {
   if (result2_len != result_len) {
     std::fprintf(stderr, "Outputs differ in length\n");
     dump_results = true;
-  } else if (std::memcmp(result2, result, result_len)) {
+  } else if (std::memcmp(result2.get(), result.get(), result_len)) {
     std::fprintf(stderr, "Outputs differ in content\n");
     dump_results = true;
   }
 
   if (dump_results) {
     std::fprintf(stderr, "Dumping results to out1.tff and out2.tff\n");
-    if (!DumpResults(result, result_len, result2, result2_len)) {
+    if (!DumpResults(result.get(), result_len, result2.get(), result2_len)) {
       std::fprintf(stderr, "Failed to dump output files.\n");
       return 1;
     }
@@ -208,7 +211,7 @@ int main(int argc, char **argv) {
 
   // Verify that the transcoded font can be opened by the font renderer for
   // Linux (FreeType2), Mac OS X, or Windows.
-  if (!VerifyTranscodedFont(result, result_len)) {
+  if (!VerifyTranscodedFont(result.get(), result_len)) {
     std::fprintf(stderr, "Failed to verify the transcoded font\n");
     return 1;
   }
