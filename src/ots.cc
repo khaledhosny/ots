@@ -807,6 +807,9 @@ bool ProcessGeneric(ots::FontFile *header,
 namespace ots {
 
 Font::~Font() {
+  for (const auto& it : m_tables) {
+    delete it.second;
+  }
   m_tables.clear();
 }
 
@@ -864,8 +867,10 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data) {
       // m_tables first.
       m_tables[tag] = table;
       ret = table->Parse(table_data, table_length);
-      if (!ret)
+      if (!ret) {
         m_tables.erase(tag);
+        delete table;
+      }
     }
   }
 

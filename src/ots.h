@@ -227,6 +227,8 @@ class Table {
         m_shouldSerialize(true) {
   }
 
+  virtual ~Table() { }
+
   virtual bool Parse(const uint8_t *data, size_t length) = 0;
   virtual bool Serialize(OTSStream *out) = 0;
   virtual bool ShouldSerialize();
