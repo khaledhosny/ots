@@ -629,9 +629,6 @@ bool ProcessGeneric(ots::FontFile *header,
     table_map[tables[i].tag] = tables[i];
   }
 
-  // FIXME: we are re-parsing and duplicating shared tables in collections
-  // move parsed tables ownership to the file?
-
   // Parse known tables first as we need to parse them in specific order.
   for (unsigned i = 0; ; ++i) {
     if (supported_tables[i].tag == 0) break;
@@ -716,9 +713,9 @@ bool ProcessGeneric(ots::FontFile *header,
   size_t head_table_offset = 0;
   for (const auto &it : table_map) {
     uint32_t input_offset = it.second.offset;
-    const ots::TableMap::const_iterator ot = header->tables.find(input_offset);
-    if (ot != header->tables.end()) {
-      ots::TableEntry out = ot->second.second;
+    const auto &ot = header->table_entries.find(input_offset);
+    if (ot != header->table_entries.end()) {
+      ots::TableEntry out = ot->second;
       if (out.tag == OTS_TAG('h','e','a','d')) {
         head_table_offset = out.offset;
       }
@@ -753,7 +750,7 @@ bool ProcessGeneric(ots::FontFile *header,
         }
         out.chksum = output->chksum();
         out_tables.push_back(out);
-        header->tables[input_offset] = std::make_pair(font, out);
+        header->table_entries[input_offset] = out;
       }
     }
   }
@@ -806,22 +803,28 @@ bool ProcessGeneric(ots::FontFile *header,
 
 namespace ots {
 
-Font::~Font() {
-  for (const auto& it : m_tables) {
+FontFile::~FontFile() {
+  for (const auto& it : tables) {
     delete it.second;
   }
-  m_tables.clear();
+  tables.clear();
 }
 
 bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data) {
-  Table *table = NULL;
-  bool ret = false;
-
   uint32_t tag = table_entry.tag;
   TableAction action = GetTableAction(file, tag);
   if (action == TABLE_ACTION_DROP) {
     return true;
   }
+
+  const auto &it = file->tables.find(table_entry);
+  if (it != file->tables.end()) {
+    m_tables[tag] = it->second;
+    return true;
+  }
+
+  Table *table = NULL;
+  bool ret = false;
 
   if (action == TABLE_ACTION_PASSTHRU) {
     table = new TablePassthru(this, tag);
@@ -870,6 +873,8 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data) {
       if (!ret) {
         m_tables.erase(tag);
         delete table;
+      } else {
+        file->tables[table_entry] = table;
       }
     }
   }

@@ -264,7 +264,7 @@ class TablePassthru : public Table {
 };
 
 struct Font {
-  explicit Font(const FontFile *f)
+  explicit Font(FontFile *f)
       : file(f),
         version(0),
         num_tables(0),
@@ -273,12 +273,10 @@ struct Font {
         range_shift(0) {
   }
 
-  ~Font();
-
   bool ParseTable(const TableEntry& tableinfo, const uint8_t* data);
   Table* GetTable(uint32_t tag) const;
 
-  const FontFile *file;
+  FontFile *file;
 
   uint32_t version;
   uint16_t num_tables;
@@ -302,11 +300,12 @@ struct TableEntry {
   }
 };
 
-typedef std::map<uint32_t, std::pair<Font*, TableEntry> > TableMap;
-
 struct FontFile {
+  ~FontFile();
+
   OTSContext *context;
-  TableMap tables;
+  std::map<TableEntry, Table*> tables;
+  std::map<uint32_t, TableEntry> table_entries;
 };
 
 }  // namespace ots
