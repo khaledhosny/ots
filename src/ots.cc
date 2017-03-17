@@ -637,7 +637,7 @@ bool ProcessGeneric(ots::FontFile *header,
     if (supported_tables[i].tag == 0) break;
 
     uint32_t tag = supported_tables[i].tag;
-    const auto& it = table_map.find(tag);
+    const auto &it = table_map.find(tag);
     if (it == table_map.cend()) {
       if (supported_tables[i].required) {
         return OTS_FAILURE_MSG_TAG("missing required table", tag);
@@ -878,7 +878,7 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data) {
 }
 
 Table* Font::GetTable(uint32_t tag) const {
-  const std::map<uint32_t, Table*>::const_iterator it = m_tables.find(tag);
+  const auto &it = m_tables.find(tag);
   if (it != m_tables.end())
     return it->second;
   return NULL;
