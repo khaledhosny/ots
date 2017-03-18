@@ -31,7 +31,7 @@ lib_LIBRARIES = \
 TESTS = \
   cff_type2_charstring_test \
   layout_common_table_test \
- #table_dependencies_test \
+  table_dependencies_test \
   tests/test_fuzzed_fonts.sh \
   $(NULL)
 

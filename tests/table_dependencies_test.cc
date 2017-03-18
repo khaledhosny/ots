@@ -35,11 +35,11 @@ class TableDependenciesTest : public ::testing::Test {
   }
 
   virtual void TearDown() {
-    delete font->file;
-    delete font;
     DROP_TABLE(gsub);
     DROP_TABLE(vhea);
     DROP_TABLE(vmtx);
+    delete font->file;
+    delete font;
   }
   ots::Font *font;
 };
