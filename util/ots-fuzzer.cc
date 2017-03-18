@@ -20,7 +20,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   ots::ExpandingMemoryStream stream(size /*initial*/, size * 8 /*limit*/);
   bool ok = context.Process(&stream, data, size);
 
-  if (ok && size > sizeof(uint32_t) * 3) {
+  if (ok) {
     ots::Buffer file(data, size);
     uint32_t tag;
     if (file.ReadU32(&tag) && tag == OTS_TAG('t','t','c','f')) {
