@@ -223,6 +223,9 @@ bool ParseSingleAdjustment(const ots::Font *font, const uint8_t *data,
 
   ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
       font->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return OTS_FAILURE_MSG("Required maxp table missing");
+  }
 
   uint16_t format = 0;
   uint16_t offset_coverage = 0;
@@ -410,6 +413,9 @@ bool ParsePairAdjustment(const ots::Font *font, const uint8_t *data,
 
   ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
       font->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return OTS_FAILURE_MSG("Required maxp table missing");
+  }
 
   uint16_t format = 0;
   uint16_t offset_coverage = 0;
@@ -456,6 +462,9 @@ bool ParseCursiveAttachment(const ots::Font *font, const uint8_t *data,
 
   ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
       font->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return OTS_FAILURE_MSG("Required maxp table missing");
+  }
 
   uint16_t format = 0;
   uint16_t offset_coverage = 0;
@@ -587,6 +596,9 @@ bool ParseMarkToAttachmentSubtables(const ots::Font *font,
 
   ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
       font->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return OTS_FAILURE_MSG("Required maxp table missing");
+  }
 
   uint16_t format = 0;
   uint16_t offset_coverage1 = 0;
@@ -690,8 +702,14 @@ bool ParseContextPositioning(const ots::Font *font,
                              const uint8_t *data, const size_t length) {
   ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
       font->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return OTS_FAILURE_MSG("Required maxp table missing");
+  }
   ots::OpenTypeGPOS *gpos = dynamic_cast<ots::OpenTypeGPOS*>(
       font->GetTable(OTS_TAG_GPOS));
+  if (!gpos) {
+    return OTS_FAILURE_MSG("Internal error!");
+  }
   return ots::ParseContextSubtable(font, data, length, maxp->num_glyphs,
                                    gpos->num_lookups);
 }
@@ -702,8 +720,14 @@ bool ParseChainedContextPositioning(const ots::Font *font,
                                     const uint8_t *data, const size_t length) {
   ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
       font->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return OTS_FAILURE_MSG("Required maxp table missing");
+  }
   ots::OpenTypeGPOS *gpos = dynamic_cast<ots::OpenTypeGPOS*>(
       font->GetTable(OTS_TAG_GPOS));
+  if (!gpos) {
+    return OTS_FAILURE_MSG("Internal error!");
+  }
   return ots::ParseChainingContextSubtable(font, data, length,
                                            maxp->num_glyphs,
                                            gpos->num_lookups);
@@ -723,14 +747,6 @@ namespace ots {
 
 bool OpenTypeGPOS::Parse(const uint8_t *data, size_t length) {
   Font *font = GetFont();
-
-  // Parsing GPOS table requires num_glyphs which is contained in maxp table.
-  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
-      font->GetTable(OTS_TAG_MAXP));
-  if (!maxp) {
-    return Error("missing maxp table needed in GPOS");
-  }
-
   Buffer table(data, length);
 
   uint32_t version = 0;

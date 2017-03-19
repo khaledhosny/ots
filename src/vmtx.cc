@@ -13,11 +13,6 @@
 namespace ots {
 
 bool OpenTypeVMTX::Parse(const uint8_t *data, size_t length) {
-  if (!GetFont()->GetTable(OTS_TAG_VHEA) ||
-      !GetFont()->GetTable(OTS_TAG_MAXP)) {
-    return Error("vhea or maxp table missing as needed by vmtx");
-  }
-
   return OpenTypeMetricsTable::Parse(data, length);
 }
 

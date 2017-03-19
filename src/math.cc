@@ -519,7 +519,7 @@ bool OpenTypeMATH::Parse(const uint8_t *data, size_t length) {
   OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
       GetFont()->GetTable(OTS_TAG_MAXP));
   if (!maxp) {
-    return OTS_FAILURE();
+    return Error("Required maxp table missing");
   }
   const uint16_t num_glyphs = maxp->num_glyphs;
 

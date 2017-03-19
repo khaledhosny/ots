@@ -112,12 +112,18 @@ bool OpenTypeMetricsTable::Parse(const uint8_t *data, size_t length) {
 
   OpenTypeMetricsHeader *header = dynamic_cast<OpenTypeMetricsHeader*>(
       GetFont()->GetTable(m_header_tag));
+  if (!header) {
+    return Error("Required %c%c%c%c table missing", m_header_tag);
+  }
   // |num_metrics| is a uint16_t, so it's bounded < 65536. This limits that
   // amount of memory that we'll allocate for this to a sane amount.
   const unsigned num_metrics = header->num_metrics;
 
   OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
       GetFont()->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return Error("Required maxp table missing");
+  }
   if (num_metrics > maxp->num_glyphs) {
     return Error("Bad number of metrics %d", num_metrics);
   }

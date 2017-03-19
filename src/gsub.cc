@@ -84,6 +84,9 @@ bool ParseSingleSubstitution(const ots::Font *font,
 
   ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
       font->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return OTS_FAILURE_MSG("Required maxp table missing");
+  }
   const uint16_t num_glyphs = maxp->num_glyphs;
   if (format == 1) {
     // Parse SingleSubstFormat1
@@ -174,6 +177,9 @@ bool ParseMutipleSubstitution(const ots::Font *font,
 
   ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
       font->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return OTS_FAILURE_MSG("Required maxp table missing");
+  }
   const uint16_t num_glyphs = maxp->num_glyphs;
   const unsigned sequence_end = static_cast<unsigned>(6) +
       sequence_count * 2;
@@ -251,6 +257,9 @@ bool ParseAlternateSubstitution(const ots::Font *font,
 
   ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
       font->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return OTS_FAILURE_MSG("Required maxp table missing");
+  }
   const uint16_t num_glyphs = maxp->num_glyphs;
   const unsigned alternate_set_end = static_cast<unsigned>(6) +
       alternate_set_count * 2;
@@ -370,6 +379,9 @@ bool ParseLigatureSubstitution(const ots::Font *font,
 
   ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
       font->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return OTS_FAILURE_MSG("Required maxp table missing");
+  }
   const uint16_t num_glyphs = maxp->num_glyphs;
   const unsigned ligature_set_end = static_cast<unsigned>(6) +
       lig_set_count * 2;
@@ -408,8 +420,14 @@ bool ParseContextSubstitution(const ots::Font *font,
                               const uint8_t *data, const size_t length) {
   ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
       font->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return OTS_FAILURE_MSG("Required maxp table missing");
+  }
   ots::OpenTypeGSUB *gsub = dynamic_cast<ots::OpenTypeGSUB*>(
       font->GetTable(OTS_TAG_GSUB));
+  if (!gsub) {
+    return OTS_FAILURE_MSG("Internal error!");
+  }
   return ots::ParseContextSubtable(font, data, length, maxp->num_glyphs,
                                    gsub->num_lookups);
 }
@@ -421,8 +439,14 @@ bool ParseChainingContextSubstitution(const ots::Font *font,
                                       const size_t length) {
   ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
       font->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return OTS_FAILURE_MSG("Required maxp table missing");
+  }
   ots::OpenTypeGSUB *gsub = dynamic_cast<ots::OpenTypeGSUB*>(
       font->GetTable(OTS_TAG_GSUB));
+  if (!gsub) {
+    return OTS_FAILURE_MSG("Internal error!");
+  }
   return ots::ParseChainingContextSubtable(font, data, length,
                                            maxp->num_glyphs,
                                            gsub->num_lookups);
@@ -452,6 +476,9 @@ bool ParseReverseChainingContextSingleSubstitution(
 
   ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
       font->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return OTS_FAILURE_MSG("Required maxp table missing");
+  }
   const uint16_t num_glyphs = maxp->num_glyphs;
 
   uint16_t backtrack_glyph_count = 0;
@@ -551,12 +578,6 @@ namespace ots {
 bool OpenTypeGSUB::Parse(const uint8_t *data, size_t length) {
   // Parsing gsub table requires |maxp->num_glyphs|
   Font *font = GetFont();
-  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
-      font->GetTable(OTS_TAG_MAXP));
-  if (!maxp) {
-    return Error("Missing maxp table in font, needed by GSUB");
-  }
-
   Buffer table(data, length);
 
   uint32_t version = 0;

@@ -13,11 +13,6 @@
 namespace ots {
 
 bool OpenTypeHMTX::Parse(const uint8_t *data, size_t length) {
-  if (!GetFont()->GetTable(OTS_TAG_HHEA) ||
-      !GetFont()->GetTable(OTS_TAG_MAXP)) {
-    return Error("Missing hhea or maxp tables in font, needed by hmtx");
-  }
-
   return OpenTypeMetricsTable::Parse(data, length);
 }
 

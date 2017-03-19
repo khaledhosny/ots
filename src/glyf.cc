@@ -102,6 +102,9 @@ bool OpenTypeGLYF::ParseSimpleGlyph(const uint8_t *data,
 
   OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
       GetFont()->GetTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return Error("Required maxp table missing");
+  }
   if (maxp->version_1 &&
       (maxp->max_size_glyf_instructions < bytecode_length)) {
     return Error("Bytecode length too high %d", bytecode_length);
