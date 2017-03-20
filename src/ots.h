@@ -218,6 +218,7 @@ bool IsValidVersionTag(uint32_t tag);
 struct Font;
 struct FontFile;
 struct TableEntry;
+struct Arena;
 
 class Table {
  public:
@@ -273,7 +274,8 @@ struct Font {
         range_shift(0) {
   }
 
-  bool ParseTable(const TableEntry& tableinfo, const uint8_t* data);
+  bool ParseTable(const TableEntry& tableinfo, const uint8_t* data,
+                  Arena &arena);
   Table* GetTable(uint32_t tag) const;
 
   FontFile *file;

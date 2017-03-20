@@ -47,24 +47,7 @@
 #include "vmtx.h"
 #include "vorg.h"
 
-namespace {
-
-// Generate a message with or without a table tag, when 'header' is the FontFile pointer
-#define OTS_FAILURE_MSG_TAG(msg_,tag_) OTS_FAILURE_MSG_TAG_(header, msg_, tag_)
-#define OTS_FAILURE_MSG_HDR(msg_)      OTS_FAILURE_MSG_(header, msg_)
-#define OTS_WARNING_MSG_HDR(msg_)      OTS_WARNING_MSG_(header, msg_)
-
-
-bool CheckTag(uint32_t tag_value) {
-  for (unsigned i = 0; i < 4; ++i) {
-    const uint32_t check = tag_value & 0xff;
-    if (check < 32 || check > 126) {
-      return false;  // non-ASCII character found.
-    }
-    tag_value >>= 8;
-  }
-  return true;
-}
+namespace ots {
 
 struct Arena {
  public:
@@ -84,6 +67,27 @@ struct Arena {
  private:
   std::vector<uint8_t*> hunks_;
 };
+
+}; // namespace ots
+
+namespace {
+
+// Generate a message with or without a table tag, when 'header' is the FontFile pointer
+#define OTS_FAILURE_MSG_TAG(msg_,tag_) OTS_FAILURE_MSG_TAG_(header, msg_, tag_)
+#define OTS_FAILURE_MSG_HDR(msg_)      OTS_FAILURE_MSG_(header, msg_)
+#define OTS_WARNING_MSG_HDR(msg_)      OTS_WARNING_MSG_(header, msg_)
+
+
+bool CheckTag(uint32_t tag_value) {
+  for (unsigned i = 0; i < 4; ++i) {
+    const uint32_t check = tag_value & 0xff;
+    if (check < 32 || check > 126) {
+      return false;  // non-ASCII character found.
+    }
+    tag_value >>= 8;
+  }
+  return true;
+}
 
 const struct {
   uint32_t tag;
@@ -505,13 +509,13 @@ ots::TableAction GetTableAction(const ots::FontFile *header, uint32_t tag) {
 
 bool GetTableData(const uint8_t *data,
                   const ots::TableEntry& table,
-                  Arena *arena,
+                  ots::Arena &arena,
                   size_t *table_length,
                   const uint8_t **table_data) {
   if (table.uncompressed_length != table.length) {
     // Compressed table. Need to uncompress into memory first.
     *table_length = table.uncompressed_length;
-    *table_data = (*arena).Allocate(*table_length);
+    *table_data = arena.Allocate(*table_length);
     uLongf dest_len = *table_length;
     int r = uncompress((Bytef*) *table_data, &dest_len,
                        data + table.offset, table.length);
@@ -629,6 +633,7 @@ bool ProcessGeneric(ots::FontFile *header,
     table_map[tables[i].tag] = tables[i];
   }
 
+  ots::Arena arena;
   // Parse known tables first as we need to parse them in specific order.
   for (unsigned i = 0; ; ++i) {
     if (supported_tables[i].tag == 0) break;
@@ -640,7 +645,7 @@ bool ProcessGeneric(ots::FontFile *header,
         return OTS_FAILURE_MSG_TAG("missing required table", tag);
       }
     } else {
-      if (!font->ParseTable(it->second, data)) {
+      if (!font->ParseTable(it->second, data, arena)) {
         return OTS_FAILURE_MSG_TAG("Failed to parse table", tag);
       }
     }
@@ -649,7 +654,7 @@ bool ProcessGeneric(ots::FontFile *header,
   // Then parse any tables left.
   for (const auto &table_entry : tables) {
     if (!font->GetTable(table_entry.tag)) {
-      if (!font->ParseTable(table_entry, data)) {
+      if (!font->ParseTable(table_entry, data, arena)) {
         return OTS_FAILURE_MSG_TAG("Failed to parse table", table_entry.tag);
       }
     }
@@ -810,7 +815,8 @@ FontFile::~FontFile() {
   tables.clear();
 }
 
-bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data) {
+bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
+                      Arena &arena) {
   uint32_t tag = table_entry.tag;
   TableAction action = GetTableAction(file, tag);
   if (action == TABLE_ACTION_DROP) {
@@ -861,11 +867,10 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data) {
   }
 
   if (table) {
-    Arena arena;
     const uint8_t* table_data;
     size_t table_length;
 
-    if (GetTableData(data, table_entry, &arena, &table_length, &table_data)) {
+    if (GetTableData(data, table_entry, arena, &table_length, &table_data)) {
       // FIXME: Parsing some tables will fail if the table is not added to
       // m_tables first.
       m_tables[tag] = table;
