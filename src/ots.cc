@@ -870,19 +870,21 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
     const uint8_t* table_data;
     size_t table_length;
 
-    if (GetTableData(data, table_entry, arena, &table_length, &table_data)) {
+    ret = GetTableData(data, table_entry, arena, &table_length, &table_data);
+    if (ret) {
       // FIXME: Parsing some tables will fail if the table is not added to
       // m_tables first.
       m_tables[tag] = table;
       ret = table->Parse(table_data, table_length);
-      if (!ret) {
-        m_tables.erase(tag);
-        delete table;
-      } else {
+      if (ret)
         file->tables[table_entry] = table;
-      }
+      else
+        m_tables.erase(tag);
     }
   }
+
+  if (!ret)
+    delete table;
 
   return ret;
 }
