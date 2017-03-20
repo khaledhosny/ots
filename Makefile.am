@@ -6,21 +6,19 @@ bin_PROGRAMS = \
   ots-sanitize \
   $(NULL)
 
-noinst_PROGRAMS = $(NULL)
-
 if HAVE_SYSTIME
-noinst_PROGRAMS += ots-perf
+bin_PROGRAMS += ots-perf
 endif
 
 if HAVE_FREETYPE
-noinst_PROGRAMS += \
+bin_PROGRAMS += \
   ots-idempotent \
   ots-validator-checker \
   ots-side-by-side \
   $(NULL)
 endif
 
-noinst_PROGRAMS += ots-fuzzer
+noinst_PROGRAMS = ots-fuzzer
 
 lib_LIBRARIES = \
   libots.a \
