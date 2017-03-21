@@ -911,8 +911,6 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
 
   this->m_data = data;
   this->m_length = length;
-  this->font_dict_length = 0;
-  this->local_subrs = NULL;
 
   // parse "6. Header" in the Adobe Compact Font Format Specification
   uint8_t major = 0;
