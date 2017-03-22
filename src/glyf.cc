@@ -266,7 +266,6 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
   if ((*std::max_element(resulting_offsets.begin(),
                          resulting_offsets.end()) >= (max16 * 2u)) &&
       (head->index_to_loc_format != 1)) {
-    Warning("2-bytes indexing is not possible (due to the padding above)");
     head->index_to_loc_format = 1;
   }
 
