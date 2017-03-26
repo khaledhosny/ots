@@ -738,20 +738,20 @@ bool ProcessGeneric(ots::FontFile *header,
       if (table != NULL && table->ShouldSerialize()) {
         output->ResetChecksum();
         if (!table->Serialize(output)) {
-          return OTS_FAILURE_MSG_TAG("failed to serialize table", out.tag);
+          return OTS_FAILURE_MSG_TAG("Failed to serialize table", out.tag);
         }
 
         const size_t end_offset = output->Tell();
         if (end_offset <= out.offset) {
           // paranoid check. |end_offset| is supposed to be greater than the offset,
           // as long as the Tell() interface is implemented correctly.
-          return OTS_FAILURE_MSG_HDR("error writing output");
+          return OTS_FAILURE_MSG_TAG("Table is empty or have -ve size", out.tag);
         }
         out.length = end_offset - out.offset;
 
         // align tables to four bytes
         if (!output->Pad((4 - (end_offset & 3)) % 4)) {
-          return OTS_FAILURE_MSG_HDR("error writing output");
+          return OTS_FAILURE_MSG_TAG("Failed to pad table to 4 bytes", out.tag);
         }
         out.chksum = output->chksum();
         out_tables.push_back(out);
