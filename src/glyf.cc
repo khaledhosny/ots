@@ -270,6 +270,16 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
   }
 
   loca->offsets = resulting_offsets;
+
+  if (this->iov.empty()) {
+    // As a special case when all glyph in the font are empty, add a zero byte
+    // to the table, so that we don’t reject it down the way, and to make the
+    // table work on Windows as well.
+    // See https://github.com/khaledhosny/ots/issues/52
+    static const uint8_t kZero = 0;
+    this->iov.push_back(std::make_pair(&kZero, 1));
+  }
+
   return true;
 }
 
