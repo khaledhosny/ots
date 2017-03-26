@@ -27,6 +27,11 @@ if [ $# -eq 0 ] ; then
   # No font file is specified. Apply this script to all TT/OT files we can find
   # on the system.
 
+  if [ ! -d $BASE_DIR ] ; then
+    echo "$BASE_DIR does not exist."
+    exit 1
+  fi
+
   if $(command fc-list &>/dev/null);
   then
     CFF=$(fc-list --format="%{file}\n" :fontformat=CFF)
