@@ -9,6 +9,7 @@ test "x$top_builddir" = x && top_builddir=.
 
 # Usage: ./test_good_fonts.sh [ttf_or_otf_file_name]
 
+BASE_DIR=$top_srcdir/tests/fonts/good/
 BLACKLIST=$top_srcdir/tests/BLACKLIST.txt
 CHECKER=$top_builddir/ots-idempotent$EXEEXT
 
@@ -34,9 +35,11 @@ if [ $# -eq 0 ] ; then
   else
     # Mac OS X
     # TODO: Support Cygwin.
-    BASE_DIR="/Library/Fonts/ /System/Library/Fonts/"
-    FONTS=$(find $BASE_DIR -type f -name '*tf' -o -name '*tc')
+    OSX_BASE_DIR="/Library/Fonts/ /System/Library/Fonts/"
+    FONTS=$(find $OSX_BASE_DIR -type f -name '*tf' -o -name '*tc')
   fi
+
+  FONTS="$FONTS"$'\n'"$(find $BASE_DIR -type f)"
 
   # Recursively call this script.
   FAILS=0
