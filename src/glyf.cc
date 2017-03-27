@@ -234,7 +234,11 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
     }
 
     unsigned new_size = 0;
-    if (num_contours >= 0) {
+    if (num_contours == 0) {
+      // This is an empty glyph and shouldn’t have any glyph data, but if it
+      // does we will simply ignore it.
+      new_size = 0;
+    } else if (num_contours > 0) {
       // this is a simple glyph and might contain bytecode
       if (!ParseSimpleGlyph(data, &table,
                             num_contours, gly_offset, gly_length, &new_size)) {
