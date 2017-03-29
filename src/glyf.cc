@@ -243,7 +243,7 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
       // this is a simple glyph and might contain bytecode
       if (!ParseSimpleGlyph(data, &table,
                             num_contours, gly_offset, gly_length, &new_size)) {
-        Warning("Failed to parse glyph %d, dropping it", i);
+        return Error("Failed to parse glyph %d", i);
       }
     } else {
       // it's a composite glyph without any bytecode. Enqueue the whole thing
