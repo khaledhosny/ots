@@ -105,9 +105,9 @@ bool OpenTypeGLYF::ParseSimpleGlyph(const uint8_t *data,
   if (!maxp) {
     return Error("Required maxp table missing");
   }
-  if (maxp->version_1 &&
-      (maxp->max_size_glyf_instructions < bytecode_length)) {
-    return Error("Bytecode length too high %d", bytecode_length);
+  if (maxp->version_1 && maxp->max_size_glyf_instructions < bytecode_length) {
+    return Error("Bytecode length is bigger than maxp.maxSizeOfInstructions "
+        "%d: %d", maxp->max_size_glyf_instructions, bytecode_length);
   }
 
   const uint32_t gly_header_length = 10 + num_contours * 2 + 2;
