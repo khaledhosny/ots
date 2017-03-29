@@ -143,11 +143,12 @@ bool OpenTypeGLYF::ParseSimpleGlyph(const uint8_t *data,
     return Error("Glyph too short %d", gly_length);
   }
 
-  if (gly_length - (gly_header_length + bytecode_length +
-                    flags_count_physical + xy_coordinates_length) > 3) {
+  int32_t diff = gly_length - (gly_header_length + bytecode_length +
+      flags_count_physical + xy_coordinates_length);
+  if (diff > 3) {
     // We allow 0-3 bytes difference since gly_length is 4-bytes aligned,
     // zero-padded length.
-    return Error("Invalid glyph length %d", gly_length);
+    return Error("Extra bytes at end of the glyph: %d", diff);
   }
 
   this->iov.push_back(std::make_pair(
