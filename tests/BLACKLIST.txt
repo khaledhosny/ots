@@ -45,29 +45,6 @@ UnYetgul.ttf
 # Tables are not sorted by table tags.
 f500.ttf
 
-# non-ASCII characters are used in a table tag
-SyrCOMAdiabene.otf
-SyrCOMAntioch.otf
-SyrCOMBatnanBold.otf
-SyrCOMBatnan.otf
-SyrCOMCtesiphon.otf
-SyrCOMJerusalemBold.otf
-SyrCOMJerusalemItalic.otf
-SyrCOMJerusalem.otf
-SyrCOMJerusalemOutline.otf
-SyrCOMKharput.otf
-SyrCOMMalankara.otf
-SyrCOMMardinBold.otf
-SyrCOMMardin.otf
-SyrCOMMidyat.otf
-SyrCOMNisibin.otf
-SyrCOMNisibinOutline.otf
-SyrCOMQenNeshrin.otf
-SyrCOMTalada.otf
-SyrCOMTurAbdin.otf
-SyrCOMUrhoyBold.otf
-SyrCOMUrhoy.otf
-
 # Malformed SFNT table; unexpected entry selector
 misakimn.ttf
 misaki.ttf

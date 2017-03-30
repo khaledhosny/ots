@@ -77,8 +77,8 @@ namespace {
 
 // Generate a message with or without a table tag, when 'header' is the FontFile pointer
 #define OTS_FAILURE_MSG_TAG(msg_,tag_) OTS_MSG_TAG_(0, header, msg_, tag_)
-#define OTS_FAILURE_MSG_HDR(msg_)      OTS_FAILURE_MSG_(header, msg_)
-#define OTS_WARNING_MSG_HDR(msg_)      OTS_WARNING_MSG_(header, msg_)
+#define OTS_FAILURE_MSG_HDR(...)       OTS_FAILURE_MSG_(header, __VA_ARGS__)
+#define OTS_WARNING_MSG_HDR(...)       OTS_WARNING_MSG_(header, __VA_ARGS__)
 
 
 bool CheckTag(uint32_t tag_value) {
@@ -558,7 +558,7 @@ bool ProcessGeneric(ots::FontFile *header,
 
     // all tag names must be built from printable ASCII characters
     if (!CheckTag(tables[i].tag)) {
-      return OTS_FAILURE_MSG_TAG("invalid table tag", tables[i].tag);
+      OTS_WARNING_MSG_HDR("Invalid table tag: 0x%X", tables[i].tag);
     }
 
     // tables must be 4-byte aligned
