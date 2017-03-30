@@ -56,10 +56,6 @@ namespace ots {
 #define OTS_WARNING_MSG_(otf_,...) \
   OTS_MESSAGE_(1,otf_,__VA_ARGS__)
 
-// Generate a message with an associated table tag
-#define OTS_FAILURE_MSG_TAG_(otf_,msg_,tag_) \
-  (OTS_MESSAGE_(0,otf_,"%c%c%c%c: %s", OTS_UNTAG(tag_), msg_), false)
-
 // Convenience macros for use in files that only handle a single table tag,
 // defined as TABLE_NAME at the top of the file; the 'file' variable is
 // expected to be the current FontFile pointer.

@@ -72,8 +72,11 @@ struct Arena {
 
 namespace {
 
+#define OTS_MSG_TAG_(level,otf_,msg_,tag_) \
+  (OTS_MESSAGE_(level,otf_,"%c%c%c%c: %s", OTS_UNTAG(tag_), msg_), false)
+
 // Generate a message with or without a table tag, when 'header' is the FontFile pointer
-#define OTS_FAILURE_MSG_TAG(msg_,tag_) OTS_FAILURE_MSG_TAG_(header, msg_, tag_)
+#define OTS_FAILURE_MSG_TAG(msg_,tag_) OTS_MSG_TAG_(0, header, msg_, tag_)
 #define OTS_FAILURE_MSG_HDR(msg_)      OTS_FAILURE_MSG_(header, msg_)
 #define OTS_WARNING_MSG_HDR(msg_)      OTS_WARNING_MSG_(header, msg_)
 
