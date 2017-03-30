@@ -16,14 +16,12 @@
 
 namespace ots {
 
-bool OpenTypeGLYF::ParseFlagsForSimpleGlyph(ots::Buffer *table,
-                                            uint32_t gly_length,
+bool OpenTypeGLYF::ParseFlagsForSimpleGlyph(Buffer &glyph,
                                             uint32_t num_flags,
-                                            uint32_t *flags_count_logical,
-                                            uint32_t *flags_count_physical,
-                                            uint32_t *xy_coordinates_length) {
+                                            uint32_t *flag_index,
+                                            uint32_t *coordinates_length) {
   uint8_t flag = 0;
-  if (!table->ReadU8(&flag)) {
+  if (!glyph.ReadU8(&flag)) {
     return Error("Can't read flag");
   }
 
@@ -41,11 +39,11 @@ bool OpenTypeGLYF::ParseFlagsForSimpleGlyph(ots::Buffer *table,
   }
 
   if (flag & (1u << 3)) {  // repeat
-    if (*flags_count_logical + 1 >= num_flags) {
-      return Error("Count too high (%d + 1 >= %d)", *flags_count_logical, num_flags);
+    if (*flag_index + 1 >= num_flags) {
+      return Error("Count too high (%d + 1 >= %d)", *flag_index, num_flags);
     }
     uint8_t repeat = 0;
-    if (!table->ReadU8(&repeat)) {
+    if (!glyph.ReadU8(&repeat)) {
       return Error("Can't read repeat value");
     }
     if (repeat == 0) {
@@ -53,36 +51,32 @@ bool OpenTypeGLYF::ParseFlagsForSimpleGlyph(ots::Buffer *table,
     }
     delta += (delta * repeat);
 
-    *flags_count_logical += repeat;
-    if (*flags_count_logical >= num_flags) {
-      return Error("Count too high (%d >= %d)", *flags_count_logical, num_flags);
+    *flag_index += repeat;
+    if (*flag_index >= num_flags) {
+      return Error("Count too high (%d >= %d)", *flag_index, num_flags);
     }
-    ++(*flags_count_physical);
   }
 
   if ((flag & (1u << 6)) || (flag & (1u << 7))) {  // reserved flags
     return Error("Bad glyph flag value (%d), reserved flags must be set to zero", flag);
   }
 
-  *xy_coordinates_length += delta;
-  if (gly_length < *xy_coordinates_length) {
-    return Error("Glyph coordinates length too low (%d < %d)", gly_length, *xy_coordinates_length);
+  *coordinates_length += delta;
+  if (glyph.length() < *coordinates_length) {
+    return Error("Glyph coordinates length bigger than glyph length (%d > %d)",
+                 *coordinates_length, glyph.length());
   }
 
   return true;
 }
 
-bool OpenTypeGLYF::ParseSimpleGlyph(const uint8_t *data,
-                                    ots::Buffer *table,
-                                    int16_t num_contours,
-                                    uint32_t gly_offset,
-                                    uint32_t gly_length,
-                                    uint32_t *new_size) {
+bool OpenTypeGLYF::ParseSimpleGlyph(Buffer &glyph,
+                                    int16_t num_contours) {
   // read the end-points array
   uint16_t num_flags = 0;
   for (int i = 0; i < num_contours; ++i) {
     uint16_t tmp_index = 0;
-    if (!table->ReadU16(&tmp_index)) {
+    if (!glyph.ReadU16(&tmp_index)) {
       return Error("Can't read contour index %d", i);
     }
     if (tmp_index == 0xffffu) {
@@ -96,7 +90,7 @@ bool OpenTypeGLYF::ParseSimpleGlyph(const uint8_t *data,
   }
 
   uint16_t bytecode_length = 0;
-  if (!table->ReadU16(&bytecode_length)) {
+  if (!glyph.ReadU16(&bytecode_length)) {
     return Error("Can't read bytecode length");
   }
 
@@ -106,53 +100,28 @@ bool OpenTypeGLYF::ParseSimpleGlyph(const uint8_t *data,
         "%d: %d", this->maxp->max_size_glyf_instructions, bytecode_length);
   }
 
-  const uint32_t gly_header_length = 10 + num_contours * 2 + 2;
-  if (gly_length < (gly_header_length + bytecode_length)) {
-    return Error("Glyph header length too high %d", gly_header_length);
-  }
-
-  this->iov.push_back(std::make_pair(
-      data + gly_offset,
-      static_cast<size_t>(gly_header_length + bytecode_length)));
-
-  if (!table->Skip(bytecode_length)) {
+  if (!glyph.Skip(bytecode_length)) {
     return Error("Can't read bytecode of length %d", bytecode_length);
   }
 
-  uint32_t flags_count_physical = 0;  // on memory
-  uint32_t xy_coordinates_length = 0;
-  for (uint32_t flags_count_logical = 0;
-       flags_count_logical < num_flags;
-       ++flags_count_logical, ++flags_count_physical) {
-    if (!ParseFlagsForSimpleGlyph(table,
-                                  gly_length,
-                                  num_flags,
-                                  &flags_count_logical,
-                                  &flags_count_physical,
-                                  &xy_coordinates_length)) {
-      return Error("Failed to parse glyph flags %d", flags_count_logical);
+  uint32_t coordinates_length = 0;
+  for (uint32_t i = 0; i < num_flags; ++i) {
+    if (!ParseFlagsForSimpleGlyph(glyph, num_flags, &i, &coordinates_length)) {
+      return Error("Failed to parse glyph flags %d", i);
     }
   }
 
-  if (gly_length < (gly_header_length + bytecode_length +
-                    flags_count_physical + xy_coordinates_length)) {
-    return Error("Glyph too short %d", gly_length);
+  if (!glyph.Skip(coordinates_length)) {
+    return Error("Glyph too short %d", glyph.length());
   }
 
-  int32_t diff = gly_length - (gly_header_length + bytecode_length +
-      flags_count_physical + xy_coordinates_length);
-  if (diff > 3) {
+  if (glyph.remaining() > 3) {
     // We allow 0-3 bytes difference since gly_length is 4-bytes aligned,
     // zero-padded length.
-    return Error("Extra bytes at end of the glyph: %d", diff);
+    return Error("Extra bytes at end of the glyph: %d", glyph.remaining());
   }
 
-  this->iov.push_back(std::make_pair(
-      data + gly_offset + gly_header_length + bytecode_length,
-      static_cast<size_t>(flags_count_physical + xy_coordinates_length)));
-
-  *new_size
-      = gly_header_length + flags_count_physical + xy_coordinates_length + bytecode_length;
+  this->iov.push_back(std::make_pair(glyph.buffer(), glyph.offset()));
 
   return true;
 }
@@ -164,14 +133,7 @@ bool OpenTypeGLYF::ParseSimpleGlyph(const uint8_t *data,
 #define WE_HAVE_A_TWO_BY_TWO     (1u << 7)
 #define WE_HAVE_INSTRUCTIONS     (1u << 8)
 
-bool OpenTypeGLYF::ParseCompositeGlyph(const uint8_t *data,
-                                       uint32_t glyph_offset,
-                                       uint32_t glyph_length,
-                                       uint32_t *new_size) {
-  Buffer glyph(data + glyph_offset, glyph_length);
-
-  glyph.Skip(10); // skip the header that the caller already read.
-
+bool OpenTypeGLYF::ParseCompositeGlyph(Buffer &glyph) {
   uint16_t flags = 0;
   uint16_t gid = 0;
   do {
@@ -242,14 +204,10 @@ bool OpenTypeGLYF::ParseCompositeGlyph(const uint8_t *data,
 
   this->iov.push_back(std::make_pair(glyph.buffer(), glyph.offset()));
 
-  *new_size = static_cast<uint32_t>(glyph.offset());
-
   return true;
 }
 
 bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
-  Buffer table(data, length);
-
   OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
       GetFont()->GetTable(OTS_TAG_MAXP));
   OpenTypeLOCA *loca = dynamic_cast<OpenTypeLOCA*>(
@@ -294,13 +252,14 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
       return Error("Glyph %d length %d too high", i, gly_length);
     }
 
-    table.set_offset(gly_offset);
+    Buffer glyph(data + gly_offset, gly_length);
+
     int16_t num_contours, xmin, ymin, xmax, ymax;
-    if (!table.ReadS16(&num_contours) ||
-        !table.ReadS16(&xmin) ||
-        !table.ReadS16(&ymin) ||
-        !table.ReadS16(&xmax) ||
-        !table.ReadS16(&ymax)) {
+    if (!glyph.ReadS16(&num_contours) ||
+        !glyph.ReadS16(&xmin) ||
+        !glyph.ReadS16(&ymin) ||
+        !glyph.ReadS16(&xmax) ||
+        !glyph.ReadS16(&ymax)) {
       return Error("Can't read glyph %d header", i);
     }
 
@@ -322,24 +281,21 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
       return Error("Bad bounding box values bl=(%d, %d), tr=(%d, %d) in glyph %d", xmin, ymin, xmax, ymax, i);
     }
 
-    unsigned new_size = 0;
     if (num_contours == 0) {
       // This is an empty glyph and shouldn’t have any glyph data, but if it
       // does we will simply ignore it.
-      new_size = 0;
+      glyph.set_offset(0);
     } else if (num_contours > 0) {
-      // this is a simple glyph and might contain bytecode
-      if (!ParseSimpleGlyph(data, &table,
-                            num_contours, gly_offset, gly_length, &new_size)) {
+      if (!ParseSimpleGlyph(glyph, num_contours)) {
         return Error("Failed to parse glyph %d", i);
       }
     } else {
-      // This a composite glyph without any bytecode.
-      if (!ParseCompositeGlyph(data, gly_offset, gly_length, &new_size)) {
+      if (!ParseCompositeGlyph(glyph)) {
         return Error("Failed to parse glyph %d", i);
       }
     }
 
+    size_t new_size = glyph.offset();
     resulting_offsets[i] = current_offset;
     // glyphs must be four byte aligned
     // TODO(yusukes): investigate whether this padding is really necessary.

@@ -23,22 +23,12 @@ class OpenTypeGLYF : public Table {
   bool Serialize(OTSStream *out);
 
  private:
-  bool ParseFlagsForSimpleGlyph(ots::Buffer *table,
-                                uint32_t gly_length,
+  bool ParseFlagsForSimpleGlyph(Buffer &glyph,
                                 uint32_t num_flags,
-                                uint32_t *flags_count_logical,
-                                uint32_t *flags_count_physical,
-                                uint32_t *xy_coordinates_length);
-  bool ParseSimpleGlyph(const uint8_t *data,
-                        ots::Buffer *table,
-                        int16_t num_contours,
-                        uint32_t gly_offset,
-                        uint32_t gly_length,
-                        uint32_t *new_size);
-  bool ParseCompositeGlyph(const uint8_t *data,
-                           uint32_t glyph_offset,
-                           uint32_t glyph_length,
-                           uint32_t *new_size);
+                                uint32_t *flag_index,
+                                uint32_t *coordinates_length);
+  bool ParseSimpleGlyph(Buffer &glyph, int16_t num_contours);
+  bool ParseCompositeGlyph(Buffer &glyph);
 
   OpenTypeMAXP* maxp;
 
