@@ -118,7 +118,7 @@ bool OpenTypeGLYF::ParseSimpleGlyph(Buffer &glyph,
   if (glyph.remaining() > 3) {
     // We allow 0-3 bytes difference since gly_length is 4-bytes aligned,
     // zero-padded length.
-    return Error("Extra bytes at end of the glyph: %d", glyph.remaining());
+    Warning("Extra bytes at end of the glyph: %d", glyph.remaining());
   }
 
   this->iov.push_back(std::make_pair(glyph.buffer(), glyph.offset()));
