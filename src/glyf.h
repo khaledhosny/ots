@@ -12,11 +12,12 @@
 #include "ots.h"
 
 namespace ots {
+class OpenTypeMAXP;
 
 class OpenTypeGLYF : public Table {
  public:
   explicit OpenTypeGLYF(Font *font, uint32_t tag)
-      : Table(font, tag) { }
+      : Table(font, tag), maxp(NULL) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);
@@ -34,6 +35,12 @@ class OpenTypeGLYF : public Table {
                         uint32_t gly_offset,
                         uint32_t gly_length,
                         uint32_t *new_size);
+  bool ParseCompositeGlyph(const uint8_t *data,
+                           uint32_t glyph_offset,
+                           uint32_t glyph_length,
+                           uint32_t *new_size);
+
+  OpenTypeMAXP* maxp;
 
   std::vector<std::pair<const uint8_t*, size_t> > iov;
 };

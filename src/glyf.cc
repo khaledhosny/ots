@@ -100,14 +100,10 @@ bool OpenTypeGLYF::ParseSimpleGlyph(const uint8_t *data,
     return Error("Can't read bytecode length");
   }
 
-  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
-      GetFont()->GetTable(OTS_TAG_MAXP));
-  if (!maxp) {
-    return Error("Required maxp table missing");
-  }
-  if (maxp->version_1 && maxp->max_size_glyf_instructions < bytecode_length) {
+  if (this->maxp->version_1 &&
+      this->maxp->max_size_glyf_instructions < bytecode_length) {
     return Error("Bytecode length is bigger than maxp.maxSizeOfInstructions "
-        "%d: %d", maxp->max_size_glyf_instructions, bytecode_length);
+        "%d: %d", this->maxp->max_size_glyf_instructions, bytecode_length);
   }
 
   const uint32_t gly_header_length = 10 + num_contours * 2 + 2;
@@ -120,7 +116,7 @@ bool OpenTypeGLYF::ParseSimpleGlyph(const uint8_t *data,
       static_cast<size_t>(gly_header_length + bytecode_length)));
 
   if (!table->Skip(bytecode_length)) {
-    return Error("Can't skip bytecode of length %d", bytecode_length);
+    return Error("Can't read bytecode of length %d", bytecode_length);
   }
 
   uint32_t flags_count_physical = 0;  // on memory
@@ -161,6 +157,92 @@ bool OpenTypeGLYF::ParseSimpleGlyph(const uint8_t *data,
   return true;
 }
 
+#define ARG_1_AND_2_ARE_WORDS    (1u << 0)
+#define WE_HAVE_A_SCALE          (1u << 3)
+#define MORE_COMPONENTS          (1u << 5)
+#define WE_HAVE_AN_X_AND_Y_SCALE (1u << 6)
+#define WE_HAVE_A_TWO_BY_TWO     (1u << 7)
+#define WE_HAVE_INSTRUCTIONS     (1u << 8)
+
+bool OpenTypeGLYF::ParseCompositeGlyph(const uint8_t *data,
+                                       uint32_t glyph_offset,
+                                       uint32_t glyph_length,
+                                       uint32_t *new_size) {
+  Buffer glyph(data + glyph_offset, glyph_length);
+
+  glyph.Skip(10); // skip the header that the caller already read.
+
+  uint16_t flags = 0;
+  uint16_t gid = 0;
+  do {
+    if (!glyph.ReadU16(&flags) || !glyph.ReadU16(&gid)) {
+      return Error("Can't read composite glyph flags or glyphIndex");
+    }
+
+    if (flags & ARG_1_AND_2_ARE_WORDS) {
+      int16_t argument1;
+      int16_t argument2;
+      if (!glyph.ReadS16(&argument1) || !glyph.ReadS16(&argument2)) {
+        return Error("Can't read argument1 or argument2");
+      }
+    } else {
+      uint8_t argument1;
+      uint8_t argument2;
+      if (!glyph.ReadU8(&argument1) || !glyph.ReadU8(&argument2)) {
+        return Error("Can't read argument1 or argument2");
+      }
+    }
+
+    if (flags & WE_HAVE_A_SCALE) {
+      int16_t scale;
+      if (!glyph.ReadS16(&scale)) {
+        return Error("Can't read scale");
+      }
+    } else if (flags & WE_HAVE_AN_X_AND_Y_SCALE) {
+      int16_t xscale;
+      int16_t yscale;
+      if (!glyph.ReadS16(&xscale) || !glyph.ReadS16(&yscale)) {
+        return Error("Can't read xscale or yscale");
+      }
+    } else if (flags & WE_HAVE_A_TWO_BY_TWO) {
+      int16_t xscale;
+      int16_t scale01;
+      int16_t scale10;
+      int16_t yscale;
+      if (!glyph.ReadS16(&xscale) ||
+          !glyph.ReadS16(&scale01) ||
+          !glyph.ReadS16(&scale10) ||
+          !glyph.ReadS16(&yscale)) {
+        return Error("Can't read transform");
+      }
+    }
+  } while (flags & MORE_COMPONENTS);
+
+  if (flags & WE_HAVE_INSTRUCTIONS) {
+    uint16_t bytecode_length;
+    if (!glyph.ReadU16(&bytecode_length)) {
+      return Error("Can't read instructions size");
+    }
+
+    if (this->maxp->version_1 &&
+        this->maxp->max_size_glyf_instructions < bytecode_length) {
+      return Error("Bytecode length is bigger than maxp.maxSizeOfInstructions "
+                   "%d: %d",
+                   this->maxp->max_size_glyf_instructions, bytecode_length);
+    }
+
+    if (!glyph.Skip(bytecode_length)) {
+      return Error("Can't read bytecode of length %d", bytecode_length);
+    }
+  }
+
+  this->iov.push_back(std::make_pair(glyph.buffer(), glyph.offset()));
+
+  *new_size = static_cast<uint32_t>(glyph.offset());
+
+  return true;
+}
+
 bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
@@ -173,6 +255,8 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
   if (!maxp || !loca || !head) {
     return Error("Missing maxp or loca or head table needed by glyf table");
   }
+
+  this->maxp = maxp;
 
   const unsigned num_glyphs = maxp->num_glyphs;
   std::vector<uint32_t> &offsets = loca->offsets;
@@ -246,10 +330,10 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
         return Error("Failed to parse glyph %d", i);
       }
     } else {
-      // it's a composite glyph without any bytecode. Enqueue the whole thing
-      this->iov.push_back(std::make_pair(data + gly_offset,
-                                         static_cast<size_t>(gly_length)));
-      new_size = gly_length;
+      // This a composite glyph without any bytecode.
+      if (!ParseCompositeGlyph(data, gly_offset, gly_length, &new_size)) {
+        return Error("Failed to parse glyph %d", i);
+      }
     }
 
     resulting_offsets[i] = current_offset;
