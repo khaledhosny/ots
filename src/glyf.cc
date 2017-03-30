@@ -179,6 +179,10 @@ bool OpenTypeGLYF::ParseCompositeGlyph(const uint8_t *data,
       return Error("Can't read composite glyph flags or glyphIndex");
     }
 
+    if (gid >= this->maxp->num_glyphs) {
+      return Error("Invalid glyph id used in composite glyph: %d", gid);
+    }
+
     if (flags & ARG_1_AND_2_ARE_WORDS) {
       int16_t argument1;
       int16_t argument2;
