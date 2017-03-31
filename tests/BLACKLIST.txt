@@ -1,18 +1,17 @@
-# Required table(s) are missing (e.g. OS/2 table).
+# Required table(s) are missing.
+Gungseouche.ttf
+HeadlineA.ttf
+LastResort.ttf
+NISC18030.ttf
+PCmyoungjo.ttf
+Pilgiche.ttf
+
+# Bad vhea version 10001.
 AppleGothic.ttf
 AppleMyungjo.ttf
-ArialHB.ttf
-ArialHBBold.ttf
-Corsiva.ttf
-CorsivaBold.ttf
+
+# cmap: Range glyph reference too high
 InaiMathi.ttf
-NISC18030.ttf
-NewPeninimMT.ttf
-NewPeninimMTBold.ttf
-NewPeninimMTBoldInclined.ttf
-NewPeninimMTInclined.ttf
-Raanana.ttf
-RaananaBold.ttf
 
 # The length field of a table is weird.
 homa.ttf
@@ -69,23 +68,28 @@ msam10.ttf
 BPG_Chveulebrivi.ttf
 BPG_Chveulebrivi_bold.ttf
 
-# Unsupported CMAP table; ots doesn't support non-Unicode fonts.
+# No supported cmap subtable found
+Apple Chancery.ttf
+Apple Color Emoji.ttf
 Apple Symbols.ttf
+BigCaslon.ttf
+DroidSansFallback.ttf
+DroidSansJapanese.ttf
 华文宋体.ttf
 华文楷体.ttf
-
-# Unsupported CMAP table; The Unicode BMP table is missing, while the UCS-4 table is available.
-DroidSansJapanese.ttf
-DroidSansFallback.ttf
-
-# Malformed GLYF table; The content of flags array and the lengths of xCoordinates, yCoordinates are inconsistent.
-DecoTypeNaskh.ttf
+Apple Symbols.ttc
 
 # Malformed HMTX table; The table is too short.
 mona.ttf
 
 # CMAP glyph id is out of range.
+Chalkduster.ttf
+Diwan Thuluth.ttf
+Optima.ttc
+Osaka.ttf
+OsakaMono.ttf
 Samyak-Oriya.ttf
+ZapfDingbats.ttf
 
 # Unsupported CFF table; "supplemental encoding" is not supported at the moment. This should be fixed in the future.
 Walbf___.otf
@@ -97,10 +101,17 @@ summersby.ttf
 
 # Bad glyph flag
 DroidSansFallbackFull.ttf
+Skia.ttf
 
 # incorrect entrySelector for table directory
 NanumMyeongjo.ttf
 NanumMyeongjoBold.ttf
+
+# CFF parsing failure.
+Yu Gothic Bold.otf
+Yu Gothic Medium.otf
+YuppySC-Regular.otf
+YuppyTC-Regular.otf
 
 # XXX: check why those are failing
 SagarNormal.ttf
@@ -110,28 +121,6 @@ malayalam.ttf
 AkaashNormal.ttf
 
 # XXX check those Apple fonts too
-Apple Chancery.ttf
-BigCaslon.ttf
-Chalkduster.ttf
-Diwan Thuluth.ttf
-Gungseouche.ttf
-HeadlineA.ttf
-Kailasa.ttf
-Kokonor.ttf
-Osaka.ttf
-OsakaMono.ttf
-PCmyoungjo.ttf
-Pilgiche.ttf
-PlantagenetCherokee.ttf
-Skia.ttf
-Yu Gothic Bold.otf
-Yu Gothic Medium.otf
-YuppySC-Regular.otf
-YuppyTC-Regular.otf
-Apple Color Emoji.ttf
-LastResort.ttf
-ZapfDingbats.ttf
-
 Arial Unicode.ttf
 Damascus.ttc
 Didot.ttc
@@ -139,9 +128,7 @@ Iowan Old Style.ttc
 Phosphate.ttc
 Seravek.ttc
 Shree714.ttc
-Optima.ttc
 AquaKana.ttc
-Apple Symbols.ttc
 
 # Failed to sanitize previous output!
 LucidaGrande.ttc
