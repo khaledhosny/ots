@@ -50,6 +50,7 @@ if [ $# -eq 0 ] ; then
   FAILS=0
   IFS=$'\n'
   for f in $FONTS; do
+    if [[ $f == *.dfont ]]; then continue; fi # Ignore .dfont’s
     $0 "$f"
     FAILS=$((FAILS+$?))
   done
