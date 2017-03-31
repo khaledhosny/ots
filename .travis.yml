@@ -47,4 +47,5 @@ install:
 
 script:
   - ./configure
-  - make -j check
+  - make -j
+  - make -j check || (cat test-suite.log && false)
