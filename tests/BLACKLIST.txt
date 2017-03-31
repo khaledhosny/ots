@@ -132,5 +132,19 @@ Apple Color Emoji.ttf
 LastResort.ttf
 ZapfDingbats.ttf
 
+Arial Unicode.ttf
+Damascus.ttc
+Didot.ttc
+Iowan Old Style.ttc
+Phosphate.ttc
+Seravek.ttc
+Shree714.ttc
+Optima.ttc
+AquaKana.ttc
+Apple Symbols.ttc
+
+# Failed to sanitize previous output!
+LucidaGrande.ttc
+
 # FFTM: misaligned table
 wqy-microhei.ttc

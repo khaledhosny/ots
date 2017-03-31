@@ -16,7 +16,14 @@ bin_PROGRAMS += \
   ots-validator-checker \
   ots-side-by-side \
   $(NULL)
-endif
+else
+if HAVE_CORETEXT
+bin_PROGRAMS += \
+  ots-idempotent \
+  ots-validator-checker \
+  $(NULL)
+endif # HAVE_CORETEXT
+endif # HAVE_FREETYPE
 
 noinst_PROGRAMS = ots-fuzzer
 
@@ -37,7 +44,14 @@ TESTS += \
   tests/test_bad_fonts.sh \
   tests/test_good_fonts.sh \
   $(NULL)
-endif
+else
+if HAVE_CORETEXT
+TESTS += \
+  tests/test_bad_fonts.sh \
+  tests/test_good_fonts.sh \
+  $(NULL)
+endif # HAVE_CORETEXT
+endif # HAVE_FREETYPE
 
 check_PROGRAMS = \
   cff_type2_charstring_test \
