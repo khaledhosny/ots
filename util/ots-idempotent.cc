@@ -157,8 +157,7 @@ int main(int argc, char **argv) {
 
   ots::TestContext context(0);
 
-  bool r = context.Process(&output, in.data(), in.size());
-  if (!r) {
+  if (!context.Process(&output, in.data(), in.size())) {
     std::fprintf(stderr, "Failed to sanitize file!\n");
     return 1;
   }
@@ -166,8 +165,7 @@ int main(int argc, char **argv) {
 
   std::unique_ptr<uint8_t> result2(new uint8_t[result_len]);
   ots::MemoryStream output2(result2.get(), result_len);
-  r = context.Process(&output2, result.get(), result_len);
-  if (!r) {
+  if (!context.Process(&output2, result.get(), result_len)) {
     std::fprintf(stderr, "Failed to sanitize previous output!\n");
     return 1;
   }
