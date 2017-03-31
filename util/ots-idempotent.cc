@@ -190,6 +190,13 @@ int main(int argc, char **argv) {
     }
   }
 
+  // Verify that original font can be opened by the font renderer. If this
+  // fails then no point in verfying the transcoded font.
+  if (!VerifyTranscodedFont(in.data(), in.size())) {
+    std::fprintf(stderr, "Failed to verify the original font\n");
+    return 0;
+  }
+
   // Verify that the transcoded font can be opened by the font renderer for
   // Linux (FreeType2), Mac OS X, or Windows.
   if (!VerifyTranscodedFont(result.get(), result_len)) {
