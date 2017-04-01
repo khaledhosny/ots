@@ -19,7 +19,7 @@ bool OpenTypeVDMX::Parse(const uint8_t *data, size_t length) {
   }
 
   if (this->version > 1) {
-    return Drop("bad version: %u", this->version); // continue transcoding
+    return Drop("Unsupported table version: %u", this->version);
   }
 
   this->rat_ranges.reserve(this->num_ratios);
@@ -30,15 +30,15 @@ bool OpenTypeVDMX::Parse(const uint8_t *data, size_t length) {
         !table.ReadU8(&rec.x_ratio) ||
         !table.ReadU8(&rec.y_start_ratio) ||
         !table.ReadU8(&rec.y_end_ratio)) {
-      return Error("Failed to read ratio header %d", i);
+      return Error("Failed to read RatioRange record %d", i);
     }
 
     if (rec.charset > 1) {
-      return Drop("bad charset: %u", rec.charset);
+      return Drop("Unsupported character set: %u", rec.charset);
     }
 
     if (rec.y_start_ratio > rec.y_end_ratio) {
-      return Drop("bad y ratio");
+      return Drop("Bad y ratio");
     }
 
     // All values set to zero signal the default grouping to use;
@@ -48,7 +48,7 @@ bool OpenTypeVDMX::Parse(const uint8_t *data, size_t length) {
         (rec.y_start_ratio == 0) &&
         (rec.y_end_ratio == 0)) {
       // workaround for fonts which have 2 or more {0, 0, 0} terminators.
-      return Drop("superfluous terminator found");
+      return Drop("Superfluous terminator found");
     }
 
     this->rat_ranges.push_back(rec);
@@ -92,7 +92,7 @@ bool OpenTypeVDMX::Parse(const uint8_t *data, size_t length) {
       // This table must appear in sorted order (sorted by yPelHeight),
       // but need not be continuous.
       if ((j != 0) && (group.entries[j - 1].y_pel_height >= vt.y_pel_height)) {
-        return Drop("the table is not sorted");
+        return Drop("The table is not sorted");
       }
 
       group.entries.push_back(vt);
@@ -122,7 +122,7 @@ bool OpenTypeVDMX::Serialize(OTSStream *out) {
         !out->Write(&rec.x_ratio, 1) ||
         !out->Write(&rec.y_start_ratio, 1) ||
         !out->Write(&rec.y_end_ratio, 1)) {
-      return Error("Failed to write ratio %d", i);
+      return Error("Failed to write RatioRange record %d", i);
     }
   }
 
