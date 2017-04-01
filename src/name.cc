@@ -59,7 +59,7 @@ bool OpenTypeNAME::Parse(const uint8_t* data, size_t length) {
 
   uint16_t format = 0;
   if (!table.ReadU16(&format) || format > 1) {
-    return Error("Failed to read name table format or bad format %d", format);
+    return Error("Failed to read table format or bad format %d", format);
   }
 
   uint16_t count = 0;
@@ -69,7 +69,7 @@ bool OpenTypeNAME::Parse(const uint8_t* data, size_t length) {
 
   uint16_t string_offset = 0;
   if (!table.ReadU16(&string_offset) || string_offset > length) {
-    return Error("Failed to read strings offset");
+    return Error("Failed to read or bad stringOffset");
   }
   const char* string_base = reinterpret_cast<const char*>(data) +
       string_offset;
@@ -155,18 +155,18 @@ bool OpenTypeNAME::Parse(const uint8_t* data, size_t length) {
     // extended name table format with language tags
     uint16_t lang_tag_count;
     if (!table.ReadU16(&lang_tag_count)) {
-      return Error("Failed to read language tag count");
+      return Error("Failed to read langTagCount");
     }
     for (unsigned i = 0; i < lang_tag_count; ++i) {
       uint16_t tag_length = 0;
       uint16_t tag_offset = 0;
       if (!table.ReadU16(&tag_length) || !table.ReadU16(&tag_offset)) {
-        return Error("Faile to read tag length or offset");
+        return Error("Faile to read length or offset for langTagRecord %d", i);
       }
       const unsigned tag_end = static_cast<unsigned>(string_offset) +
           tag_offset + tag_length;
       if (tag_end > length) {
-        return Error("bad end of tag %d > %ld for name entry %d", tag_end, length, i);
+        return Error("bad end of tag %d > %ld for langTagRecord %d", tag_end, length, i);
       }
       std::string tag(string_base + tag_offset, tag_length);
       this->lang_tags.push_back(tag);
@@ -256,7 +256,7 @@ bool OpenTypeNAME::Serialize(OTSStream* out) {
     string_offset += 2 + lang_tag_count * 4;
   }
   if (string_offset > 0xffff) {
-    return Error("Bad string offset %ld", string_offset);
+    return Error("Bad stringOffset: %ld", string_offset);
   }
   if (!out->WriteU16(format) ||
       !out->WriteU16(name_count) ||
@@ -276,14 +276,14 @@ bool OpenTypeNAME::Serialize(OTSStream* out) {
         !out->WriteU16(rec.name_id) ||
         !out->WriteU16(static_cast<uint16_t>(rec.text.size())) ||
         !out->WriteU16(static_cast<uint16_t>(string_data.size())) ) {
-      return Error("Faile to write name entry");
+      return Error("Faile to write nameRecord");
     }
     string_data.append(rec.text);
   }
 
   if (format == 1) {
     if (!out->WriteU16(lang_tag_count)) {
-      return Error("Faile to write language tag count");
+      return Error("Faile to write langTagCount");
     }
     for (std::vector<std::string>::const_iterator tag_iter =
              this->lang_tags.begin();
@@ -292,7 +292,7 @@ bool OpenTypeNAME::Serialize(OTSStream* out) {
               std::numeric_limits<uint16_t>::max() ||
           !out->WriteU16(static_cast<uint16_t>(tag_iter->size())) ||
           !out->WriteU16(static_cast<uint16_t>(string_data.size()))) {
-        return Error("Failed to write string");
+        return Error("Failed to write langTagRecord");
       }
       string_data.append(*tag_iter);
     }
