@@ -17,21 +17,21 @@ bool OpenTypeLTSH::Parse(const uint8_t *data, size_t length) {
   OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
       GetFont()->GetTable(OTS_TAG_MAXP));
   if (!maxp) {
-    return Error("Missing maxp table from font needed by ltsh");
+    return Error("Required maxp table is missing");
   }
 
   uint16_t num_glyphs = 0;
   if (!table.ReadU16(&this->version) ||
       !table.ReadU16(&num_glyphs)) {
-    return Error("Failed to read ltsh header");
+    return Error("Failed to read table header");
   }
 
   if (this->version != 0) {
-    return Drop("bad version: %u", this->version);
+    return Drop("Unsupported version: %u", this->version);
   }
 
   if (num_glyphs != maxp->num_glyphs) {
-    return Drop("bad num_glyphs: %u", num_glyphs);
+    return Drop("Bad numGlyphs: %u", num_glyphs);
   }
 
   this->ypels.reserve(num_glyphs);
@@ -51,7 +51,7 @@ bool OpenTypeLTSH::Serialize(OTSStream *out) {
   if (num_ypels != this->ypels.size() ||
       !out->WriteU16(this->version) ||
       !out->WriteU16(num_ypels)) {
-    return Error("Failed to write pels size");
+    return Error("Failed to write table header");
   }
   for (uint16_t i = 0; i < num_ypels; ++i) {
     if (!out->Write(&(this->ypels[i]), 1)) {
