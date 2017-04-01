@@ -40,20 +40,24 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
 
   // Follow WPF Font Selection Model's advice.
   if (1 <= this->table.weight_class && this->table.weight_class <= 9) {
-    Warning("Bad usWeightClass: %u, changing it to: %u", this->table.weight_class, this->table.weight_class * 100);
+    Warning("Bad usWeightClass: %u, changing it to %u",
+            this->table.weight_class, this->table.weight_class * 100);
     this->table.weight_class *= 100;
   }
   // Ditto.
   if (this->table.weight_class > 999) {
-    Warning("Bad usWeightClass: %u, changing it to: %d", this->table.weight_class, 999);
+    Warning("Bad usWeightClass: %u, changing it to %d",
+             this->table.weight_class, 999);
     this->table.weight_class = 999;
   }
 
   if (this->table.width_class < 1) {
-    Warning("Bad usWidthClass: %u, changing it to: %d", this->table.width_class, 1);
+    Warning("Bad usWidthClass: %u, changing it to %d",
+            this->table.width_class, 1);
     this->table.width_class = 1;
   } else if (this->table.width_class > 9) {
-    Warning("Bad usWidthClass: %u, changing it to: %d", this->table.width_class, 9);
+    Warning("Bad usWidthClass: %u, changing it to %d",
+            this->table.width_class, 9);
     this->table.width_class = 9;
   }
 
@@ -72,10 +76,10 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
   // mask reserved bits. use only 0..3, 8, 9 bits.
   this->table.type &= 0x30f;
 
-#define SET_TO_ZERO(a, b)                                     \
-  if (this->table.b < 0) {                                           \
-    Warning("Bad " a ": %d, setting it to zero", this->table.b); \
-    this->table.b = 0;                                               \
+#define SET_TO_ZERO(a, b)                                                      \
+  if (this->table.b < 0) {                                                     \
+    Warning("Bad " a ": %d, setting it to zero", this->table.b);               \
+    this->table.b = 0;                                                         \
   }
 
   SET_TO_ZERO("ySubscriptXSize", subscript_x_size);
@@ -99,7 +103,7 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
   };
   for (unsigned i = 0; i < 10; ++i) {
     if (!table.ReadU8(&this->table.panose[i])) {
-      return Error("Error reading PANOSE %s", panose_strings[i].c_str());
+      return Error("Failed to read PANOSE %s", panose_strings[i].c_str());
     }
   }
 
@@ -129,16 +133,16 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
   OpenTypeHEAD *head = dynamic_cast<OpenTypeHEAD*>(
       GetFont()->GetTable(OTS_TAG_HEAD));
   if (!head) {
-    return Error("Needed head table is missing from the font");
+    return Error("Required head table is missing");
   }
   if ((this->table.selection & 0x1) &&
       !(head->mac_style & 0x2)) {
-    Warning("adjusting Mac style (italic)");
+    Warning("Adjusting head.macStyle (italic) to match fsSelection");
     head->mac_style |= 0x2;
   }
   if ((this->table.selection & 0x2) &&
       !(head->mac_style & 0x4)) {
-    Warning("adjusting Mac style (underscore)");
+    Warning("Adjusting head.macStyle (underscore) to match fsSelection");
     head->mac_style |= 0x4;
   }
 
@@ -146,24 +150,26 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
   // the reverse is not true.
   if ((this->table.selection & 0x40) &&
       (head->mac_style & 0x3)) {
-    Warning("adjusting Mac style (regular)");
+    Warning("Adjusting head.macStyle (regular) to match fsSelection");
     head->mac_style &= 0xfffcu;
   }
 
   if ((this->table.version < 4) &&
       (this->table.selection & 0x300)) {
     // bit 8 and 9 must be unset in OS/2 table versions less than 4.
-    return Error("Version %d incompatible with selection %d", this->table.version, this->table.selection);
+    return Error("fSelection bits 8 and 9 must be unset for table version %d",
+                 this->table.version);
   }
 
   // mask reserved bits. use only 0..9 bits.
   this->table.selection &= 0x3ff;
 
   if (this->table.first_char_index > this->table.last_char_index) {
-    return Error("first char index %d > last char index %d in os2", this->table.first_char_index, this->table.last_char_index);
+    return Error("usFirstCharIndex %d > usLastCharIndex %d",
+                 this->table.first_char_index, this->table.last_char_index);
   }
   if (this->table.typo_linegap < 0) {
-    Warning("bad linegap: %d", this->table.typo_linegap);
+    Warning("Bad sTypoLineGap, setting it to 0: %d", this->table.typo_linegap);
     this->table.typo_linegap = 0;
   }
 
@@ -173,7 +179,7 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
   }
 
   if (length < offsetof(OS2Data, code_page_range_2)) {
-    Warning("bad version number: %u", this->table.version);
+    Warning("Bad version number, setting it to 0: %u", this->table.version);
     // Some fonts (e.g., kredit1.ttf and quinquef.ttf) have weird version
     // numbers. Fix them.
     this->table.version = 0;
@@ -182,7 +188,7 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
 
   if (!table.ReadU32(&this->table.code_page_range_1) ||
       !table.ReadU32(&this->table.code_page_range_2)) {
-    return Error("Failed to read codepage ranges");
+    return Error("Failed to read ulCodePageRange1 or ulCodePageRange2");
   }
 
   if (this->table.version < 2) {
@@ -191,7 +197,7 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
   }
 
   if (length < offsetof(OS2Data, max_context)) {
-    Warning("bad version number: %u", this->table.version);
+    Warning("Bad version number, setting it to 1: %u", this->table.version);
     // some Japanese fonts (e.g., mona.ttf) have weird version number.
     // fix them.
     this->table.version = 1;
@@ -207,11 +213,11 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
   }
 
   if (this->table.x_height < 0) {
-    Warning("bad x_height: %d", this->table.x_height);
+    Warning("Bad sxHeight settig it to 0: %d", this->table.x_height);
     this->table.x_height = 0;
   }
   if (this->table.cap_height < 0) {
-    Warning("bad cap_height: %d", this->table.cap_height);
+    Warning("Bad sCapHeight setting it to 0: %d", this->table.cap_height);
     this->table.cap_height = 0;
   }
 
@@ -226,12 +232,14 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
   }
 
   if (this->table.lower_optical_pointsize > 0xFFFE) {
-    Warning("'usLowerOpticalPointSize' is bigger than 0xFFFE: %d", this->table.lower_optical_pointsize);
+    Warning("usLowerOpticalPointSize is bigger than 0xFFFE: %d",
+            this->table.lower_optical_pointsize);
     this->table.lower_optical_pointsize = 0xFFFE;
   }
 
   if (this->table.upper_optical_pointsize < 2) {
-    Warning("'usUpperOpticalPointSize' is lower than 2: %d", this->table.upper_optical_pointsize);
+    Warning("usUpperOpticalPointSize is lower than 2: %d",
+            this->table.upper_optical_pointsize);
     this->table.upper_optical_pointsize = 2;
   }
 
@@ -255,12 +263,12 @@ bool OpenTypeOS2::Serialize(OTSStream *out) {
       !out->WriteS16(this->table.strikeout_size) ||
       !out->WriteS16(this->table.strikeout_position) ||
       !out->WriteS16(this->table.family_class)) {
-    return Error("Failed to write basic OS2 information");
+    return Error("Failed to write basic table data");
   }
 
   for (unsigned i = 0; i < 10; ++i) {
     if (!out->Write(&this->table.panose[i], 1)) {
-      return Error("Failed to write os2 panose information");
+      return Error("Failed to write PANOSE data");
     }
   }
 
