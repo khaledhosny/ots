@@ -17,7 +17,7 @@ bool OpenTypeFPGM::Parse(const uint8_t *data, size_t length) {
   }
 
   if (!table.Skip(length)) {
-    return Error("Bad fpgm length");
+    return Error("Bad table length");
   }
 
   this->data = data;
