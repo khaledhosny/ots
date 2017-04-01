@@ -15,15 +15,15 @@ bool OpenTypeKERN::Parse(const uint8_t *data, size_t length) {
   uint16_t num_tables = 0;
   if (!table.ReadU16(&this->version) ||
       !table.ReadU16(&num_tables)) {
-    return Error("Failed to read kern header");
+    return Error("Failed to read table header");
   }
 
   if (this->version > 0) {
-    return Drop("bad table version");
+    return Drop("Unsupported table version: %d", this->version);
   }
 
   if (num_tables == 0) {
-    return Drop("num_tables is zero");
+    return Drop("nTables is zero");
   }
 
   this->subtables.reserve(num_tables);
@@ -33,21 +33,22 @@ bool OpenTypeKERN::Parse(const uint8_t *data, size_t length) {
 
     if (!table.ReadU16(&subtable.version) ||
         !table.ReadU16(&sub_length)) {
-      return Error("Failed to read kern subtable %d header", i);
+      return Error("Failed to read subtable %d header", i);
     }
 
     if (subtable.version > 0) {
-      Warning("Bad subtable version: %d", subtable.version);
+      Warning("Ignoring subtable %d with unsupported version: %d",
+              i, subtable.version);
       continue;
     }
 
     const size_t current_offset = table.offset();
     if (current_offset - 4 + sub_length > length) {
-      return Error("Bad kern subtable %d offset %ld", i, current_offset);
+      return Error("Bad subtable %d offset %ld", i, current_offset);
     }
 
     if (!table.ReadU16(&subtable.coverage)) {
-      return Error("Cailed to read kern subtable %d coverage", i);
+      return Error("Failed to read subtable %d coverage", i);
     }
 
     if (!(subtable.coverage & 0x1)) {
@@ -56,11 +57,11 @@ bool OpenTypeKERN::Parse(const uint8_t *data, size_t length) {
       continue;
     }
     if (subtable.coverage & 0xF0) {
-      return Drop("Reserved fields should zero-filled");
+      return Drop("Reserved fields should be zero");
     }
     const uint32_t format = (subtable.coverage & 0xFF00) >> 8;
     if (format != 0) {
-      Warning("Format %d is not supported.", format);
+      Warning("Ignoring subtable %d with unsupported format: %d", i, format);
       continue;
     }
 
@@ -70,7 +71,7 @@ bool OpenTypeKERN::Parse(const uint8_t *data, size_t length) {
         !table.ReadU16(&subtable.search_range) ||
         !table.ReadU16(&subtable.entry_selector) ||
         !table.ReadU16(&subtable.range_shift)) {
-      return Error("Failed to read kern subtable %d format 0 fields", i);
+      return Error("Failed to read subtable %d format 0 fields", i);
     }
 
     if (!num_pairs) {
@@ -128,7 +129,7 @@ bool OpenTypeKERN::Parse(const uint8_t *data, size_t length) {
   }
 
   if (!this->subtables.size()) {
-    return Drop("All subtables are removed");
+    return Drop("All subtables were removed");
   }
 
   return true;
@@ -139,7 +140,7 @@ bool OpenTypeKERN::Serialize(OTSStream *out) {
   if (num_subtables != this->subtables.size() ||
       !out->WriteU16(this->version) ||
       !out->WriteU16(num_subtables)) {
-    return Error("Can't write kern table header");
+    return Error("Failed to write kern table header");
   }
 
   for (uint16_t i = 0; i < num_subtables; ++i) {
