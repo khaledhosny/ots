@@ -51,15 +51,6 @@ bool OpenTypeHEAD::Parse(const uint8_t *data, size_t length) {
     return Error("unitsPerEm on in the range [16, 16384]: %d", this->upem);
   }
 
-  // upem must be a power of two
-#if 0
-  // We don't call ots_failure() for now since lots of TrueType fonts are
-  // not following this rule. Putting a warning here is too noisy.
-  if ((this->upem - 1) & this->upem) {
-    return Error("ppm not a power of two: %d", this->upem);
-  }
-#endif
-
   if (!table.ReadR64(&this->created) ||
       !table.ReadR64(&this->modified)) {
     return Error("Can't read font dates");
