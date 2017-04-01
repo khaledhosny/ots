@@ -20,11 +20,11 @@ bool OpenTypeGASP::Parse(const uint8_t *data, size_t length) {
 
   if (this->version > 1) {
     // Lots of Linux fonts have bad version numbers...
-    return Drop("bad version: %u", this->version);
+    return Drop("Unsupported version: %u", this->version);
   }
 
   if (num_ranges == 0) {
-    return Drop("num_ranges is zero");
+    return Drop("numRanges is zero");
   }
 
   this->gasp_ranges.reserve(num_ranges);
@@ -33,12 +33,12 @@ bool OpenTypeGASP::Parse(const uint8_t *data, size_t length) {
     uint16_t behavior = 0;
     if (!table.ReadU16(&max_ppem) ||
         !table.ReadU16(&behavior)) {
-      return Error("Failed to read subrange %d", i);
+      return Error("Failed to read GASPRANGE %d", i);
     }
     if ((i > 0) && (this->gasp_ranges[i - 1].first >= max_ppem)) {
       // The records in the gaspRange[] array must be sorted in order of
       // increasing rangeMaxPPEM value.
-      return Drop("ranges are not sorted");
+      return Drop("Ranges are not sorted");
     }
     if ((i == num_ranges - 1u) &&  // never underflow.
         (max_ppem != 0xffffu)) {
@@ -47,13 +47,13 @@ bool OpenTypeGASP::Parse(const uint8_t *data, size_t length) {
     }
 
     if (behavior >> 8) {
-      Warning("undefined bits are used: %x", behavior);
+      Warning("Undefined bits are used: %x", behavior);
       // mask undefined bits.
       behavior &= 0x000fu;
     }
 
     if (this->version == 0 && (behavior >> 2) != 0) {
-      Warning("changed the version number to 1");
+      Warning("Changed the version number to 1");
       this->version = 1;
     }
 
@@ -68,13 +68,13 @@ bool OpenTypeGASP::Serialize(OTSStream *out) {
   if (num_ranges != this->gasp_ranges.size() ||
       !out->WriteU16(this->version) ||
       !out->WriteU16(num_ranges)) {
-    return Error("failed to write gasp header");
+    return Error("Failed to write table header");
   }
 
   for (uint16_t i = 0; i < num_ranges; ++i) {
     if (!out->WriteU16(this->gasp_ranges[i].first) ||
         !out->WriteU16(this->gasp_ranges[i].second)) {
-      return Error("Failed to write gasp subtable %d", i);
+      return Error("Failed to write GASPRANGE %d", i);
     }
   }
 
