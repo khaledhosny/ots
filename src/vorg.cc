@@ -22,10 +22,10 @@ bool OpenTypeVORG::Parse(const uint8_t *data, size_t length) {
     return Error("Failed to read header");
   }
   if (this->major_version != 1) {
-    return Drop("bad major version: %u", this->major_version);
+    return Drop("Unsupported majorVersion: %u", this->major_version);
   }
   if (this->minor_version != 0) {
-    return Drop("bad minor version: %u", this->minor_version);
+    return Drop("Unsupported minorVersion: %u", this->minor_version);
   }
 
   // num_recs might be zero (e.g., DFHSMinchoPro5-W3-Demo.otf).
@@ -43,7 +43,7 @@ bool OpenTypeVORG::Parse(const uint8_t *data, size_t length) {
       return Error("Failed to read record %d", i);
     }
     if ((i != 0) && (rec.glyph_index <= last_glyph_index)) {
-      return Drop("the table is not sorted");
+      return Drop("The table is not sorted");
     }
     last_glyph_index = rec.glyph_index;
 
