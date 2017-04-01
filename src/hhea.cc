@@ -19,7 +19,7 @@ bool OpenTypeHHEA::Parse(const uint8_t *data, size_t length) {
     return Error("Failed to read table version");
   }
   if (this->version >> 16 != 1) {
-    return Error("Bad table version of %d", this->version);
+    return Error("Unsupported majorVersion: %d", this->version >> 16);
   }
 
   return OpenTypeMetricsHeader::Parse(data, length);

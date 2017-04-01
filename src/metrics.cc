@@ -31,7 +31,7 @@ bool OpenTypeMetricsHeader::Parse(const uint8_t *data, size_t length) {
       !table.ReadS16(&this->caret_slope_rise) ||
       !table.ReadS16(&this->caret_slope_run) ||
       !table.ReadS16(&this->caret_offset)) {
-    return Error("Failed to read metrics header");
+    return Error("Failed to read table");
   }
 
   if (this->ascent < 0) {
@@ -58,15 +58,15 @@ bool OpenTypeMetricsHeader::Parse(const uint8_t *data, size_t length) {
 
   // skip the reserved bytes
   if (!table.Skip(8)) {
-    return Error("Failed to skip reserverd bytes");
+    return Error("Failed to read reserverd bytes");
   }
 
   int16_t data_format;
   if (!table.ReadS16(&data_format)) {
-    return Error("Failed to read data format");
+    return Error("Failed to read metricDataFormat");
   }
   if (data_format) {
-    return Error("Bad data format %d", data_format);
+    return Error("Bad metricDataFormat: %d", data_format);
   }
 
   if (!table.ReadU16(&this->num_metrics)) {
@@ -113,7 +113,7 @@ bool OpenTypeMetricsTable::Parse(const uint8_t *data, size_t length) {
   OpenTypeMetricsHeader *header = dynamic_cast<OpenTypeMetricsHeader*>(
       GetFont()->GetTable(m_header_tag));
   if (!header) {
-    return Error("Required %c%c%c%c table missing", m_header_tag);
+    return Error("Required %c%c%c%c table missing", OTS_UNTAG(m_header_tag));
   }
   // |num_metrics| is a uint16_t, so it's bounded < 65536. This limits that
   // amount of memory that we'll allocate for this to a sane amount.

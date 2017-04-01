@@ -20,7 +20,7 @@ bool OpenTypeVHEA::Parse(const uint8_t *data, size_t length) {
   }
   if (this->version != 0x00010000 &&
       this->version != 0x00011000) {
-    return Error("Bad vhea version %x", this->version);
+    return Error("Unsupported table version: 0x%x", this->version);
   }
 
   return OpenTypeMetricsHeader::Parse(data, length);
