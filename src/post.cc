@@ -14,11 +14,26 @@ namespace ots {
 bool OpenTypePOST::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
-  if (!table.ReadU32(&this->version) ||
-      !table.ReadU32(&this->italic_angle) ||
+  if (!table.ReadU32(&this->version)) {
+    return Error("Failed to read table version");
+  }
+
+  if (this->version != 0x00010000 &&
+      this->version != 0x00020000 &&
+      this->version != 0x00030000) {
+    // 0x00025000 is deprecated. We don't accept it.
+    return Error("Unsupported table version 0x%x", this->version);
+  }
+
+  fprintf(stderr, "post 0x%x\n", this->version);
+
+  if (!table.ReadU32(&this->italic_angle) ||
       !table.ReadS16(&this->underline) ||
       !table.ReadS16(&this->underline_thickness) ||
-      !table.ReadU32(&this->is_fixed_pitch)) {
+      !table.ReadU32(&this->is_fixed_pitch) ||
+      // We don't care about the memory usage fields. We'll set all these to
+      // zero when serialising
+      !table.Skip(16)) {
     return Error("Failed to read table header");
   }
 
@@ -26,22 +41,11 @@ bool OpenTypePOST::Parse(const uint8_t *data, size_t length) {
     this->underline_thickness = 1;
   }
 
-  if (this->version == 0x00010000) {
+  if (this->version == 0x00010000 || this->version == 0x00030000) {
     return true;
-  } else if (this->version == 0x00030000) {
-    return true;
-  } else if (this->version != 0x00020000) {
-    // 0x00025000 is deprecated. We don't accept it.
-    return Error("Unsupported table version 0x%x", this->version);
   }
 
   // We have a version 2 table with a list of Pascal strings at the end
-
-  // We don't care about the memory usage fields. We'll set all these to zero
-  // when serialising
-  if (!table.Skip(16)) {
-    return Error("Failed to read memory usage fields in post table");
-  }
 
   uint16_t num_glyphs = 0;
   if (!table.ReadU16(&num_glyphs)) {
