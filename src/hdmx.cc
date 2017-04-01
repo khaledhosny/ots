@@ -23,7 +23,7 @@ bool OpenTypeHDMX::Parse(const uint8_t *data, size_t length) {
   }
 
   if ((head->flags & 0x14) == 0) {
-    // http://www.microsoft.com/typography/otspec/recom.htm
+    // http://www.microsoft.com/typography/otspec/recom.htm#hdmx
     return Drop("the table should not be present when bit 2 and 4 of the "
                 "head->flags are not set");
   }
