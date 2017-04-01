@@ -23,7 +23,7 @@ bool OpenTypeLOCA::Parse(const uint8_t *data, size_t length) {
   OpenTypeHEAD *head = dynamic_cast<OpenTypeHEAD*>(
       GetFont()->GetTable(OTS_TAG_HEAD));
   if (!maxp || !head) {
-    return Error("maxp or head tables missing from font, needed by loca");
+    return Error("Required maxp or head tables are missing");
   }
 
   const unsigned num_glyphs = maxp->num_glyphs;
@@ -68,7 +68,7 @@ bool OpenTypeLOCA::Serialize(OTSStream *out) {
       GetFont()->GetTable(OTS_TAG_HEAD));
 
   if (!head) {
-    return Error("Missing head table in font needed by loca");
+    return Error("Required head table is missing");
   }
 
   if (head->index_to_loc_format == 0) {
