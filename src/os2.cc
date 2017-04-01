@@ -132,16 +132,14 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
   // in the 'head' table.
   OpenTypeHEAD *head = dynamic_cast<OpenTypeHEAD*>(
       GetFont()->GetTable(OTS_TAG_HEAD));
-  if (!head) {
-    return Error("Required head table is missing");
-  }
+
   if ((this->table.selection & 0x1) &&
-      !(head->mac_style & 0x2)) {
+      head && !(head->mac_style & 0x2)) {
     Warning("Adjusting head.macStyle (italic) to match fsSelection");
     head->mac_style |= 0x2;
   }
   if ((this->table.selection & 0x2) &&
-      !(head->mac_style & 0x4)) {
+      head && !(head->mac_style & 0x4)) {
     Warning("Adjusting head.macStyle (underscore) to match fsSelection");
     head->mac_style |= 0x4;
   }
@@ -149,7 +147,7 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
   // While bit 6 on implies that bits 0 and 1 of macStyle are clear,
   // the reverse is not true.
   if ((this->table.selection & 0x40) &&
-      (head->mac_style & 0x3)) {
+      head && (head->mac_style & 0x3)) {
     Warning("Adjusting head.macStyle (regular) to match fsSelection");
     head->mac_style &= 0xfffcu;
   }
