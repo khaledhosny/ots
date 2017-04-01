@@ -120,7 +120,8 @@ bool OpenTypePOST::Parse(const uint8_t *data, size_t length) {
 bool OpenTypePOST::Serialize(OTSStream *out) {
   // OpenType with CFF glyphs must have v3 post table.
   if (GetFont()->GetTable(OTS_TAG_CFF) && this->version != 0x00030000) {
-    return Error("Bad post version %x", this->version);
+    return Error("Only version supported for fonts with CFF table is 0x00030000"
+                 " not 0x%x", this->version);
   }
 
   if (!out->WriteU32(this->version) ||
