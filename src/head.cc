@@ -41,22 +41,22 @@ bool OpenTypeHEAD::Parse(const uint8_t *data, size_t length) {
   // We allow bits 0..4, 11..13
   this->flags &= 0x381f;
 
-  if (!table.ReadU16(&this->ppem)) {
+  if (!table.ReadU16(&this->upem)) {
     return Error("Failed to read unitsPerEm");
   }
 
-  // ppem must be in range
-  if (this->ppem < 16 ||
-      this->ppem > 16384) {
-    return Error("unitsPerEm on in the range [16, 16384]: %d", this->ppem);
+  // upem must be in range
+  if (this->upem < 16 ||
+      this->upem > 16384) {
+    return Error("unitsPerEm on in the range [16, 16384]: %d", this->upem);
   }
 
-  // ppem must be a power of two
+  // upem must be a power of two
 #if 0
   // We don't call ots_failure() for now since lots of TrueType fonts are
   // not following this rule. Putting a warning here is too noisy.
-  if ((this->ppem - 1) & this->ppem) {
-    return Error("ppm not a power of two: %d", this->ppem);
+  if ((this->upem - 1) & this->upem) {
+    return Error("ppm not a power of two: %d", this->upem);
   }
 #endif
 
@@ -120,7 +120,7 @@ bool OpenTypeHEAD::Serialize(OTSStream *out) {
       !out->WriteU32(0) ||  // check sum not filled in yet
       !out->WriteU32(0x5F0F3CF5) ||
       !out->WriteU16(this->flags) ||
-      !out->WriteU16(this->ppem) ||
+      !out->WriteU16(this->upem) ||
       !out->WriteR64(this->created) ||
       !out->WriteR64(this->modified) ||
       !out->WriteS16(this->xmin) ||

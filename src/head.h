@@ -19,7 +19,7 @@ class OpenTypeHEAD : public Table {
 
   uint32_t revision;
   uint16_t flags;
-  uint16_t ppem;
+  uint16_t upem;
   uint64_t created;
   uint64_t modified;
 
