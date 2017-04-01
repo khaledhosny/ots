@@ -32,22 +32,22 @@ bool OpenTypeHDMX::Parse(const uint8_t *data, size_t length) {
   if (!table.ReadU16(&this->version) ||
       !table.ReadS16(&num_recs) ||
       !table.ReadS32(&this->size_device_record)) {
-    return Error("Failed to read hdmx header");
+    return Error("Failed to read table header");
   }
   if (this->version != 0) {
-    return Drop("bad version: %u", this->version);
+    return Drop("Unsupported version: %u", this->version);
   }
   if (num_recs <= 0) {
-    return Drop("bad num_recs: %d", num_recs);
+    return Drop("Bad numRecords: %d", num_recs);
   }
   const int32_t actual_size_device_record = maxp->num_glyphs + 2;
   if (this->size_device_record < actual_size_device_record) {
-    return Drop("bad size_device_record: %d", this->size_device_record);
+    return Drop("Bad sizeDeviceRecord: %d", this->size_device_record);
   }
 
   this->pad_len = this->size_device_record - actual_size_device_record;
   if (this->pad_len > 3) {
-    return Error("Bad padding %d", this->pad_len);
+    return Error("Bad DeviceRecord padding %d", this->pad_len);
   }
 
   uint8_t last_pixel_size = 0;
@@ -57,11 +57,11 @@ bool OpenTypeHDMX::Parse(const uint8_t *data, size_t length) {
 
     if (!table.ReadU8(&rec.pixel_size) ||
         !table.ReadU8(&rec.max_width)) {
-      return Error("Failed to read hdmx record %d", i);
+      return Error("Failed to read DeviceRecord %d", i);
     }
     if ((i != 0) &&
         (rec.pixel_size <= last_pixel_size)) {
-      return Drop("records are not sorted");
+      return Drop("DeviceRecord's are not sorted");
     }
     last_pixel_size = rec.pixel_size;
 
@@ -69,14 +69,14 @@ bool OpenTypeHDMX::Parse(const uint8_t *data, size_t length) {
     for (unsigned j = 0; j < maxp->num_glyphs; ++j) {
       uint8_t width;
       if (!table.ReadU8(&width)) {
-        return Error("Failed to read glyph width %d in record %d", j, i);
+        return Error("Failed to read glyph width %d in DeviceRecord %d", j, i);
       }
       rec.widths.push_back(width);
     }
 
     if ((this->pad_len > 0) &&
         !table.Skip(this->pad_len)) {
-      return Error("Failed to skip padding %d", this->pad_len);
+      return Error("DeviceRecord %d should be padded by %d", i, this->pad_len);
     }
 
     this->records.push_back(rec);
@@ -98,7 +98,7 @@ bool OpenTypeHDMX::Serialize(OTSStream *out) {
       !out->WriteU16(this->version) ||
       !out->WriteS16(num_recs) ||
       !out->WriteS32(this->size_device_record)) {
-    return Error("Failed to write hdmx header");
+    return Error("Failed to write table header");
   }
 
   for (int16_t i = 0; i < num_recs; ++i) {
@@ -106,11 +106,11 @@ bool OpenTypeHDMX::Serialize(OTSStream *out) {
     if (!out->Write(&rec.pixel_size, 1) ||
         !out->Write(&rec.max_width, 1) ||
         !out->Write(&rec.widths[0], rec.widths.size())) {
-      return Error("Failed to write hdmx record %d", i);
+      return Error("Failed to write DeviceRecord %d", i);
     }
     if ((this->pad_len > 0) &&
         !out->Write((const uint8_t *)"\x00\x00\x00", this->pad_len)) {
-      return Error("Failed to write hdmx padding of length %d", this->pad_len);
+      return Error("Failed to write padding of length %d", this->pad_len);
     }
   }
 
