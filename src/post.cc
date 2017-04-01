@@ -19,7 +19,7 @@ bool OpenTypePOST::Parse(const uint8_t *data, size_t length) {
       !table.ReadS16(&this->underline) ||
       !table.ReadS16(&this->underline_thickness) ||
       !table.ReadU32(&this->is_fixed_pitch)) {
-    return Error("Failed to read post header");
+    return Error("Failed to read table header");
   }
 
   if (this->underline_thickness < 0) {
@@ -32,7 +32,7 @@ bool OpenTypePOST::Parse(const uint8_t *data, size_t length) {
     return true;
   } else if (this->version != 0x00020000) {
     // 0x00025000 is deprecated. We don't accept it.
-    return Error("Bad post version %x", this->version);
+    return Error("Unsupported table version 0x%x", this->version);
   }
 
   // We have a version 2 table with a list of Pascal strings at the end
@@ -40,39 +40,40 @@ bool OpenTypePOST::Parse(const uint8_t *data, size_t length) {
   // We don't care about the memory usage fields. We'll set all these to zero
   // when serialising
   if (!table.Skip(16)) {
-    return Error("Failed to skip memory usage in post table");
+    return Error("Failed to read memory usage fields in post table");
   }
 
   uint16_t num_glyphs = 0;
   if (!table.ReadU16(&num_glyphs)) {
-    return Error("Failed to read number of glyphs");
+    return Error("Failed to read numberOfGlyphs");
   }
 
   OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
       GetFont()->GetTable(OTS_TAG_MAXP));
   if (!maxp) {
-    return Error("No maxp table required by post table");
+    return Error("Missing required maxp table");
   }
 
   if (num_glyphs == 0) {
     if (maxp->num_glyphs > 258) {
-      return Error("Can't have no glyphs in the post table if there are more than 256 glyphs in the font");
+      return Error("Can't have no glyphs in the post table if there are more "
+                   "than 258 glyphs in the font");
     }
     // workaround for fonts in http://www.fontsquirrel.com/fontface
     // (e.g., yataghan.ttf).
     this->version = 0x00010000;
-    return Warning("table version is 1, but no glyf names are found");
+    return Warning("Table version is 1, but no glyph names are found");
   }
 
   if (num_glyphs != maxp->num_glyphs) {
     // Note: Fixedsys500c.ttf seems to have inconsistent num_glyphs values.
-    return Error("Bad number of glyphs in post table %d", num_glyphs);
+    return Error("Bad number of glyphs: %d", num_glyphs);
   }
 
   this->glyph_name_index.resize(num_glyphs);
   for (unsigned i = 0; i < num_glyphs; ++i) {
     if (!table.ReadU16(&this->glyph_name_index[i])) {
-      return Error("Failed to read post information for glyph %d", i);
+      return Error("Failed to read glyph name %d", i);
     }
     // Note: A strict interpretation of the specification requires name indexes
     // are less than 32768. This, however, excludes fonts like unifont.ttf
