@@ -17,11 +17,11 @@ bool OpenTypeCVT::Parse(const uint8_t *data, size_t length) {
   }
 
   if (length % 2 != 0) {
-    return Error("Uneven cvt length (%d)", length);
+    return Error("Uneven table length (%d)", length);
   }
 
   if (!table.Skip(length)) {
-    return Error("Length too high");
+    return Error("Table length too high");
   }
 
   this->data = data;
