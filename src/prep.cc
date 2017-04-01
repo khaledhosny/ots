@@ -13,7 +13,8 @@ bool OpenTypePREP::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
   if (length >= 128 * 1024u) {
-    return Error("table length %ld > 120K", length);  // almost all prep tables are less than 9k bytes.
+    // almost all prep tables are less than 9k bytes.
+    return Error("Table length %ld > 120K", length);
   }
 
   if (!table.Skip(length)) {
