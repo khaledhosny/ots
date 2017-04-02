@@ -25,8 +25,6 @@ bool OpenTypePOST::Parse(const uint8_t *data, size_t length) {
     return Error("Unsupported table version 0x%x", this->version);
   }
 
-  fprintf(stderr, "post 0x%x\n", this->version);
-
   if (!table.ReadU32(&this->italic_angle) ||
       !table.ReadS16(&this->underline) ||
       !table.ReadS16(&this->underline_thickness) ||
