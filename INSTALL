@@ -6,17 +6,25 @@ a shared library intentionally.
 General build instructions:
 
   1. If you are building from cloned Git repository, you will need to update
-     the git sub modules, as well as run autoreconf. A convenience script is
-     provided:
+     the git submodules. You can do this when cloning with:
+     
+     $ git clone --recursive https://github.com/khaledhosny/ots.git;
+     
+     Or with an existing repository with:
+     
+     $ git submodule init;
+     $ git submodule update;
+     
+  2. Run autoreconf. A convenience script is provided:
 
      $ ./autogen.sh
 
-  2. Build OTS
+  3. Build OTS
 
      $ ./configure
      $ make
 
-  3. Run the tests (if you wish)
+  4. Run the tests (if you wish)
 
      $ make check
 
