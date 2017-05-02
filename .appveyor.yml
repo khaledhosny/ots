@@ -7,7 +7,7 @@ install:
   - appveyor DownloadFile "http://zlib.net/zlib128-dll.zip"
   - 7z x -ozlib zlib128-dll.zip
   - copy zlib\lib\zdll.lib zlib\lib\z.lib # FIXME
-  - call "%VS120COMNTOOLS%\..\..\VC\vcvarsall.bat" %PLATFORM%
+  - call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" %PLATFORM%
 
 build_script:
   - set CC=./cccl
