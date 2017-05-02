@@ -22,6 +22,12 @@ bin_PROGRAMS += \
   ots-idempotent \
   ots-validator-checker \
   $(NULL)
+else
+if HAVE_WIN32
+bin_PROGRAMS += \
+  ots-idempotent \
+  $(NULL)
+endif # HAVE_WIN32
 endif # HAVE_CORETEXT
 endif # HAVE_FREETYPE
 
@@ -289,6 +295,9 @@ LDADD = \
   $(FREETYPE_LIBS) \
   $(NULL)
 
+if HAVE_WIN32
+LDADD += -lgdi32
+endif
 
 AM_TESTS_ENVIRONMENT = \
   EXEEXT="$(EXEEXT)"; \

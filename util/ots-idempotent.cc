@@ -4,18 +4,16 @@
 
 #include "config.h"
 
-#if !defined(_WIN32)
 #if defined(HAVE_CORETEXT)
 #include <ApplicationServices/ApplicationServices.h>
 #elif defined(HAVE_FREETYPE)
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
-#endif
-#else
-// Windows
+#elif defined(HAVE_WIN32)
+#define NOMINMAX
 #include <Windows.h>
-#endif  // !defiend(_WIN32)
+#endif
 
 #include <fstream>
 #include <iostream>
@@ -90,7 +88,7 @@ bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
   return true;
 }
 
-#elif defined(_WIN32)
+#elif defined(HAVE_WIN32)
 // Windows
 bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
   DWORD num_fonts = 0;

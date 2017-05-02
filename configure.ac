@@ -59,6 +59,13 @@ AC_SUBST(CORETEXT_CFLAGS)
 AC_SUBST(CORETEXT_LIBS)
 AM_CONDITIONAL(HAVE_CORETEXT, [$have_coretext])
 
+have_win32=false
+AC_CHECK_HEADERS(windows.h, have_win32=true)
+if $have_win32; then
+	AC_DEFINE(HAVE_WIN32, 1, [Have Windows API])
+fi
+AM_CONDITIONAL(HAVE_WIN32, [$have_win32])
+
 have_systime=false
 AC_CHECK_HEADER([sys/time.h], [have_systime=true])
 AM_CONDITIONAL(HAVE_SYSTIME, [$have_systime])
