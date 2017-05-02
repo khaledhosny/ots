@@ -12,7 +12,8 @@ install:
 build_script:
   - set CC=./cccl
   - set CXX=./cccl
-  - bash -c "exec 0</dev/null; ./autogen.sh; ./configure --with-zlib=zlib; make CXXFLAGS='-D_HAS_EXCEPTIONS=0 -D_STATIC_CPPLIB'"
+  - set CXXFLAGS='-D_HAS_EXCEPTIONS=0 -D_STATIC_CPPLIB'
+  - bash -c "./autogen.sh; ./configure --with-zlib=zlib; make"
 
 # disable automatic tests
 test: off
