@@ -12,20 +12,13 @@
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
 #endif
-#include <unistd.h>
 #else
 // Windows
-#include <io.h>
 #include <Windows.h>
 #endif  // !defiend(_WIN32)
 
-#include <fcntl.h>
-#include <sys/stat.h>
-
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <fstream>
+#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -40,33 +33,17 @@ int Usage(const char *argv0) {
 }
 
 bool DumpResults(const uint8_t *result1, const size_t len1,
-                 const uint8_t *result2, const size_t len2);
-
-#if defined(_WIN32)
-#define ADDITIONAL_OPEN_FLAGS O_BINARY
-#else
-#define ADDITIONAL_OPEN_FLAGS 0
-#endif
-
-bool DumpResults(const uint8_t *result1, const size_t len1,
                  const uint8_t *result2, const size_t len2) {
-  int fd1 = open("out1.ttf",
-                 O_WRONLY | O_CREAT | O_TRUNC | ADDITIONAL_OPEN_FLAGS, 0600);
-  int fd2 = open("out2.ttf",
-                 O_WRONLY | O_CREAT | O_TRUNC | ADDITIONAL_OPEN_FLAGS, 0600);
-  if (fd1 < 0 || fd2 < 0) {
-    perror("opening output file");
+  std::ofstream out1("out1.ttf", std::ofstream::out | std::ofstream::binary);
+  std::ofstream out2("out2.ttf", std::ofstream::out | std::ofstream::binary);
+  if (!out1.good() || !out2.good())
     return false;
-  }
-  if ((write(fd1, result1, len1) < 0) ||
-      (write(fd2, result2, len2) < 0)) {
-    perror("writing output file");
-    close(fd1);
-    close(fd2);
+
+  out1.write(reinterpret_cast<const char*>(result1), len1);
+  out2.write(reinterpret_cast<const char*>(result2), len2);
+  if (!out1.good() || !out2.good())
     return false;
-  }
-  close(fd1);
-  close(fd2);
+
   return true;
 }
 
