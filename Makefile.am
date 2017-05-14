@@ -206,6 +206,12 @@ ots_fuzzer_SOURCES = \
   util/ots-fuzzer.cc \
   $(NULL)
 
+ots_fuzzer_CXXFLAGS = \
+  $(ASAN_CFLAGS) \
+  $(LSAN_CFLAGS) \
+  $(UBSAN_CFLAGS) \
+  $(NULL)
+
 
 cff_type2_charstring_test_SOURCES = \
   tests/cff_type2_charstring_test.cc \

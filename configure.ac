@@ -26,6 +26,15 @@ AC_ARG_ENABLE(debug,
 	      AC_DEFINE(OTS_DEBUG, 1, [Enable extra debugging information]),
 	      :)
 
+AX_CHECK_COMPILE_FLAG([-fsanitize=address], [ASAN_CFLAGS=-fsanitize=address], :)
+AC_SUBST(ASAN_CFLAGS)
+
+AX_CHECK_COMPILE_FLAG([-fsanitize=leak], [LSAN_CFLAGS=-fsanitize=leak], :)
+AC_SUBST(LSAN_CFLAGS)
+
+AX_CHECK_COMPILE_FLAG([-fsanitize=undefined], [UBSAN_CFLAGS=-fsanitize=undefined], :)
+AC_SUBST(UBSAN_CFLAGS)
+
 have_zlib=true
 AX_CHECK_ZLIB([], [have_zlib=false])
 if ! $have_zlib; then
