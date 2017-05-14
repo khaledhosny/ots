@@ -208,7 +208,6 @@ ots_fuzzer_SOURCES = \
 
 ots_fuzzer_CXXFLAGS = \
   $(ASAN_CFLAGS) \
-  $(LSAN_CFLAGS) \
   $(UBSAN_CFLAGS) \
   $(NULL)
 
