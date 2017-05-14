@@ -21,18 +21,18 @@ PKG_PROG_PKG_CONFIG([0.20])
 
 AX_CXX_COMPILE_STDCXX([11], [noext], [mandatory])
 
+AX_CHECK_COMPILE_FLAG([-fsanitize=address], [ASAN_CFLAGS=-fsanitize=address], :)
+AC_SUBST(ASAN_CFLAGS)
+
+AX_CHECK_COMPILE_FLAG([-fsanitize=undefined], [UBSAN_CFLAGS=-fsanitize=undefined], :)
+AC_SUBST(UBSAN_CFLAGS)
+
 AC_ARG_ENABLE(debug,
 	      AS_HELP_STRING([--enable-debug=@<:@yes/no@:>@],
 			     [Enable extra debugging information for font
 			      sanitization @<:@default=no@:>@]),
 	      AC_DEFINE(OTS_DEBUG, 1, [Enable extra debugging information]),
 	      :)
-
-AX_CHECK_COMPILE_FLAG([-fsanitize=address], [ASAN_CFLAGS=-fsanitize=address], :)
-AC_SUBST(ASAN_CFLAGS)
-
-AX_CHECK_COMPILE_FLAG([-fsanitize=undefined], [UBSAN_CFLAGS=-fsanitize=undefined], :)
-AC_SUBST(UBSAN_CFLAGS)
 
 have_zlib=true
 AX_CHECK_ZLIB([], [have_zlib=false])
