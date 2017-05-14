@@ -9,7 +9,7 @@ test "x$top_builddir" = x && top_builddir=.
 
 # Usage: ./test_fuzzed_fonts.sh [ttf_or_otf_file_name]
 
-BASE_DIR=$top_srcdir/tests/fonts/fuzzing
+BASE_DIR=$top_srcdir/tests/fonts
 CHECKER=$top_builddir/ots-fuzzer$EXEEXT
 
 if [ ! -x "$CHECKER" ] ; then
@@ -23,7 +23,7 @@ if [ $# -eq 0 ] ; then
 
   # Recursively call this script.
   FAILS=0
-  FONTS=`find $BASE_DIR -type f -name '*tf' -o -name '*tc'`
+  FONTS=$(find $BASE_DIR -type f -name '*tf' -o -name '*tc' -o -name '*woff*')
   IFS=$'\n'
   for f in $FONTS; do
     $0 "$f"
