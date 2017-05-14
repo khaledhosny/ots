@@ -132,6 +132,11 @@ libots_a_SOURCES = \
   src/vorg.h \
   $(NULL)
 
+libots_a_CPPFLAGS = \
+  -I$(top_srcdir)/include \
+  -I$(top_srcdir)/third_party/woff2/src \
+  $(NULL)
+
 
 pkginclude_HEADERS = \
   include/ots-memory-stream.h \
@@ -157,6 +162,10 @@ libbrotli_a_SOURCES = \
   third_party/brotli/dec/types.h \
   $(NULL)
 
+libbrotli_a_CPPFLAGS = \
+  -I$(top_srcdir)/third_party/brotli/dec \
+  $(NULL)
+
 
 libwoff2_a_SOURCES = \
   third_party/woff2/src/buffer.h \
@@ -173,6 +182,11 @@ libwoff2_a_SOURCES = \
   third_party/woff2/src/woff2_dec.h \
   third_party/woff2/src/woff2_out.cc \
   third_party/woff2/src/woff2_out.h \
+  $(NULL)
+
+libwoff2_a_CPPFLAGS = \
+  -I$(top_srcdir)/third_party/brotli/dec \
+  -I$(top_srcdir)/third_party/woff2/src \
   $(NULL)
 
 
@@ -192,18 +206,55 @@ ots_idempotent_SOURCES = \
   util/test-context.h \
   $(NULL)
 
+ots_idempotent_CXXFLAGS = \
+  $(CORETEXT_CFLAGS) \
+  $(FREETYPE_CFLAGS) \
+  $(NULL)
+
+ots_idempotent_LDADD = \
+  $(LDADD) \
+  $(CORETEXT_LIBS) \
+  $(FREETYPE_LIBS) \
+  $(NULL)
+
 
 ots_validator_checker_SOURCES = \
   util/ots-validator-checker.cc \
   $(NULL)
 
+ots_validator_checker_CXXFLAGS = \
+  $(CORETEXT_CFLAGS) \
+  $(FREETYPE_CFLAGS) \
+  $(NULL)
+
+ots_validator_checker_LDADD = \
+  $(LDADD) \
+  $(CORETEXT_LIBS) \
+  $(FREETYPE_LIBS) \
+  $(NULL)
+
+
 ots_side_by_side_SOURCES = \
   util/ots-side-by-side.cc \
+  $(NULL)
+
+ots_side_by_side_CXXFLAGS = \
+  $(FREETYPE_CFLAGS) \
+  $(NULL)
+
+ots_side_by_side_LDADD = \
+  $(LDADD) \
+  $(FREETYPE_LIBS) \
   $(NULL)
 
 
 ots_fuzzer_SOURCES = \
   util/ots-fuzzer.cc \
+  $(NULL)
+
+ots_fuzzer_CPPFLAGS = \
+  -I$(top_srcdir)/src \
+  $(AM_CPPFLAGS) \
   $(NULL)
 
 ots_fuzzer_CXXFLAGS = \
@@ -216,9 +267,20 @@ cff_type2_charstring_test_SOURCES = \
   tests/cff_type2_charstring_test.cc \
   $(NULL)
 
+cff_type2_charstring_test_CPPFLAGS = \
+  -I$(top_srcdir)/src \
+  $(GTEST_CPPFLAGS) \
+  $(AM_CPPFLAGS) \
+  $(NULL)
+
+cff_type2_charstring_test_CXXFLAGS = \
+  $(PTHREAD_CFLAGS) \
+  $(NULL)
+
 cff_type2_charstring_test_LDADD = \
   libgtest.a \
   $(LDADD) \
+  $(PTHREAD_LIBS) \
   $(NULL)
 
 
@@ -226,9 +288,20 @@ layout_common_table_test_SOURCES = \
   tests/layout_common_table_test.cc \
   $(NULL)
 
+layout_common_table_test_CPPFLAGS = \
+  -I$(top_srcdir)/src \
+  $(GTEST_CPPFLAGS) \
+  $(AM_CPPFLAGS) \
+  $(NULL)
+
+layout_common_table_test_CXXFLAGS = \
+  $(PTHREAD_CFLAGS) \
+  $(NULL)
+
 layout_common_table_test_LDADD = \
   libgtest.a \
   $(LDADD) \
+  $(PTHREAD_LIBS) \
   $(NULL)
 
 
@@ -268,25 +341,27 @@ libgtest_a_SOURCES = \
   third_party/googletest/googletest/src/gtest-typed-test.cc \
   $(NULL)
 
+libgtest_a_CPPFLAGS = \
+  $(AM_CPPFLAGS) \
+  $(GTEST_CPPFLAGS) \
+  $(NULL)
+
+libgtest_a_CXXFLAGS = \
+  $(PTHREAD_CFLAGS) \
+  $(NULL)
+
 libgtest_a_LIBADD = \
   $(PTHREAD_LIBS) \
   $(NULL)
 
-
-AM_CPPFLAGS = \
+GTEST_CPPFLAGS += \
   -I$(top_srcdir)/third_party/googletest/googletest/include \
   -I$(top_srcdir)/third_party/googletest/googletest/ \
-  -I$(top_srcdir)/src \
-  -I$(top_srcdir)/include \
-  -I$(top_srcdir)/third_party/brotli/dec/ \
-  -I$(top_srcdir)/third_party/woff2/src \
-  $(GTEST_CPPFLAGS) \
   $(NULL)
 
-AM_CXXFLAGS = \
-  $(CORETEXT_CFLAGS) \
-  $(FREETYPE_CFLAGS) \
-  $(PTHREAD_CFLAGS) \
+
+AM_CPPFLAGS = \
+  -I$(top_srcdir)/include \
   $(NULL)
 
 LDADD = \
@@ -294,8 +369,6 @@ LDADD = \
   libwoff2.a \
   libbrotli.a \
   -lz \
-  $(CORETEXT_LIBS) \
-  $(FREETYPE_LIBS) \
   $(NULL)
 
 if HAVE_WIN32
