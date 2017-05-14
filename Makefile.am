@@ -250,16 +250,26 @@ ots_side_by_side_LDADD = \
 
 ots_fuzzer_SOURCES = \
   util/ots-fuzzer.cc \
+  $(libbrotli_a_SOURCES) \
+  $(libots_a_SOURCES) \
+  $(libwoff2_a_SOURCES) \
   $(NULL)
 
 ots_fuzzer_CPPFLAGS = \
+  -I$(top_srcdir)/include \
   -I$(top_srcdir)/src \
+  -I$(top_srcdir)/third_party/brotli/dec \
+  -I$(top_srcdir)/third_party/woff2/src \
   $(AM_CPPFLAGS) \
   $(NULL)
 
 ots_fuzzer_CXXFLAGS = \
   $(ASAN_CFLAGS) \
   $(UBSAN_CFLAGS) \
+  $(NULL)
+
+ots_fuzzer_LDADD = \
+  -lz \
   $(NULL)
 
 
