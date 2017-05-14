@@ -19,6 +19,8 @@ AC_PROG_CXX
 AC_PROG_RANLIB
 PKG_PROG_PKG_CONFIG([0.20])
 
+AX_CXX_COMPILE_STDCXX([11], [noext], [mandatory])
+
 AC_ARG_ENABLE(debug,
 	      AS_HELP_STRING([--enable-debug=@<:@yes/no@:>@],
 			     [Enable extra debugging information for font

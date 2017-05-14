@@ -284,8 +284,6 @@ AM_CPPFLAGS = \
   $(NULL)
 
 AM_CXXFLAGS = \
-## for woff2
-  -std=c++11 \
   $(CORETEXT_CFLAGS) \
   $(FREETYPE_CFLAGS) \
   $(PTHREAD_CFLAGS) \
