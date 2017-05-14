@@ -467,6 +467,10 @@ bool ProcessWOFF2(ots::FontFile *header,
                   uint32_t index) {
   size_t decompressed_size = woff2::ComputeWOFF2FinalSize(data, length);
 
+  if (decompressed_size < length) {
+    return OTS_FAILURE_MSG_HDR("Size of decompressed WOFF 2.0 is less than compressed size");
+  }
+
   if (decompressed_size == 0) {
     return OTS_FAILURE_MSG_HDR("Size of decompressed WOFF 2.0 is set to 0");
   }
