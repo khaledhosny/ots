@@ -15,6 +15,7 @@ build_script:
   - set CXXFLAGS='-D_HAS_EXCEPTIONS=0 -D_STATIC_CPPLIB'
   - bash -c "./autogen.sh; ./configure --with-zlib=zlib"
   - make
+  - make check
 
 # disable automatic tests
 test: off
