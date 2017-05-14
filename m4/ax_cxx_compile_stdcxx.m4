@@ -174,7 +174,7 @@ m4_define([_AX_CXX_COMPILE_STDCXX_testbody_new_in_11], [[
 
 #error "This is not a C++ compiler"
 
-#elif __cplusplus < 201103L
+#elif __cplusplus < 201103L && !defined(_MSC_VER)
 
 #error "This is not a C++11 compiler"
 
