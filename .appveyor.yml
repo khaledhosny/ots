@@ -13,7 +13,7 @@ build_script:
   - set CC=./cccl
   - set CXX=./cccl
   - set CXXFLAGS='-D_HAS_EXCEPTIONS=0 -D_STATIC_CPPLIB'
-  - bash -c "./autogen.sh; ./configure --with-zlib=zlib"
+  - bash -c "./autogen.sh; ./configure --enable-debug --with-zlib=zlib"
   - make
   - make check
 

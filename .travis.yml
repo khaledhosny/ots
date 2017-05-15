@@ -46,6 +46,6 @@ install:
   - ./autogen.sh
 
 script:
-  - ./configure
+  - ./configure --enable-debug
   - make -j
   - make -j check || (cat test-suite.log && false)
