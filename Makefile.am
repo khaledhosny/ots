@@ -42,20 +42,25 @@ lib_LIBRARIES = \
 TESTS = \
   cff_type2_charstring_test \
   layout_common_table_test \
+  tests/test_bad_fonts.sh \
   tests/test_fuzzed_fonts.sh \
   $(NULL)
 
 if HAVE_FREETYPE
 TESTS += \
-  tests/test_bad_fonts.sh \
   tests/test_good_fonts.sh \
   $(NULL)
 else
 if HAVE_CORETEXT
 TESTS += \
-  tests/test_bad_fonts.sh \
   tests/test_good_fonts.sh \
   $(NULL)
+else
+if HAVE_WIN32
+TESTS += \
+  tests/test_good_fonts.sh \
+  $(NULL)
+endif # HAVE_WIN32
 endif # HAVE_CORETEXT
 endif # HAVE_FREETYPE
 
