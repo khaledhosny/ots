@@ -2,6 +2,14 @@ NULL =
 
 ACLOCAL_AMFLAGS = -I m4
 
+TESTS = \
+  cff_type2_charstring_test \
+  layout_common_table_test \
+  tests/test_bad_fonts.sh \
+  tests/test_fuzzed_fonts.sh \
+  $(NULL)
+
+
 bin_PROGRAMS = \
   ots-sanitize \
   $(NULL)
@@ -16,17 +24,23 @@ bin_PROGRAMS += \
   ots-validator-checker \
   ots-side-by-side \
   $(NULL)
+
+TESTS += tests/test_good_fonts.sh
 else
 if HAVE_CORETEXT
 bin_PROGRAMS += \
   ots-idempotent \
   ots-validator-checker \
   $(NULL)
+
+TESTS += tests/test_good_fonts.sh
 else
 if HAVE_WIN32
 bin_PROGRAMS += \
   ots-idempotent \
   $(NULL)
+
+TESTS += tests/test_good_fonts.sh
 endif # HAVE_WIN32
 endif # HAVE_CORETEXT
 endif # HAVE_FREETYPE
@@ -38,31 +52,6 @@ lib_LIBRARIES = \
   libbrotli.a \
   libwoff2.a \
   $(NULL)
-
-TESTS = \
-  cff_type2_charstring_test \
-  layout_common_table_test \
-  tests/test_bad_fonts.sh \
-  tests/test_fuzzed_fonts.sh \
-  $(NULL)
-
-if HAVE_FREETYPE
-TESTS += \
-  tests/test_good_fonts.sh \
-  $(NULL)
-else
-if HAVE_CORETEXT
-TESTS += \
-  tests/test_good_fonts.sh \
-  $(NULL)
-else
-if HAVE_WIN32
-TESTS += \
-  tests/test_good_fonts.sh \
-  $(NULL)
-endif # HAVE_WIN32
-endif # HAVE_CORETEXT
-endif # HAVE_FREETYPE
 
 check_PROGRAMS = \
   cff_type2_charstring_test \
