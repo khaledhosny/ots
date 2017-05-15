@@ -274,6 +274,7 @@ ots_fuzzer_LDADD = \
 
 
 cff_type2_charstring_test_SOURCES = \
+  third_party/googletest/googletest/src/gtest_main.cc \
   tests/cff_type2_charstring_test.cc \
   $(NULL)
 
@@ -295,6 +296,7 @@ cff_type2_charstring_test_LDADD = \
 
 
 layout_common_table_test_SOURCES = \
+  third_party/googletest/googletest/src/gtest_main.cc \
   tests/layout_common_table_test.cc \
   $(NULL)
 
@@ -344,7 +346,6 @@ libgtest_a_SOURCES = \
   third_party/googletest/googletest/src/gtest-death-test.cc \
   third_party/googletest/googletest/src/gtest-filepath.cc \
   third_party/googletest/googletest/src/gtest-internal-inl.h \
-  third_party/googletest/googletest/src/gtest_main.cc \
   third_party/googletest/googletest/src/gtest-port.cc \
   third_party/googletest/googletest/src/gtest-printers.cc \
   third_party/googletest/googletest/src/gtest-test-part.cc \
@@ -368,6 +369,10 @@ GTEST_CPPFLAGS += \
   -I$(top_srcdir)/third_party/googletest/googletest/include \
   -I$(top_srcdir)/third_party/googletest/googletest/ \
   $(NULL)
+
+if HAVE_WIN32
+GTEST_CPPFLAGS += -DGTEST_OS_WINDOWS
+endif
 
 
 AM_CPPFLAGS = \
