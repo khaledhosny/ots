@@ -113,7 +113,7 @@ bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
 int main(int argc, char **argv) {
   if (argc != 2) return Usage(argv[0]);
 
-  std::ifstream ifs(argv[1]);
+  std::ifstream ifs(argv[1], std::ifstream::binary);
   if (!ifs.good()) {
     std::fprintf(stderr, "Failed to read file!\n");
     return 1;

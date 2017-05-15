@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
   if (in_filename.empty())
     return Usage(argv[0]);
 
-  std::ifstream ifs(in_filename.c_str());
+  std::ifstream ifs(in_filename.c_str(), std::ifstream::binary);
   if (!ifs.good())
     return Error("Failed to open: " + in_filename);
 

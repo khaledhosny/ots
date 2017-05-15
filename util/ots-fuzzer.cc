@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
   for (int i = 1; i < argc; i++) {
     std::cout << argv[i] << std::endl;
 
-    std::ifstream f(argv[i]);
+    std::ifstream f(argv[i], std::ifstream::binary);
     if (!f.good())
       return 1;
 
