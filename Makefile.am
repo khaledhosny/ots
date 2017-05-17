@@ -45,7 +45,7 @@ endif # HAVE_WIN32
 endif # HAVE_CORETEXT
 endif # HAVE_FREETYPE
 
-noinst_PROGRAMS = ots-fuzzer
+noinst_PROGRAMS = ots-fuzzer ots-testfuzz
 
 lib_LIBRARIES = \
   libots.a \
@@ -242,14 +242,25 @@ ots_side_by_side_LDADD = \
   $(NULL)
 
 
+# Used by OSS-Fuzz, should not directly use -fsanitize
 ots_fuzzer_SOURCES = \
+  util/ots-fuzzer.cc \
+  $(NULL)
+
+ots_fuzzer_CPPFLAGS = \
+  -I$(top_srcdir)/src \
+  $(AM_CPPFLAGS) \
+  $(NULL)
+
+
+ots_testfuzz_SOURCES = \
   util/ots-fuzzer.cc \
   $(libbrotli_a_SOURCES) \
   $(libots_a_SOURCES) \
   $(libwoff2_a_SOURCES) \
   $(NULL)
 
-ots_fuzzer_CPPFLAGS = \
+ots_testfuzz_CPPFLAGS = \
   -I$(top_srcdir)/include \
   -I$(top_srcdir)/src \
   -I$(top_srcdir)/third_party/brotli/dec \
@@ -257,15 +268,14 @@ ots_fuzzer_CPPFLAGS = \
   $(AM_CPPFLAGS) \
   $(NULL)
 
-ots_fuzzer_CXXFLAGS = \
+ots_testfuzz_CXXFLAGS = \
   $(ASAN_CFLAGS) \
   $(UBSAN_CFLAGS) \
   $(NULL)
 
-ots_fuzzer_LDADD = \
+ots_testfuzz_LDADD = \
   -lz \
   $(NULL)
-
 
 cff_type2_charstring_test_SOURCES = \
   third_party/googletest/googletest/src/gtest_main.cc \
