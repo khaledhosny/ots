@@ -59,3 +59,5 @@ feature liga {
    language TRK;
 } liga;
 ```
+
+For fonts where sources are missing, or rebuilding is undesirable, there is a FontTools [script](https://github.com/fonttools/fonttools/blob/master/Snippets/fix-dflt-langsys.py) that can be used to hotfix the binary files.
