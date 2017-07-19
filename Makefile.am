@@ -122,6 +122,8 @@ libots_a_SOURCES = \
   src/post.h \
   src/prep.cc \
   src/prep.h \
+  src/sile.h \
+  src/sile.cc \
   src/silf.h \
   src/silf.cc \
   src/vdmx.cc \
