@@ -106,6 +106,8 @@ libots_a_SOURCES = \
   src/loca.h \
   src/ltsh.cc \
   src/ltsh.h \
+  third_party/lz4/lz4.h \
+  third_party/lz4/lz4.c \
   src/maxp.cc \
   src/maxp.h \
   src/math.cc \

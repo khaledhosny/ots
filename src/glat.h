@@ -78,6 +78,75 @@ class OpenTypeGLAT_v2 : public OpenTypeGLAT_Basic {
 };
 
 // -----------------------------------------------------------------------------
+// OpenTypeGLAT_v3
+// -----------------------------------------------------------------------------
+
+class OpenTypeGLAT_v3 : public OpenTypeGLAT_Basic {
+ public:
+  explicit OpenTypeGLAT_v3(Font* font, uint32_t tag)
+     : OpenTypeGLAT_Basic(font, tag) { }
+
+  bool Parse(const uint8_t* data, size_t length) {
+    return this->Parse(data, length, false);
+  }
+  bool Serialize(OTSStream* out);
+
+ private:
+  bool Parse(const uint8_t* data, size_t length, bool prevent_decompression);
+  struct GlyphAttrs : public TablePart<OpenTypeGLAT_v3> {
+    GlyphAttrs(OpenTypeGLAT_v3* parent)
+      : TablePart<OpenTypeGLAT_v3>(parent), octabox(parent) { }
+    bool ParsePart(Buffer& table) { return false; }
+    bool ParsePart(Buffer& table, const size_t size);
+    bool SerializePart(OTSStream* out) const;
+    struct OctaboxMetrics : public TablePart<OpenTypeGLAT_v3> {
+      OctaboxMetrics(OpenTypeGLAT_v3* parent)
+          : TablePart<OpenTypeGLAT_v3>(parent) { }
+      bool ParsePart(Buffer& table);
+      bool SerializePart(OTSStream* out) const;
+      struct SubboxEntry : public TablePart<OpenTypeGLAT_v3> {
+        SubboxEntry(OpenTypeGLAT_v3* parent)
+            : TablePart<OpenTypeGLAT_v3>(parent) { }
+        bool ParsePart(Buffer& table);
+        bool SerializePart(OTSStream* out) const;
+        uint8_t left;
+        uint8_t right;
+        uint8_t bottom;
+        uint8_t top;
+        uint8_t diag_pos_min;
+        uint8_t diag_pos_max;
+        uint8_t diag_neg_min;
+        uint8_t diag_neg_max;
+      };
+      uint16_t subbox_bitmap;
+      uint8_t diag_neg_min;
+      uint8_t diag_neg_max;
+      uint8_t diag_pos_min;
+      uint8_t diag_pos_max;
+      std::vector<SubboxEntry> subboxes;
+    };
+    struct GlatEntry : public TablePart<OpenTypeGLAT_v3> {
+      GlatEntry(OpenTypeGLAT_v3* parent)
+          : TablePart<OpenTypeGLAT_v3>(parent) { }
+      bool ParsePart(Buffer& table);
+      bool SerializePart(OTSStream* out) const;
+      int16_t attNum;
+      int16_t num;
+      std::vector<int16_t> attributes;
+     };
+    OctaboxMetrics octabox;
+    std::vector<GlatEntry> entries;
+  };
+  uint32_t version;
+  uint32_t compHead;  // compression header
+  static const uint32_t SCHEME = 0xF8000000;
+  static const uint32_t FULL_SIZE = 0x07FFFFFF;
+  static const uint32_t RESERVED = 0x07FFFFFE;
+  static const uint32_t OCTABOXES = 0x00000001;
+  std::vector<GlyphAttrs> entries;
+};
+
+// -----------------------------------------------------------------------------
 // OpenTypeGLAT
 // -----------------------------------------------------------------------------
 
