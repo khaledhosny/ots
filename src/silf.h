@@ -17,10 +17,13 @@ class OpenTypeSILF : public Table {
   explicit OpenTypeSILF(Font* font, uint32_t tag)
       : Table(font, tag, tag) { }
 
-  bool Parse(const uint8_t* data, size_t length);
+  bool Parse(const uint8_t* data, size_t length) {
+    return this->Parse(data, length, false);
+  }
   bool Serialize(OTSStream* out);
 
  private:
+  bool Parse(const uint8_t* data, size_t length, bool prevent_decompression);
   struct SILSub : public TablePart<OpenTypeSILF> {
     SILSub(OpenTypeSILF* parent)
         : TablePart<OpenTypeSILF>(parent), classes(parent) { }
@@ -74,7 +77,7 @@ class OpenTypeSILF : public Table {
       };
       uint16_t numClass;
       uint16_t numLinear;
-      std::vector<uint16_t> oClass;
+      std::vector<uint32_t> oClass;  // uint16_t before v4
       std::vector<uint16_t> glyphs;
       std::vector<LookupClass> lookups;
     };
@@ -120,7 +123,7 @@ class OpenTypeSILF : public Table {
       std::vector<int16_t> startStates;
       std::vector<uint16_t> ruleSortKeys;
       std::vector<uint8_t> rulePreContext;
-      uint8_t reserved;
+      uint8_t collisionThreshold;  // reserved before v5
       uint16_t pConstraint;
       std::vector<uint16_t> oConstraints;
       std::vector<uint16_t> oActions;
@@ -150,15 +153,15 @@ class OpenTypeSILF : public Table {
     uint8_t attrPseudo;
     uint8_t attrBreakWeight;
     uint8_t attrDirectionality;
-    uint8_t reserved;
-    uint8_t reserved2;
+    uint8_t attrMirroring;  // reserved before v4
+    uint8_t attrSkipPasses;  // reserved2 before v4
     uint8_t numJLevels;
     std::vector<JustificationLevel> jLevels;
     uint16_t numLigComp;
     uint8_t numUserDefn;
     uint8_t maxCompPerLig;
     uint8_t direction;
-    uint8_t reserved3;
+    uint8_t attCollisions;  // reserved3 before v5
     uint8_t reserved4;
     uint8_t reserved5;
     uint8_t reserved6;
@@ -178,7 +181,10 @@ class OpenTypeSILF : public Table {
     std::vector<SILPass> passes;
   };
   uint32_t version;
-  uint32_t compilerVersion;
+  uint32_t compHead;  // compression header
+  static const uint32_t SCHEME = 0xF8000000;
+  static const uint32_t FULL_SIZE = 0x07FFFFFF;
+  static const uint32_t COMPILER_VERSION = 0x07FFFFFF;
   uint16_t numSub;
   uint16_t reserved;
   std::vector<uint32_t> offset;

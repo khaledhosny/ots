@@ -5,11 +5,13 @@
 #include "silf.h"
 
 #include "name.h"
+#include "third_party/lz4/lz4.h"
 #include <cmath>
 
 namespace ots {
 
-bool OpenTypeSILF::Parse(const uint8_t* data, size_t length) {
+bool OpenTypeSILF::Parse(const uint8_t* data, size_t length,
+                         bool prevent_decompression) {
   Buffer table(data, length);
 
   if (!table.ReadU32(&this->version)) {
@@ -17,11 +19,36 @@ bool OpenTypeSILF::Parse(const uint8_t* data, size_t length) {
   }
   if (this->version >> 16 != 1 &&
       this->version >> 16 != 2 &&
-      this->version >> 16 != 3) {
+      this->version >> 16 != 3 &&
+      this->version >> 16 != 4 &&
+      this->version >> 16 != 5) {
     return Error("Unsupported table version: %u", this->version >> 16);
   }
-  if (this->version >> 16 >= 3 && !table.ReadU32(&this->compilerVersion)) {
-    return Error("Failed to read compilerVersion");
+  if (this->version >> 16 >= 3 && !table.ReadU32(&this->compHead)) {
+    return Error("Failed to read compHead");
+  }
+  if (this->version >> 16 >= 5) {
+    switch ((this->compHead & SCHEME) >> 27) {
+      case 0:  // uncompressed
+        break;
+      case 1: {  // lz4
+        if (prevent_decompression) {
+          return Error("Illegal nested compression");
+        }
+        std::vector<uint8_t> decompressed(this->compHead & FULL_SIZE, 0);
+        int status = LZ4_decompress_safe(
+            reinterpret_cast<const char*>(data + table.offset()),
+            reinterpret_cast<char*>(decompressed.data()),
+            table.remaining(),
+            decompressed.size());
+        if (status < 0) {
+          return Error("Decompression failed with error code %d", status);
+        }
+        return this->Parse(decompressed.data(), decompressed.size(), true);
+      }
+      default:
+        return Error("Unknown compression scheme");
+    }
   }
   if (!table.ReadU16(&this->numSub)) {
     return Error("Failed to read numSub");
@@ -61,7 +88,7 @@ bool OpenTypeSILF::Parse(const uint8_t* data, size_t length) {
 
 bool OpenTypeSILF::Serialize(OTSStream* out) {
   if (!out->WriteU32(this->version) ||
-      (this->version >> 16 >= 3 && !out->WriteU32(this->compilerVersion)) ||
+      (this->version >> 16 >= 3 && !out->WriteU32(this->compHead)) ||
       !out->WriteU16(this->numSub) ||
       (this->version >> 16 >= 2 && !out->WriteU16(this->reserved)) ||
       !SerializeParts(this->offset, out) ||
@@ -110,7 +137,8 @@ bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
     return parent->Error("SILSub: Failed to read valid iBidi");
   }
   if (!table.ReadU8(&this->flags)) {
-    return parent->Error("SILSub: Failed to read valid flags");
+    return parent->Error("SILSub: Failed to read flags");
+    // checks omitted
   }
   if (!table.ReadU8(&this->maxPreContext)) {
     return parent->Error("SILSub: Failed to read maxPreContext");
@@ -128,17 +156,17 @@ bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
     return parent->Error("SILSub: Failed to read attrDirectionality");
   }
   if (parent->version >> 16 >= 2) {
-    if (!table.ReadU8(&this->reserved)) {
-      return parent->Error("SILSub: Failed to read reserved");
+    if (!table.ReadU8(&this->attrMirroring)) {
+      return parent->Error("SILSub: Failed to read attrMirroring");
     }
-    if (this->reserved != 0) {
-      parent->Warning("SILSub: Nonzero reserved");
+    if (parent->version >> 16 < 4 && this->attrMirroring != 0) {
+      parent->Warning("SILSub: Nonzero attrMirroring (reserved before v4)");
     }
-    if (!table.ReadU8(&this->reserved2)) {
-      return parent->Error("SILSub: Failed to read reserved2");
+    if (!table.ReadU8(&this->attrSkipPasses)) {
+      return parent->Error("SILSub: Failed to read attrSkipPasses");
     }
-    if (this->reserved2 != 0) {
-      parent->Warning("SILSub: Nonzero reserved2");
+    if (parent->version >> 16 < 4 && this->attrSkipPasses != 0) {
+      parent->Warning("SILSub: Nonzero attrSkipPasses (reserved2 before v4)");
     }
 
     if (!table.ReadU8(&this->numJLevels)) {
@@ -164,11 +192,11 @@ bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
   if (!table.ReadU8(&this->direction)) {
     return parent->Error("SILSub: Failed to read direction");
   }
-  if (!table.ReadU8(&this->reserved3)) {
-    return parent->Error("SILSub: Failed to read reserved3");
+  if (!table.ReadU8(&this->attCollisions)) {
+    return parent->Error("SILSub: Failed to read attCollisions");
   }
-  if (this->reserved3 != 0) {
-    parent->Warning("SILSub: Nonzero reserved3");
+  if (parent->version >> 16 < 5 && this->attCollisions != 0) {
+    parent->Warning("SILSub: Nonzero attCollisions (reserved before v5)");
   }
   if (!table.ReadU8(&this->reserved4)) {
     return parent->Error("SILSub: Failed to read reserved4");
@@ -298,15 +326,15 @@ bool OpenTypeSILF::SILSub::SerializePart(OTSStream* out) const {
       !out->WriteU8(this->attrBreakWeight) ||
       !out->WriteU8(this->attrDirectionality) ||
       (parent->version >> 16 >= 2 &&
-       (!out->WriteU8(this->reserved) ||
-        !out->WriteU8(this->reserved2) ||
+       (!out->WriteU8(this->attrMirroring) ||
+        !out->WriteU8(this->attrSkipPasses) ||
         !out->WriteU8(this->numJLevels) ||
         !SerializeParts(this->jLevels, out))) ||
       !out->WriteU16(this->numLigComp) ||
       !out->WriteU8(this->numUserDefn) ||
       !out->WriteU8(this->maxCompPerLig) ||
       !out->WriteU8(this->direction) ||
-      !out->WriteU8(this->reserved3) ||
+      !out->WriteU8(this->attCollisions) ||
       !out->WriteU8(this->reserved4) ||
       !out->WriteU8(this->reserved5) ||
       (parent->version >> 16 >= 2 &&
@@ -422,21 +450,33 @@ ClassMap::ParsePart(Buffer& table) {
     return parent->Error("ClassMap: Failed to read valid numLinear");
   }
 
-  unsigned last_oClass = 0;
   this->oClass.resize(static_cast<unsigned long>(this->numClass) + 1);
-  for (unsigned long i = 0; i <= this->numClass; ++i) {
-    if (!table.ReadU16(&this->oClass[i]) || this->oClass[i] < last_oClass) {
-      return parent->Error("ClassMap: Failed to read oClass[%lu]", i);
+  if (parent->version >> 16 >= 4) {
+    unsigned long last_oClass = 0;
+    for (unsigned long i = 0; i <= this->numClass; ++i) {
+      if (!table.ReadU32(&this->oClass[i]) || this->oClass[i] < last_oClass) {
+        return parent->Error("ClassMap: Failed to read oClass[%lu]", i);
+      }
+      last_oClass = this->oClass[i];
     }
-    last_oClass = this->oClass[i];
+  }
+  if (parent->version >> 16 < 4) {
+    unsigned last_oClass = 0;
+    for (unsigned long i = 0; i <= this->numClass; ++i) {
+      uint16_t offset;
+      if (!table.ReadU16(&offset) || offset < last_oClass) {
+        return parent->Error("ClassMap: Failed to read oClass[%lu]", i);
+      }
+      this->oClass[i] = last_oClass = offset;
+    }
   }
 
-  unsigned glyphs_len = (this->oClass[this->numLinear] -
-                         (table.offset() - init_offset))/2;
+  unsigned long glyphs_len = (this->oClass[this->numLinear] -
+                             (table.offset() - init_offset))/2;
   this->glyphs.resize(glyphs_len);
-  for (unsigned i = 0; i < glyphs_len; ++i) {
+  for (unsigned long i = 0; i < glyphs_len; ++i) {
     if (!table.ReadU16(&this->glyphs[i])) {
-      return parent->Error("ClassMap: Failed to read glyphs[%u]", i);
+      return parent->Error("ClassMap: Failed to read glyphs[%lu]", i);
     }
   }
 
@@ -458,7 +498,16 @@ bool OpenTypeSILF::SILSub::
 ClassMap::SerializePart(OTSStream* out) const {
   if (!out->WriteU16(this->numClass) ||
       !out->WriteU16(this->numLinear) ||
-      !SerializeParts(this->oClass, out) ||
+      (parent->version >> 16 >= 4 && !SerializeParts(this->oClass, out)) ||
+      (parent->version >> 16 < 4 &&
+       ![&] {
+         for (uint32_t offset : this->oClass) {
+           if (!out->WriteU16(static_cast<uint16_t>(offset))) {
+             return false;
+           }
+         }
+         return true;
+       }()) ||
       !SerializeParts(this->glyphs, out) ||
       !SerializeParts(this->lookups, out)) {
     return parent->Error("ClassMap: Failed to write");
@@ -529,8 +578,9 @@ bool OpenTypeSILF::SILSub::
 SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
                                   const size_t next_pass_offset) {
   size_t init_offset = table.offset();
-  if (!table.ReadU8(&this->flags) || this->flags > 0b1) {
-    return parent->Error("SILPass: Failed to read valid flags");
+  if (!table.ReadU8(&this->flags)) {
+    return parent->Error("SILPass: Failed to read flags");
+      // checks omitted
   }
   if (!table.ReadU8(&this->maxRuleLoop)) {
     return parent->Error("SILPass: Failed to read valid maxRuleLoop");
@@ -656,11 +706,12 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
   }
 
   if (parent->version >> 16 >= 2) {
-    if (!table.ReadU8(&this->reserved)) {
-      return parent->Error("SILPass: Failed to read reserved");
+    if (!table.ReadU8(&this->collisionThreshold)) {
+      return parent->Error("SILPass: Failed to read collisionThreshold");
     }
-    if (this->reserved != 0) {
-      parent->Warning("SILPass: Nonzero reserved");
+    if (parent->version >> 16 < 5 && this->collisionThreshold != 0) {
+      parent->Warning("SILPass: Nonzero collisionThreshold"
+                      " (reserved before v5)");
     }
     if (!table.ReadU16(&this->pConstraint)) {
       return parent->Error("SILPass: Failed to read pConstraint");
@@ -810,7 +861,7 @@ SILPass::SerializePart(OTSStream* out) const {
       !SerializeParts(this->ruleSortKeys, out) ||
       !SerializeParts(this->rulePreContext, out) ||
       (parent->version >> 16 >= 2 &&
-       (!out->WriteU8(this->reserved) ||
+       (!out->WriteU8(this->collisionThreshold) ||
         !out->WriteU16(this->pConstraint))) ||
       !SerializeParts(this->oConstraints, out) ||
       !SerializeParts(this->oActions, out) ||
