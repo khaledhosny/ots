@@ -35,7 +35,7 @@ class TestContext: public ots::OTSContext {
 
   ots::TableAction GetTableAction(uint32_t tag) {
     switch (tag) {
-      case OTS_TAG('S','i','l','f'):
+      //case OTS_TAG('S','i','l','f'):
       case OTS_TAG('S','i','l','l'):
       //case OTS_TAG('G','l','o','c'):
       //case OTS_TAG('G','l','a','t'):
