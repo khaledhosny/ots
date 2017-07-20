@@ -1,0 +1,855 @@
+// Copyright (c) 2009-2017 The OTS Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#include "silf.h"
+
+#include "name.h"
+#include <cmath>
+
+namespace ots {
+
+bool OpenTypeSILF::Parse(const uint8_t* data, size_t length) {
+  Buffer table(data, length);
+
+  if (!table.ReadU32(&this->version)) {
+    return Error("Failed to read version");
+  }
+  if (this->version >> 16 != 1 &&
+      this->version >> 16 != 2 &&
+      this->version >> 16 != 3) {
+    return Error("Unsupported table version: %u", this->version >> 16);
+  }
+  if (this->version >> 16 >= 3 && !table.ReadU32(&this->compilerVersion)) {
+    return Error("Failed to read compilerVersion");
+  }
+  if (!table.ReadU16(&this->numSub)) {
+    return Error("Failed to read numSub");
+  }
+  if (this->version >> 16 >= 2 && !table.ReadU16(&this->reserved)) {
+    return Error("Failed to read reserved");
+  }
+  if (this->version >> 16 >= 2 && this->reserved != 0) {
+    Warning("Nonzero reserved");
+  }
+
+  unsigned long last_offset = 0;
+  this->offset.resize(this->numSub);
+  for (unsigned i = 0; i < this->numSub; ++i) {
+    if (!table.ReadU32(&this->offset[i]) || this->offset[i] < last_offset) {
+      return Error("Failed to read offset[%u]", i);
+    }
+    last_offset = this->offset[i];
+  }
+
+  for (unsigned i = 0; i < this->numSub; ++i) {
+    if (table.offset() != this->offset[i]) {
+      return Error("Offset check failed for tables[%lu]", i);
+    }
+    SILSub subtable(this);
+    if (!subtable.ParsePart(table)) {
+      return Error("Failed to read tables[%u]", i);
+    }
+    tables.push_back(subtable);
+  }
+
+  if (table.remaining()) {
+    return Warning("%zu bytes unparsed", table.remaining());
+  }
+  return true;
+}
+
+bool OpenTypeSILF::Serialize(OTSStream* out) {
+  if (!out->WriteU32(this->version) ||
+      (this->version >> 16 >= 3 && !out->WriteU32(this->compilerVersion)) ||
+      !out->WriteU16(this->numSub) ||
+      (this->version >> 16 >= 2 && !out->WriteU16(this->reserved)) ||
+      !SerializeParts(this->offset, out) ||
+      !SerializeParts(this->tables, out)) {
+    return Error("Failed to write table");
+  }
+  return true;
+}
+
+bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
+  size_t init_offset = table.offset();
+  if (parent->version >> 16 >= 3) {
+    if (!table.ReadU32(&this->ruleVersion)) {
+      return parent->Error("SILSub: Failed to read ruleVersion");
+    }
+    if (!table.ReadU16(&this->passOffset)) {
+      return parent->Error("SILSub: Failed to read passOffset");
+    }
+    if (!table.ReadU16(&this->pseudosOffset)) {
+      return parent->Error("SILSub: Failed to read pseudosOffset");
+    }
+  }
+  if (!table.ReadU16(&this->maxGlyphID)) {
+    return parent->Error("SILSub: Failed to read maxGlyphID");
+  }
+  if (!table.ReadS16(&this->extraAscent)) {
+    return parent->Error("SILSub: Failed to read extraAscent");
+  }
+  if (!table.ReadS16(&this->extraDescent)) {
+    return parent->Error("SILSub: Failed to read extraDescent");
+  }
+  if (!table.ReadU8(&this->numPasses)) {
+    return parent->Error("SILSub: Failed to read numPasses");
+  }
+  if (!table.ReadU8(&this->iSubst) || this->iSubst > this->numPasses) {
+    return parent->Error("SILSub: Failed to read valid iSubst");
+  }
+  if (!table.ReadU8(&this->iPos) || this->iPos > this->numPasses) {
+    return parent->Error("SILSub: Failed to read valid iPos");
+  }
+  if (!table.ReadU8(&this->iJust) || this->iJust > this->numPasses) {
+    return parent->Error("SILSub: Failed to read valid iJust");
+  }
+  if (!table.ReadU8(&this->iBidi) ||
+      !(iBidi == 0xFF || this->iBidi <= this->iPos)) {
+    return parent->Error("SILSub: Failed to read valid iBidi");
+  }
+  if (!table.ReadU8(&this->flags)) {
+    return parent->Error("SILSub: Failed to read valid flags");
+  }
+  if (!table.ReadU8(&this->maxPreContext)) {
+    return parent->Error("SILSub: Failed to read maxPreContext");
+  }
+  if (!table.ReadU8(&this->maxPostContext)) {
+    return parent->Error("SILSub: Failed to read maxPostContext");
+  }
+  if (!table.ReadU8(&this->attrPseudo)) {
+    return parent->Error("SILSub: Failed to read attrPseudo");
+  }
+  if (!table.ReadU8(&this->attrBreakWeight)) {
+    return parent->Error("SILSub: Failed to read attrBreakWeight");
+  }
+  if (!table.ReadU8(&this->attrDirectionality)) {
+    return parent->Error("SILSub: Failed to read attrDirectionality");
+  }
+  if (parent->version >> 16 >= 2) {
+    if (!table.ReadU8(&this->reserved)) {
+      return parent->Error("SILSub: Failed to read reserved");
+    }
+    if (this->reserved != 0) {
+      parent->Warning("SILSub: Nonzero reserved");
+    }
+    if (!table.ReadU8(&this->reserved2)) {
+      return parent->Error("SILSub: Failed to read reserved2");
+    }
+    if (this->reserved2 != 0) {
+      parent->Warning("SILSub: Nonzero reserved2");
+    }
+
+    if (!table.ReadU8(&this->numJLevels)) {
+      return parent->Error("SILSub: Failed to read numJLevels");
+    }
+    this->jLevels.resize(this->numJLevels, parent);
+    for (unsigned i = 0; i < this->numJLevels; ++i) {
+      if (!this->jLevels[i].ParsePart(table)) {
+        return parent->Error("SILSub: Failed to read jLevels[%u]", i);
+      }
+    }
+  }
+
+  if (!table.ReadU16(&this->numLigComp)) {
+    return parent->Error("SILSub: Failed to read numLigComp");
+  }
+  if (!table.ReadU8(&this->numUserDefn)) {
+    return parent->Error("SILSub: Failed to read numUserDefn");
+  }
+  if (!table.ReadU8(&this->maxCompPerLig)) {
+    return parent->Error("SILSub: Failed to read maxCompPerLig");
+  }
+  if (!table.ReadU8(&this->direction)) {
+    return parent->Error("SILSub: Failed to read direction");
+  }
+  if (!table.ReadU8(&this->reserved3)) {
+    return parent->Error("SILSub: Failed to read reserved3");
+  }
+  if (this->reserved3 != 0) {
+    parent->Warning("SILSub: Nonzero reserved3");
+  }
+  if (!table.ReadU8(&this->reserved4)) {
+    return parent->Error("SILSub: Failed to read reserved4");
+  }
+  if (this->reserved4 != 0) {
+    parent->Warning("SILSub: Nonzero reserved4");
+  }
+  if (!table.ReadU8(&this->reserved5)) {
+    return parent->Error("SILSub: Failed to read reserved5");
+  }
+  if (this->reserved5 != 0) {
+    parent->Warning("SILSub: Nonzero reserved5");
+  }
+  if (parent->version >> 16 >= 2) {
+    if (!table.ReadU8(&this->reserved6)) {
+      return parent->Error("SILSub: Failed to read reserved6");
+    }
+    if (this->reserved6 != 0) {
+      parent->Warning("SILSub: Nonzero reserved6");
+    }
+
+    if (!table.ReadU8(&this->numCritFeatures)) {
+      return parent->Error("SILSub: Failed to read numCritFeatures");
+    }
+    this->critFeatures.resize(this->numCritFeatures);
+    for (unsigned i = 0; i < this->numCritFeatures; ++i) {
+      if (!table.ReadU16(&this->critFeatures[i])) {
+        return parent->Error("SILSub: Failed to read critFeatures[%u]", i);
+      }
+    }
+
+    if (!table.ReadU8(&this->reserved7)) {
+      return parent->Error("SILSub: Failed to read reserved7");
+    }
+    if (this->reserved7 != 0) {
+      parent->Warning("SILSub: Nonzero reserved7");
+    }
+  }
+
+  if (!table.ReadU8(&this->numScriptTag)) {
+    return parent->Error("SILSub: Failed to read numScriptTag");
+  }
+  this->scriptTag.resize(this->numScriptTag);
+  for (unsigned i = 0; i < this->numScriptTag; ++i) {
+    if (!table.ReadU32(&this->scriptTag[i])) {
+      return parent->Error("SILSub: Failed to read scriptTag[%u]", i);
+    }
+  }
+
+  if (!table.ReadU16(&this->lbGID) || this->lbGID > this->maxGlyphID) {
+    return parent->Error("SILSub: Failed to read valid lbGID");
+  }
+
+  if (parent->version >> 16 >= 3 &&
+      table.offset() != init_offset + this->passOffset) {
+    return parent->Error("SILSub: passOffset check failed");
+  }
+  unsigned long last_oPass = 0;
+  this->oPasses.resize(static_cast<unsigned>(this->numPasses) + 1);
+  for (unsigned i = 0; i <= this->numPasses; ++i) {
+    if (!table.ReadU32(&this->oPasses[i]) || this->oPasses[i] < last_oPass) {
+      return false;
+    }
+    last_oPass = this->oPasses[i];
+  }
+
+  if (parent->version >> 16 >= 3 &&
+      table.offset() != init_offset + this->pseudosOffset) {
+    return parent->Error("SILSub: pseudosOffset check failed");
+  }
+  if (!table.ReadU16(&this->numPseudo)) {
+    return parent->Error("SILSub: Failed to read numPseudo");
+  }
+  if (!table.ReadU16(&this->searchPseudo) || this->searchPseudo !=
+      (unsigned)std::pow(2, std::floor(std::log2(this->numPseudo)))) {
+    return parent->Error("SILSub: Failed to read valid searchPseudo");
+  }
+  if (!table.ReadU16(&this->pseudoSelector) || this->pseudoSelector !=
+      (unsigned)std::floor(std::log2(this->numPseudo))) {
+    return parent->Error("SILSub: Failed to read valid pseudoSelector");
+  }
+  if (!table.ReadU16(&this->pseudoShift) ||
+      this->pseudoShift != this->numPseudo - this->searchPseudo) {
+    return parent->Error("SILSub: Failed to read valid pseudoShift");
+  }
+
+  this->pMaps.resize(this->numPseudo, parent);
+  for (unsigned i = 0; i < numPseudo; i++) {
+    if (!this->pMaps[i].ParsePart(table)) {
+      return parent->Error("SILSub: Failed to read pMaps[%u]", i);
+    }
+  }
+
+  if (!this->classes.ParsePart(table)) {
+    return parent->Error("SILSub: Failed to read classes");
+  }
+
+  this->passes.resize(this->numPasses, parent);
+  for (unsigned i = 0; i < this->numPasses; ++i) {
+    if (table.offset() != init_offset + this->oPasses[i]) {
+      return parent->Error("SILSub: Offset check failed for passes[%u]", i);
+    }
+    if (!this->passes[i].ParsePart(table, init_offset, this->oPasses[i+1])) {
+      return parent->Error("SILSub: Failed to read passes[%u]", i);
+    }
+  }
+  return true;
+}
+
+bool OpenTypeSILF::SILSub::SerializePart(OTSStream* out) const {
+  if ((parent->version >> 16 >= 3 &&
+       (!out->WriteU32(this->ruleVersion) ||
+        !out->WriteU16(this->passOffset) ||
+        !out->WriteU16(this->pseudosOffset))) ||
+      !out->WriteU16(this->maxGlyphID) ||
+      !out->WriteS16(this->extraAscent) ||
+      !out->WriteS16(this->extraDescent) ||
+      !out->WriteU8(this->numPasses) ||
+      !out->WriteU8(this->iSubst) ||
+      !out->WriteU8(this->iPos) ||
+      !out->WriteU8(this->iJust) ||
+      !out->WriteU8(this->iBidi) ||
+      !out->WriteU8(this->flags) ||
+      !out->WriteU8(this->maxPreContext) ||
+      !out->WriteU8(this->maxPostContext) ||
+      !out->WriteU8(this->attrPseudo) ||
+      !out->WriteU8(this->attrBreakWeight) ||
+      !out->WriteU8(this->attrDirectionality) ||
+      (parent->version >> 16 >= 2 &&
+       (!out->WriteU8(this->reserved) ||
+        !out->WriteU8(this->reserved2) ||
+        !out->WriteU8(this->numJLevels) ||
+        !SerializeParts(this->jLevels, out))) ||
+      !out->WriteU16(this->numLigComp) ||
+      !out->WriteU8(this->numUserDefn) ||
+      !out->WriteU8(this->maxCompPerLig) ||
+      !out->WriteU8(this->direction) ||
+      !out->WriteU8(this->reserved3) ||
+      !out->WriteU8(this->reserved4) ||
+      !out->WriteU8(this->reserved5) ||
+      (parent->version >> 16 >= 2 &&
+       (!out->WriteU8(this->reserved6) ||
+        !out->WriteU8(this->numCritFeatures) ||
+        !SerializeParts(this->critFeatures, out) ||
+        !out->WriteU8(this->reserved7))) ||
+      !out->WriteU8(this->numScriptTag) ||
+      !SerializeParts(this->scriptTag, out) ||
+      !out->WriteU16(this->lbGID) ||
+      !SerializeParts(this->oPasses, out) ||
+      !out->WriteU16(this->numPseudo) ||
+      !out->WriteU16(this->searchPseudo) ||
+      !out->WriteU16(this->pseudoSelector) ||
+      !out->WriteU16(this->pseudoShift) ||
+      !SerializeParts(this->pMaps, out) ||
+      !this->classes.SerializePart(out) ||
+      !SerializeParts(this->passes, out)) {
+    return parent->Error("SILSub: Failed to write");
+  }
+  return true;
+}
+
+bool OpenTypeSILF::SILSub::
+JustificationLevel::ParsePart(Buffer& table) {
+  if (!table.ReadU8(&this->attrStretch)) {
+    return parent->Error("JustificationLevel: Failed to read attrStretch");
+  }
+  if (!table.ReadU8(&this->attrShrink)) {
+    return parent->Error("JustificationLevel: Failed to read attrShrink");
+  }
+  if (!table.ReadU8(&this->attrStep)) {
+    return parent->Error("JustificationLevel: Failed to read attrStep");
+  }
+  if (!table.ReadU8(&this->attrWeight)) {
+    return parent->Error("JustificationLevel: Failed to read attrWeight");
+  }
+  if (!table.ReadU8(&this->runto)) {
+    return parent->Error("JustificationLevel: Failed to read runto");
+  }
+  if (!table.ReadU8(&this->reserved)) {
+    return parent->Error("JustificationLevel: Failed to read reserved");
+  }
+  if (this->reserved != 0) {
+    parent->Warning("JustificationLevel: Nonzero reserved");
+  }
+  if (!table.ReadU8(&this->reserved2)) {
+    return parent->Error("JustificationLevel: Failed to read reserved2");
+  }
+  if (this->reserved2 != 0) {
+    parent->Warning("JustificationLevel: Nonzero reserved2");
+  }
+  if (!table.ReadU8(&this->reserved3)) {
+    return parent->Error("JustificationLevel: Failed to read reserved3");
+  }
+  if (this->reserved3 != 0) {
+    parent->Warning("JustificationLevel: Nonzero reserved3");
+  }
+  return true;
+}
+
+bool OpenTypeSILF::SILSub::
+JustificationLevel::SerializePart(OTSStream* out) const {
+  if (!out->WriteU8(this->attrStretch) ||
+      !out->WriteU8(this->attrShrink) ||
+      !out->WriteU8(this->attrStep) ||
+      !out->WriteU8(this->attrWeight) ||
+      !out->WriteU8(this->runto) ||
+      !out->WriteU8(this->reserved) ||
+      !out->WriteU8(this->reserved2) ||
+      !out->WriteU8(this->reserved3)) {
+    return parent->Error("JustificationLevel: Failed to write");
+  }
+  return true;
+}
+
+bool OpenTypeSILF::SILSub::
+PseudoMap::ParsePart(Buffer& table) {
+  if (parent->version >> 16 >= 2 && !table.ReadU32(&this->unicode)) {
+    return parent->Error("PseudoMap: Failed to read unicode");
+  }
+  if (parent->version >> 16 == 1) {
+    uint16_t unicode;
+    if (!table.ReadU16(&unicode)) {
+      return parent->Error("PseudoMap: Failed to read unicode");
+    }
+    this->unicode = unicode;
+  }
+  if (!table.ReadU16(&this->nPseudo)) {
+    return parent->Error("PseudoMap: Failed to read nPseudo");
+  }
+  return true;
+}
+
+bool OpenTypeSILF::SILSub::
+PseudoMap::SerializePart(OTSStream* out) const {
+  if ((parent->version >> 16 >= 2 && !out->WriteU32(this->unicode)) ||
+      (parent->version >> 16 == 1 &&
+       !out->WriteU16(static_cast<uint16_t>(this->unicode))) ||
+      !out->WriteU16(this->nPseudo)) {
+    return parent->Error("PseudoMap: Failed to write");
+  }
+  return true;
+}
+
+bool OpenTypeSILF::SILSub::
+ClassMap::ParsePart(Buffer& table) {
+  size_t init_offset = table.offset();
+  if (!table.ReadU16(&this->numClass)) {
+    return parent->Error("ClassMap: Failed to read numClass");
+  }
+  if (!table.ReadU16(&this->numLinear) || this->numLinear > this->numClass) {
+    return parent->Error("ClassMap: Failed to read valid numLinear");
+  }
+
+  unsigned last_oClass = 0;
+  this->oClass.resize(static_cast<unsigned long>(this->numClass) + 1);
+  for (unsigned long i = 0; i <= this->numClass; ++i) {
+    if (!table.ReadU16(&this->oClass[i]) || this->oClass[i] < last_oClass) {
+      return parent->Error("ClassMap: Failed to read oClass[%lu]", i);
+    }
+    last_oClass = this->oClass[i];
+  }
+
+  unsigned glyphs_len = (this->oClass[this->numLinear] -
+                         (table.offset() - init_offset))/2;
+  this->glyphs.resize(glyphs_len);
+  for (unsigned i = 0; i < glyphs_len; ++i) {
+    if (!table.ReadU16(&this->glyphs[i])) {
+      return parent->Error("ClassMap: Failed to read glyphs[%u]", i);
+    }
+  }
+
+  unsigned lookups_len = this->numClass - this->numLinear;
+    // this->numLinear <= this->numClass
+  this->lookups.resize(lookups_len, parent);
+  for (unsigned i = 0; i < lookups_len; ++i) {
+    if (table.offset() != init_offset + oClass[this->numLinear + i]) {
+      return parent->Error("ClassMap: Offset check failed for lookups[%u]", i);
+    }
+    if (!this->lookups[i].ParsePart(table)) {
+      return parent->Error("ClassMap: Failed to read lookups[%u]", i);
+    }
+  }
+  return true;
+}
+
+bool OpenTypeSILF::SILSub::
+ClassMap::SerializePart(OTSStream* out) const {
+  if (!out->WriteU16(this->numClass) ||
+      !out->WriteU16(this->numLinear) ||
+      !SerializeParts(this->oClass, out) ||
+      !SerializeParts(this->glyphs, out) ||
+      !SerializeParts(this->lookups, out)) {
+    return parent->Error("ClassMap: Failed to write");
+  }
+  return true;
+}
+
+bool OpenTypeSILF::SILSub::ClassMap::
+LookupClass::ParsePart(Buffer& table) {
+  if (!table.ReadU16(&this->numIDs)) {
+    return parent->Error("LookupClass: Failed to read numIDs");
+  }
+  if (!table.ReadU16(&this->searchRange) || this->searchRange !=
+      (unsigned)std::pow(2, std::floor(std::log2(this->numIDs)))) {
+    return parent->Error("LookupClass: Failed to read valid searchRange");
+  }
+  if (!table.ReadU16(&this->entrySelector) || this->entrySelector !=
+      (unsigned)std::floor(std::log2(this->numIDs))) {
+    return parent->Error("LookupClass: Failed to read valid entrySelector");
+  }
+  if (!table.ReadU16(&this->rangeShift) ||
+      this->rangeShift != this->numIDs - this->searchRange) {
+    return parent->Error("LookupClass: Failed to read valid rangeShift");
+  }
+
+  this->lookups.resize(this->numIDs, parent);
+  for (unsigned i = 0; i < numIDs; ++i) {
+    if (!this->lookups[i].ParsePart(table)) {
+      return parent->Error("LookupClass: Failed to read lookups[%u]", i);
+    }
+  }
+  return true;
+}
+
+bool OpenTypeSILF::SILSub::ClassMap::
+LookupClass::SerializePart(OTSStream* out) const {
+  if (!out->WriteU16(this->numIDs) ||
+      !out->WriteU16(this->searchRange) ||
+      !out->WriteU16(this->entrySelector) ||
+      !out->WriteU16(this->rangeShift) ||
+      !SerializeParts(this->lookups, out)) {
+    return parent->Error("LookupClass: Failed to write");
+  }
+  return true;
+}
+
+bool OpenTypeSILF::SILSub::ClassMap::LookupClass::
+LookupPair::ParsePart(Buffer& table) {
+  if (!table.ReadU16(&this->glyphId)) {
+    return parent->Error("LookupPair: Failed to read glyphId");
+  }
+  if (!table.ReadU16(&this->index)) {
+    return parent->Error("LookupPair: Failed to read index");
+  }
+  return true;
+}
+
+bool OpenTypeSILF::SILSub::ClassMap::LookupClass::
+LookupPair::SerializePart(OTSStream* out) const {
+  if (!out->WriteU16(this->glyphId) ||
+      !out->WriteU16(this->index)) {
+    return parent->Error("LookupPair: Failed to write");
+  }
+  return true;
+}
+
+bool OpenTypeSILF::SILSub::
+SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
+                                  const size_t next_pass_offset) {
+  size_t init_offset = table.offset();
+  if (!table.ReadU8(&this->flags) || this->flags > 0b1) {
+    return parent->Error("SILPass: Failed to read valid flags");
+  }
+  if (!table.ReadU8(&this->maxRuleLoop)) {
+    return parent->Error("SILPass: Failed to read valid maxRuleLoop");
+  }
+  if (!table.ReadU8(&this->maxRuleContext)) {
+    return parent->Error("SILPass: Failed to read maxRuleContext");
+  }
+  if (!table.ReadU8(&this->maxBackup)) {
+    return parent->Error("SILPass: Failed to read maxBackup");
+  }
+  if (!table.ReadU16(&this->numRules)) {
+    return parent->Error("SILPass: Failed to read numRules");
+  }
+  if (parent->version >> 16 >= 2) {
+    if (!table.ReadU16(&this->fsmOffset)) {
+      return parent->Error("SILPass: Failed to read fsmOffset");
+    }
+    if (parent->version >> 16 == 2 && this->fsmOffset != 0) {
+      parent->Warning("SILPass: Nonzero fsmOffset (reserved in SILSub v2)");
+    }
+    if (!table.ReadU32(&this->pcCode) ||
+        (parent->version >= 3 && this->pcCode < this->fsmOffset)) {
+      return parent->Error("SILPass: Failed to read pcCode");
+    }
+  }
+  if (!table.ReadU32(&this->rcCode) ||
+      (parent->version >> 16 >= 2 && this->rcCode < this->pcCode)) {
+    return parent->Error("SILPass: Failed to read valid rcCode");
+  }
+  if (!table.ReadU32(&this->aCode) || this->aCode < this->rcCode) {
+    return parent->Error("SILPass: Failed to read valid aCode");
+  }
+  if (!table.ReadU32(&this->oDebug) ||
+      (this->oDebug && this->oDebug < this->aCode)) {
+    return parent->Error("SILPass: Failed to read valid oDebug");
+  }
+  if (parent->version >> 16 >= 3 &&
+      table.offset() != init_offset + this->fsmOffset) {
+    return parent->Error("SILPass: fsmOffset check failed");
+  }
+  if (!table.ReadU16(&this->numRows)) {
+    return parent->Error("SILPass: Failed to read numRows");
+  }
+  if (!table.ReadU16(&this->numTransitional)) {
+    return parent->Error("SILPass: Failed to read numTransitional");
+  }
+  if (!table.ReadU16(&this->numSuccess)) {
+    return parent->Error("SILPass: Failed to read numSuccess");
+  }
+  if (!table.ReadU16(&this->numColumns)) {
+    return parent->Error("SILPass: Failed to read numColumns");
+  }
+  if (!table.ReadU16(&this->numRange)) {
+    return parent->Error("SILPass: Failed to read numRange");
+  }
+  if (!table.ReadU16(&this->searchRange) || this->searchRange !=
+      (unsigned)std::pow(2, std::floor(std::log2(this->numRange)))) {
+    return parent->Error("SILPass: Failed to read valid searchRange");
+  }
+  if (!table.ReadU16(&this->entrySelector) || this->entrySelector !=
+      (unsigned)std::floor(std::log2(this->numRange))) {
+    return parent->Error("SILPass: Failed to read valid entrySelector");
+  }
+  if (!table.ReadU16(&this->rangeShift) ||
+      this->rangeShift != this->numRange - this->searchRange) {
+    return parent->Error("SILPass: Failed to read valid rangeShift");
+  }
+
+  this->ranges.resize(this->numRange, parent);
+  for (unsigned i = 0 ; i < this->numRange; ++i) {
+    if (!this->ranges[i].ParsePart(table)) {
+      return parent->Error("SILPass: Failed to read ranges[%u]", i);
+    }
+  }
+  unsigned ruleMap_len = 0;  // maximum value in oRuleMap
+  this->oRuleMap.resize(static_cast<unsigned long>(this->numSuccess) + 1);
+  for (unsigned long i = 0; i <= this->numSuccess; ++i) {
+    if (!table.ReadU16(&this->oRuleMap[i])) {
+      return parent->Error("SILPass: Failed to read oRuleMap[%u]", i);
+    }
+    if (oRuleMap[i] > ruleMap_len) {
+      ruleMap_len = oRuleMap[i];
+    }
+  }
+
+  this->ruleMap.resize(ruleMap_len);
+  for (unsigned i = 0; i < ruleMap_len; ++i) {
+    if (!table.ReadU16(&this->ruleMap[i])) {
+      return parent->Error("SILPass: Failed to read ruleMap[%u]", i);
+    }
+  }
+
+  if (!table.ReadU8(&this->minRulePreContext)) {
+    return parent->Error("SILPass: Failed to read minRulePreContext");
+  }
+  if (!table.ReadU8(&this->maxRulePreContext) ||
+      this->maxRulePreContext < this->minRulePreContext) {
+    return parent->Error("SILPass: Failed to read valid maxRulePreContext");
+  }
+
+  unsigned startStates_len = this->maxRulePreContext - this->minRulePreContext
+                             + 1;
+    // this->maxRulePreContext >= this->minRulePreContext
+  this->startStates.resize(startStates_len);
+  for (unsigned i = 0; i < startStates_len; ++i) {
+    if (!table.ReadS16(&this->startStates[i])) {
+      return parent->Error("SILPass: Failed to read startStates[%u]", i);
+    }
+  }
+
+  this->ruleSortKeys.resize(this->numRules);
+  for (unsigned i = 0; i < this->numRules; ++i) {
+    if (!table.ReadU16(&this->ruleSortKeys[i])) {
+      return parent->Error("SILPass: Failed to read ruleSortKeys[%u]", i);
+    }
+  }
+
+  this->rulePreContext.resize(this->numRules);
+  for (unsigned i = 0; i < this->numRules; ++i) {
+    if (!table.ReadU8(&this->rulePreContext[i])) {
+      return parent->Error("SILPass: Failed to read rulePreContext[%u]", i);
+    }
+  }
+
+  if (parent->version >> 16 >= 2) {
+    if (!table.ReadU8(&this->reserved)) {
+      return parent->Error("SILPass: Failed to read reserved");
+    }
+    if (this->reserved != 0) {
+      parent->Warning("SILPass: Nonzero reserved");
+    }
+    if (!table.ReadU16(&this->pConstraint)) {
+      return parent->Error("SILPass: Failed to read pConstraint");
+    }
+  }
+
+  unsigned long ruleConstraints_len = this->aCode - this->rcCode;
+    // this->aCode >= this->rcCode
+  this->oConstraints.resize(static_cast<unsigned long>(this->numRules) + 1);
+  for (unsigned long i = 0; i <= this->numRules; ++i) {
+    if (!table.ReadU16(&this->oConstraints[i]) ||
+        this->oConstraints[i] > ruleConstraints_len) {
+      return parent->Error("SILPass: Failed to read valid oConstraints[%lu]",
+                           i);
+    }
+  }
+
+  unsigned long actions_len = this->oDebug ? this->oDebug - this->aCode :
+                                             next_pass_offset - this->aCode;
+    // !this->oDebug || this->oDebug >= this->aCode
+  this->oActions.resize(static_cast<unsigned long>(this->numRules) + 1);
+  for (unsigned long i = 0; i <= this->numRules; ++i) {
+    if (!table.ReadU16(&this->oActions[i]) ||
+        (this->oActions[i] > actions_len)) {
+      return parent->Error("SILPass: Failed to read valid oActions[%lu]", i);
+    }
+  }
+
+  this->stateTrans.resize(this->numTransitional);
+  for (unsigned i = 0; i < this->numTransitional; ++i) {
+    this->stateTrans[i].resize(this->numColumns);
+    for (unsigned j = 0; j < this->numColumns; ++j) {
+      if (!table.ReadU16(&stateTrans[i][j])) {
+        return parent->Error("SILPass: Failed to read stateTrans[%u][%u]",
+                             i, j);
+      }
+    }
+  }
+
+  if (parent->version >> 16 >= 2) {
+    if (!table.ReadU8(&this->reserved2)) {
+      return parent->Error("SILPass: Failed to read reserved2");
+    }
+    if (this->reserved2 != 0) {
+      parent->Warning("SILPass: Nonzero reserved2");
+    }
+
+    if (table.offset() != SILSub_init_offset + this->pcCode) {
+      return parent->Error("SILPass: pcCode check failed");
+    }
+    this->passConstraints.resize(this->pConstraint);
+    for (unsigned i = 0; i < this->pConstraint; ++i) {
+      if (!table.ReadU8(&this->passConstraints[i])) {
+        return parent->Error("SILPass: Failed to read passConstraints[%u]", i);
+      }
+    }
+  }
+
+  if (table.offset() != SILSub_init_offset + this->rcCode) {
+    return parent->Error("SILPass: rcCode check failed");
+  }
+  this->ruleConstraints.resize(ruleConstraints_len);  // calculated above
+  for (unsigned long i = 0; i < ruleConstraints_len; ++i) {
+    if (!table.ReadU8(&this->ruleConstraints[i])) {
+      return parent->Error("SILPass: Failed to read ruleConstraints[%u]", i);
+    }
+  }
+
+  if (table.offset() != SILSub_init_offset + this->aCode) {
+    return parent->Error("SILPass: aCode check failed");
+  }
+  this->actions.resize(actions_len);  // calculated above
+  for (unsigned long i = 0; i < actions_len; ++i) {
+    if (!table.ReadU8(&this->actions[i])) {
+      return parent->Error("SILPass: Failed to read actions[%u]", i);
+    }
+  }
+
+  if (this->oDebug) {
+    OpenTypeNAME* name = static_cast<OpenTypeNAME*>(
+        parent->GetFont()->GetTypedTable(OTS_TAG_NAME));
+    if (!name) {
+      return parent->Error("SILPass: Required name table is missing");
+    }
+
+    if (table.offset() != SILSub_init_offset + this->oDebug) {
+      return parent->Error("SILPass: oDebug check failed");
+    }
+    this->dActions.resize(this->numRules);
+    for (unsigned i = 0; i < this->numRules; ++i) {
+      if (!table.ReadU16(&this->dActions[i]) ||
+          !name->IsValidNameId(this->dActions[i])) {
+        return parent->Error("SILPass: Failed to read dActions[%u]", i);
+      }
+    }
+
+    if (this->numRules > this->numRows) {
+      return parent->Error("SILPass: numRules is greater than numRows");
+    }
+    unsigned dStates_len = this->numRows - this->numRules;
+    this->dStates.resize(dStates_len);
+    for (unsigned i = 0; i < dStates_len; ++i) {
+      if (!table.ReadU16(&this->dStates[i]) ||
+          !name->IsValidNameId(this->dStates[i])) {
+        return parent->Error("SILPass: Failed to read dStates[%u]", i);
+      }
+    }
+
+    this->dCols.resize(this->numRules);
+    for (unsigned i = 0; i < this->numRules; ++i) {
+      if (!table.ReadU16(&this->dCols[i]) ||
+          !name->IsValidNameId(this->dCols[i])) {
+        return parent->Error("SILPass: Failed to read dCols[%u]");
+      }
+    }
+  }
+  return true;
+}
+
+bool OpenTypeSILF::SILSub::
+SILPass::SerializePart(OTSStream* out) const {
+  if (!out->WriteU8(this->flags) ||
+      !out->WriteU8(this->maxRuleLoop) ||
+      !out->WriteU8(this->maxRuleContext) ||
+      !out->WriteU8(this->maxBackup) ||
+      !out->WriteU16(this->numRules) ||
+      (parent->version >> 16 >= 2 &&
+       (!out->WriteU16(this->fsmOffset) ||
+        !out->WriteU32(this->pcCode))) ||
+      !out->WriteU32(this->rcCode) ||
+      !out->WriteU32(this->aCode) ||
+      !out->WriteU32(this->oDebug) ||
+      !out->WriteU16(this->numRows) ||
+      !out->WriteU16(this->numTransitional) ||
+      !out->WriteU16(this->numSuccess) ||
+      !out->WriteU16(this->numColumns) ||
+      !out->WriteU16(this->numRange) ||
+      !out->WriteU16(this->searchRange) ||
+      !out->WriteU16(this->entrySelector) ||
+      !out->WriteU16(this->rangeShift) ||
+      !SerializeParts(this->ranges, out) ||
+      !SerializeParts(this->oRuleMap, out) ||
+      !SerializeParts(this->ruleMap, out) ||
+      !out->WriteU8(this->minRulePreContext) ||
+      !out->WriteU8(this->maxRulePreContext) ||
+      !SerializeParts(this->startStates, out) ||
+      !SerializeParts(this->ruleSortKeys, out) ||
+      !SerializeParts(this->rulePreContext, out) ||
+      (parent->version >> 16 >= 2 &&
+       (!out->WriteU8(this->reserved) ||
+        !out->WriteU16(this->pConstraint))) ||
+      !SerializeParts(this->oConstraints, out) ||
+      !SerializeParts(this->oActions, out) ||
+      !SerializeParts(this->stateTrans, out) ||
+      (parent->version >> 16 >= 2 &&
+       (!out->WriteU8(this->reserved2) ||
+        !SerializeParts(this->passConstraints, out))) ||
+      !SerializeParts(this->ruleConstraints, out) ||
+      !SerializeParts(this->actions, out) ||
+      !SerializeParts(this->dActions, out) ||
+      !SerializeParts(this->dStates, out) ||
+      !SerializeParts(this->dCols, out)) {
+    return parent->Error("SILPass: Failed to write");
+  }
+  return true;
+}
+
+bool OpenTypeSILF::SILSub::SILPass::
+PassRange::ParsePart(Buffer& table) {
+  if (!table.ReadU16(&this->firstId)) {
+    return parent->Error("PassRange: Failed to read firstId");
+  }
+  if (!table.ReadU16(&this->lastId)) {
+    return parent->Error("PassRange: Failed to read lastId");
+  }
+  if (!table.ReadU16(&this->colId)) {
+    return parent->Error("PassRange: Failed to read colId");
+  }
+  return true;
+}
+
+bool OpenTypeSILF::SILSub::SILPass::
+PassRange::SerializePart(OTSStream* out) const {
+  if (!out->WriteU16(this->firstId) ||
+      !out->WriteU16(this->lastId) ||
+      !out->WriteU16(this->colId)) {
+    return parent->Error("PassRange: Failed to write");
+  }
+  return true;
+}
+
+}  // namespace ots

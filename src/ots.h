@@ -209,6 +209,7 @@ bool IsValidVersionTag(uint32_t tag);
 #define OTS_TAG_OS2  OTS_TAG('O','S','/','2')
 #define OTS_TAG_POST OTS_TAG('p','o','s','t')
 #define OTS_TAG_PREP OTS_TAG('p','r','e','p')
+#define OTS_TAG_SILF OTS_TAG('S','i','l','f')
 #define OTS_TAG_VDMX OTS_TAG('V','D','M','X')
 #define OTS_TAG_VHEA OTS_TAG('v','h','e','a')
 #define OTS_TAG_VMTX OTS_TAG('v','m','t','x')
