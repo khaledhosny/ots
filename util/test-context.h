@@ -39,7 +39,7 @@ class TestContext: public ots::OTSContext {
       case OTS_TAG('S','i','l','l'):
       //case OTS_TAG('G','l','o','c'):
       //case OTS_TAG('G','l','a','t'):
-      case OTS_TAG('F','e','a','t'):
+      //case OTS_TAG('F','e','a','t'):
       case OTS_TAG('C','B','D','T'):
       case OTS_TAG('C','B','L','C'):
       case OTS_TAG('s','b','i','x'):
