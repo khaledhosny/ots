@@ -22,6 +22,7 @@
 #include "cff.h"
 #include "cmap.h"
 #include "cvt.h"
+#include "feat.h"
 #include "fpgm.h"
 #include "gasp.h"
 #include "gdef.h"
@@ -129,6 +130,7 @@ const struct {
   // Graphite tables
   { OTS_TAG_GLOC, false },
   { OTS_TAG_GLAT, false },
+  { OTS_TAG_FEAT, false },
   { 0, false },
 };
 
@@ -851,6 +853,7 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       case OTS_TAG_CFF:  table = new OpenTypeCFF(this,  tag); break;
       case OTS_TAG_CMAP: table = new OpenTypeCMAP(this, tag); break;
       case OTS_TAG_CVT:  table = new OpenTypeCVT(this,  tag); break;
+      case OTS_TAG_FEAT: table = new OpenTypeFEAT(this, tag); break;
       case OTS_TAG_FPGM: table = new OpenTypeFPGM(this, tag); break;
       case OTS_TAG_GASP: table = new OpenTypeGASP(this, tag); break;
       case OTS_TAG_GDEF: table = new OpenTypeGDEF(this, tag); break;

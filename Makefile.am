@@ -72,6 +72,8 @@ libots_a_SOURCES = \
   src/cmap.h \
   src/cvt.cc \
   src/cvt.h \
+  src/feat.cc \
+  src/feat.h \
   src/fpgm.cc \
   src/fpgm.h \
   src/gasp.cc \
