@@ -16,7 +16,7 @@ namespace ots {
 class OpenTypeGASP : public Table {
  public:
   explicit OpenTypeGASP(Font *font, uint32_t tag)
-      : Table(font, tag) { }
+      : Table(font, tag, OTS_TAG_GASP) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

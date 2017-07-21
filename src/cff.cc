@@ -972,8 +972,8 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
     return OTS_FAILURE();
   }
 
-  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
-      font->GetTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
+    GetFont()->GetTypedTable(OTS_TAG_MAXP));
   if (!maxp) {
     return Error("Required maxp table missing");
   }

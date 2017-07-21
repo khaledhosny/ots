@@ -43,8 +43,8 @@ bool OpenTypeMetricsHeader::Parse(const uint8_t *data, size_t length) {
     this->linegap = 0;
   }
 
-  OpenTypeHEAD *head = dynamic_cast<OpenTypeHEAD*>(
-      GetFont()->GetTable(OTS_TAG_HEAD));
+  OpenTypeHEAD *head = static_cast<OpenTypeHEAD*>(
+      GetFont()->GetTypedTable(OTS_TAG_HEAD));
   if (!head) {
     return Error("Missing head font table");
   }
@@ -73,8 +73,8 @@ bool OpenTypeMetricsHeader::Parse(const uint8_t *data, size_t length) {
     return Error("Failed to read number of metrics");
   }
 
-  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
-      GetFont()->GetTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
+      GetFont()->GetTypedTable(OTS_TAG_MAXP));
   if (!maxp) {
     return Error("Missing maxp font table");
   }
@@ -110,8 +110,10 @@ bool OpenTypeMetricsHeader::Serialize(OTSStream *out) {
 bool OpenTypeMetricsTable::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
-  OpenTypeMetricsHeader *header = dynamic_cast<OpenTypeMetricsHeader*>(
-      GetFont()->GetTable(m_header_tag));
+  // OpenTypeMetricsHeader is a superclass of both 'hhea' and 'vhea',
+  // so the cast here is OK, whichever m_header_tag we have.
+  OpenTypeMetricsHeader *header = static_cast<OpenTypeMetricsHeader*>(
+      GetFont()->GetTypedTable(m_header_tag));
   if (!header) {
     return Error("Required %c%c%c%c table missing", OTS_UNTAG(m_header_tag));
   }
@@ -119,8 +121,8 @@ bool OpenTypeMetricsTable::Parse(const uint8_t *data, size_t length) {
   // amount of memory that we'll allocate for this to a sane amount.
   const unsigned num_metrics = header->num_metrics;
 
-  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
-      GetFont()->GetTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
+      GetFont()->GetTypedTable(OTS_TAG_MAXP));
   if (!maxp) {
     return Error("Required maxp table missing");
   }

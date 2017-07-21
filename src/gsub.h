@@ -12,7 +12,7 @@ namespace ots {
 class OpenTypeGSUB : public Table {
  public:
   explicit OpenTypeGSUB(Font *font, uint32_t tag)
-      : Table(font, tag),
+      : Table(font, tag, OTS_TAG_GSUB),
         num_lookups(0),
         m_data(NULL),
         m_length(0) {

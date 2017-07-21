@@ -13,7 +13,7 @@ namespace ots {
 class OpenTypeHHEA : public OpenTypeMetricsHeader {
  public:
   explicit OpenTypeHHEA(Font *font, uint32_t tag)
-      : OpenTypeMetricsHeader(font, tag) { }
+      : OpenTypeMetricsHeader(font, tag, OTS_TAG_HHEA) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

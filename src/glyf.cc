@@ -208,12 +208,12 @@ bool OpenTypeGLYF::ParseCompositeGlyph(Buffer &glyph) {
 }
 
 bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
-  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
-      GetFont()->GetTable(OTS_TAG_MAXP));
-  OpenTypeLOCA *loca = dynamic_cast<OpenTypeLOCA*>(
-      GetFont()->GetTable(OTS_TAG_LOCA));
-  OpenTypeHEAD *head = dynamic_cast<OpenTypeHEAD*>(
-      GetFont()->GetTable(OTS_TAG_HEAD));
+  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
+      GetFont()->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeLOCA *loca = static_cast<OpenTypeLOCA*>(
+      GetFont()->GetTypedTable(OTS_TAG_LOCA));
+  OpenTypeHEAD *head = static_cast<OpenTypeHEAD*>(
+      GetFont()->GetTypedTable(OTS_TAG_HEAD));
   if (!maxp || !loca || !head) {
     return Error("Missing maxp or loca or head table needed by glyf table");
   }
