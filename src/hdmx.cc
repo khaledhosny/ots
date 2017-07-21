@@ -14,10 +14,10 @@ namespace ots {
 bool OpenTypeHDMX::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
-  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
-      GetFont()->GetTable(OTS_TAG_MAXP));
-  OpenTypeHEAD *head = dynamic_cast<OpenTypeHEAD*>(
-      GetFont()->GetTable(OTS_TAG_HEAD));
+  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
+      GetFont()->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeHEAD *head = static_cast<OpenTypeHEAD*>(
+      GetFont()->GetTypedTable(OTS_TAG_HEAD));
   if (!head || !maxp) {
     return Error("Missing maxp or head tables in font, needed by hdmx");
   }

@@ -50,8 +50,8 @@ bool OpenTypePOST::Parse(const uint8_t *data, size_t length) {
     return Error("Failed to read numberOfGlyphs");
   }
 
-  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
-      GetFont()->GetTable(OTS_TAG_MAXP));
+  OpenTypeMAXP* maxp = static_cast<OpenTypeMAXP*>
+    (GetFont()->GetTable(OTS_TAG_MAXP));
   if (!maxp) {
     return Error("Missing required maxp table");
   }

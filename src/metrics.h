@@ -15,8 +15,8 @@ namespace ots {
 
 class OpenTypeMetricsHeader : public Table {
  public:
-  explicit OpenTypeMetricsHeader(Font *font, uint32_t tag)
-      : Table(font, tag) { }
+  explicit OpenTypeMetricsHeader(Font *font, uint32_t tag, uint32_t type)
+      : Table(font, tag, type) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);
@@ -37,9 +37,9 @@ class OpenTypeMetricsHeader : public Table {
 
 struct OpenTypeMetricsTable : public Table {
  public:
-  explicit OpenTypeMetricsTable(Font *font, uint32_t tag,
+  explicit OpenTypeMetricsTable(Font *font, uint32_t tag, uint32_t type,
                                 uint32_t header_tag)
-      : Table(font, tag), m_header_tag(header_tag) { }
+      : Table(font, tag, type), m_header_tag(header_tag) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);

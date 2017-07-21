@@ -197,8 +197,8 @@ bool ParseLookupTable(ots::Font *font, const uint8_t *data,
     return OTS_FAILURE_MSG("Bad lookup type %d", lookup_type);
   }
 
-  ots::OpenTypeGDEF *gdef = dynamic_cast<ots::OpenTypeGDEF*>(
-      font->GetTable(OTS_TAG_GDEF));
+  ots::OpenTypeGDEF *gdef = static_cast<ots::OpenTypeGDEF*>(
+      font->GetTypedTable(OTS_TAG_GDEF));
 
   // Check lookup flags.
   if ((lookup_flag & kGdefRequiredFlags) &&

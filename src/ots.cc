@@ -903,6 +903,13 @@ Table* Font::GetTable(uint32_t tag) const {
   return NULL;
 }
 
+Table* Font::GetTypedTable(uint32_t tag) const {
+  Table* t = GetTable(tag);
+  if (t && t->Type() == tag)
+    return t;
+  return NULL;
+}
+
 bool Table::ShouldSerialize() {
   return m_shouldSerialize;
 }

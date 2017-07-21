@@ -218,8 +218,9 @@ struct Arena;
 
 class Table {
  public:
-  explicit Table(Font *font, uint32_t tag)
+  explicit Table(Font *font, uint32_t tag, uint32_t type)
       : m_tag(tag),
+        m_type(type),
         m_font(font),
         m_shouldSerialize(true) {
   }
@@ -229,6 +230,13 @@ class Table {
   virtual bool Parse(const uint8_t *data, size_t length) = 0;
   virtual bool Serialize(OTSStream *out) = 0;
   virtual bool ShouldSerialize();
+
+  // Return the tag (table type) this Table was parsed as, to support
+  // "poor man's RTTI" so that we know if we can safely down-cast to
+  // a specific Table subclass. The m_type field is initialized to the
+  // appropriate tag when a subclass is constructed, or to zero for
+  // TablePassthru (indicating unparsed data).
+  uint32_t Type() { return m_type; }
 
   Font* GetFont() { return m_font; }
 
@@ -240,6 +248,7 @@ class Table {
   void Message(int level, const char *format, va_list va);
 
   uint32_t m_tag;
+  uint32_t m_type;
   Font *m_font;
   bool m_shouldSerialize;
 };
@@ -247,7 +256,7 @@ class Table {
 class TablePassthru : public Table {
  public:
   explicit TablePassthru(Font *font, uint32_t tag)
-      : Table(font, tag),
+      : Table(font, tag, 0),
         m_data(NULL),
         m_length(0) {
   }
@@ -273,6 +282,11 @@ struct Font {
   bool ParseTable(const TableEntry& tableinfo, const uint8_t* data,
                   Arena &arena);
   Table* GetTable(uint32_t tag) const;
+
+  // This checks that the returned Table is actually of the correct subclass
+  // for |tag|, so it can safely be downcast to the corresponding OpenTypeXXXX;
+  // if not (i.e. if the table was treated as Passthru), it will return NULL.
+  Table* GetTypedTable(uint32_t tag) const;
 
   FontFile *file;
 

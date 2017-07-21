@@ -221,8 +221,8 @@ bool ParseSingleAdjustment(const ots::Font *font, const uint8_t *data,
                            const size_t length) {
   ots::Buffer subtable(data, length);
 
-  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
-      font->GetTable(OTS_TAG_MAXP));
+  ots::OpenTypeMAXP *maxp = static_cast<ots::OpenTypeMAXP*>(
+      font->GetTypedTable(OTS_TAG_MAXP));
   if (!maxp) {
     return OTS_FAILURE_MSG("Required maxp table missing");
   }
@@ -411,8 +411,8 @@ bool ParsePairAdjustment(const ots::Font *font, const uint8_t *data,
                          const size_t length) {
   ots::Buffer subtable(data, length);
 
-  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
-      font->GetTable(OTS_TAG_MAXP));
+  ots::OpenTypeMAXP *maxp = static_cast<ots::OpenTypeMAXP*>(
+      font->GetTypedTable(OTS_TAG_MAXP));
   if (!maxp) {
     return OTS_FAILURE_MSG("Required maxp table missing");
   }
@@ -460,8 +460,8 @@ bool ParseCursiveAttachment(const ots::Font *font, const uint8_t *data,
                             const size_t length) {
   ots::Buffer subtable(data, length);
 
-  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
-      font->GetTable(OTS_TAG_MAXP));
+  ots::OpenTypeMAXP *maxp = static_cast<ots::OpenTypeMAXP*>(
+      font->GetTypedTable(OTS_TAG_MAXP));
   if (!maxp) {
     return OTS_FAILURE_MSG("Required maxp table missing");
   }
@@ -594,8 +594,8 @@ bool ParseMarkToAttachmentSubtables(const ots::Font *font,
                                     const GPOS_TYPE type) {
   ots::Buffer subtable(data, length);
 
-  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
-      font->GetTable(OTS_TAG_MAXP));
+  ots::OpenTypeMAXP *maxp = static_cast<ots::OpenTypeMAXP*>(
+      font->GetTypedTable(OTS_TAG_MAXP));
   if (!maxp) {
     return OTS_FAILURE_MSG("Required maxp table missing");
   }
@@ -700,13 +700,13 @@ bool ParseMarkToMarkAttachment(const ots::Font *font,
 // Contextual Positioning Subtables
 bool ParseContextPositioning(const ots::Font *font,
                              const uint8_t *data, const size_t length) {
-  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
-      font->GetTable(OTS_TAG_MAXP));
+  ots::OpenTypeMAXP *maxp = static_cast<ots::OpenTypeMAXP*>(
+      font->GetTypedTable(OTS_TAG_MAXP));
   if (!maxp) {
     return OTS_FAILURE_MSG("Required maxp table missing");
   }
-  ots::OpenTypeGPOS *gpos = dynamic_cast<ots::OpenTypeGPOS*>(
-      font->GetTable(OTS_TAG_GPOS));
+  ots::OpenTypeGPOS *gpos = static_cast<ots::OpenTypeGPOS*>(
+      font->GetTypedTable(OTS_TAG_GPOS));
   if (!gpos) {
     return OTS_FAILURE_MSG("Internal error!");
   }
@@ -718,13 +718,13 @@ bool ParseContextPositioning(const ots::Font *font,
 // Chaining Contexual Positioning Subtable
 bool ParseChainedContextPositioning(const ots::Font *font,
                                     const uint8_t *data, const size_t length) {
-  ots::OpenTypeMAXP *maxp = dynamic_cast<ots::OpenTypeMAXP*>(
-      font->GetTable(OTS_TAG_MAXP));
+  ots::OpenTypeMAXP *maxp = static_cast<ots::OpenTypeMAXP*>(
+      font->GetTypedTable(OTS_TAG_MAXP));
   if (!maxp) {
     return OTS_FAILURE_MSG("Required maxp table missing");
   }
-  ots::OpenTypeGPOS *gpos = dynamic_cast<ots::OpenTypeGPOS*>(
-      font->GetTable(OTS_TAG_GPOS));
+  ots::OpenTypeGPOS *gpos = static_cast<ots::OpenTypeGPOS*>(
+      font->GetTypedTable(OTS_TAG_GPOS));
   if (!gpos) {
     return OTS_FAILURE_MSG("Internal error!");
   }

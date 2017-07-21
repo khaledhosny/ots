@@ -18,10 +18,10 @@ bool OpenTypeLOCA::Parse(const uint8_t *data, size_t length) {
   // We can't do anything useful in validating this data except to ensure that
   // the values are monotonically increasing.
 
-  OpenTypeMAXP *maxp = dynamic_cast<OpenTypeMAXP*>(
-      GetFont()->GetTable(OTS_TAG_MAXP));
-  OpenTypeHEAD *head = dynamic_cast<OpenTypeHEAD*>(
-      GetFont()->GetTable(OTS_TAG_HEAD));
+  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
+      GetFont()->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeHEAD *head = static_cast<OpenTypeHEAD*>(
+      GetFont()->GetTypedTable(OTS_TAG_HEAD));
   if (!maxp || !head) {
     return Error("Required maxp or head tables are missing");
   }
@@ -64,8 +64,8 @@ bool OpenTypeLOCA::Parse(const uint8_t *data, size_t length) {
 }
 
 bool OpenTypeLOCA::Serialize(OTSStream *out) {
-  OpenTypeHEAD *head = dynamic_cast<OpenTypeHEAD*>(
-      GetFont()->GetTable(OTS_TAG_HEAD));
+  OpenTypeHEAD *head = static_cast<OpenTypeHEAD*>(
+      GetFont()->GetTypedTable(OTS_TAG_HEAD));
 
   if (!head) {
     return Error("Required head table is missing");

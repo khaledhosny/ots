@@ -17,7 +17,7 @@ class OpenTypeMAXP;
 class OpenTypeGLYF : public Table {
  public:
   explicit OpenTypeGLYF(Font *font, uint32_t tag)
-      : Table(font, tag), maxp(NULL) { }
+      : Table(font, tag, OTS_TAG_GLYF), maxp(NULL) { }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);
