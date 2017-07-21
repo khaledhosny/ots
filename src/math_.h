@@ -12,7 +12,7 @@ namespace ots {
 class OpenTypeMATH : public Table {
  public:
   explicit OpenTypeMATH(Font *font, uint32_t tag)
-      : Table(font, tag, OTS_TAG_MATH),
+      : Table(font, tag, tag),
         m_data(NULL),
         m_length(0) { }
 

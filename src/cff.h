@@ -25,7 +25,7 @@ struct CFFIndex {
 class OpenTypeCFF : public Table {
  public:
   explicit OpenTypeCFF(Font *font, uint32_t tag)
-      : Table(font, tag, OTS_TAG_CFF),
+      : Table(font, tag, tag),
         font_dict_length(0),
         local_subrs(NULL),
         m_data(NULL),

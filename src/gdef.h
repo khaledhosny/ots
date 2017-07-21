@@ -12,7 +12,7 @@ namespace ots {
 class OpenTypeGDEF : public Table {
  public:
   explicit OpenTypeGDEF(Font *font, uint32_t tag)
-      : Table(font, tag, OTS_TAG_GDEF),
+      : Table(font, tag, tag),
         version_2(false),
         has_glyph_class_def(false),
         has_mark_attachment_class_def(false),
