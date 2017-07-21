@@ -37,8 +37,8 @@ class TestContext: public ots::OTSContext {
     switch (tag) {
       case OTS_TAG('S','i','l','f'):
       case OTS_TAG('S','i','l','l'):
-      case OTS_TAG('G','l','o','c'):
       case OTS_TAG('G','l','a','t'):
+      //case OTS_TAG('G','l','o','c'):
       case OTS_TAG('F','e','a','t'):
       case OTS_TAG('C','B','D','T'):
       case OTS_TAG('C','B','L','C'):

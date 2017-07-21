@@ -78,6 +78,8 @@ libots_a_SOURCES = \
   src/gasp.h \
   src/gdef.cc \
   src/gdef.h \
+  src/gloc.cc \
+  src/gloc.h \
   src/glyf.cc \
   src/glyf.h \
   src/gpos.cc \
