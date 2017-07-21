@@ -149,6 +149,7 @@ bool OpenTypeNAME::Parse(const uint8_t* data, size_t length) {
     }
 
     this->names.push_back(rec);
+    this->name_ids.insert(rec.name_id);
   }
 
   if (format == 1) {
@@ -303,6 +304,10 @@ bool OpenTypeNAME::Serialize(OTSStream* out) {
   }
 
   return true;
+}
+
+bool OpenTypeNAME::IsValidNameId(uint16_t name_id) const {
+  return name_ids.count(name_id);
 }
 
 }  // namespace

@@ -190,6 +190,7 @@ bool IsValidVersionTag(uint32_t tag);
 #define OTS_TAG_FPGM OTS_TAG('f','p','g','m')
 #define OTS_TAG_GASP OTS_TAG('g','a','s','p')
 #define OTS_TAG_GDEF OTS_TAG('G','D','E','F')
+#define OTS_TAG_GLOC OTS_TAG('G','l','o','c')
 #define OTS_TAG_GLYF OTS_TAG('g','l','y','f')
 #define OTS_TAG_GPOS OTS_TAG('G','P','O','S')
 #define OTS_TAG_GSUB OTS_TAG('G','S','U','B')
