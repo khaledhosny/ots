@@ -25,6 +25,7 @@
 #include "fpgm.h"
 #include "gasp.h"
 #include "gdef.h"
+#include "glat.h"
 #include "gloc.h"
 #include "glyf.h"
 #include "gpos.h"
@@ -127,6 +128,7 @@ const struct {
   { OTS_TAG_MATH, false },
   // Graphite tables
   { OTS_TAG_GLOC, false },
+  { OTS_TAG_GLAT, false },
   { 0, false },
 };
 
@@ -852,6 +854,7 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       case OTS_TAG_FPGM: table = new OpenTypeFPGM(this, tag); break;
       case OTS_TAG_GASP: table = new OpenTypeGASP(this, tag); break;
       case OTS_TAG_GDEF: table = new OpenTypeGDEF(this, tag); break;
+      case OTS_TAG_GLAT: table = new OpenTypeGLAT(this, tag); break;
       case OTS_TAG_GLOC: table = new OpenTypeGLOC(this, tag); break;
       case OTS_TAG_GLYF: table = new OpenTypeGLYF(this, tag); break;
       case OTS_TAG_GPOS: table = new OpenTypeGPOS(this, tag); break;
