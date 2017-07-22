@@ -126,6 +126,8 @@ libots_a_SOURCES = \
   src/sile.cc \
   src/silf.h \
   src/silf.cc \
+  src/sill.h \
+  src/sill.cc \
   src/vdmx.cc \
   src/vdmx.h \
   src/vhea.cc \

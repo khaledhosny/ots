@@ -47,6 +47,7 @@
 #include "prep.h"
 #include "sile.h"
 #include "silf.h"
+#include "sill.h"
 #include "vdmx.h"
 #include "vhea.h"
 #include "vmtx.h"
@@ -135,6 +136,7 @@ const struct {
   { OTS_TAG_FEAT, false },
   { OTS_TAG_SILF, false },
   { OTS_TAG_SILE, false },
+  { OTS_TAG_SILL, false },
   { 0, false },
 };
 
@@ -881,6 +883,7 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       case OTS_TAG_PREP: table = new OpenTypePREP(this, tag); break;
       case OTS_TAG_SILE: table = new OpenTypeSILE(this, tag); break;
       case OTS_TAG_SILF: table = new OpenTypeSILF(this, tag); break;
+      case OTS_TAG_SILL: table = new OpenTypeSILL(this, tag); break;
       case OTS_TAG_VDMX: table = new OpenTypeVDMX(this, tag); break;
       case OTS_TAG_VORG: table = new OpenTypeVORG(this, tag); break;
       case OTS_TAG_VHEA: table = new OpenTypeVHEA(this, tag); break;
