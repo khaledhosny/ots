@@ -94,14 +94,11 @@ bool ParseScriptTable(const ots::Font *font,
   }
 
   // The spec requires a script table for 'DFLT' tag must contain non-NULL
-  // |offset_default_lang_sys| and |lang_sys_count| == 0
+  // |offset_default_lang_sys|.
   // https://www.microsoft.com/typography/otspec/chapter2.htm
   if (tag == kScriptTableTagDflt) {
     if (offset_default_lang_sys == 0) {
       return OTS_FAILURE_MSG("DFLT script doesn't satisfy the spec. DefaultLangSys is NULL");
-    }
-    if (lang_sys_count != 0) {
-      return OTS_FAILURE_MSG("DFLT script doesn't satisfy the spec. LangSysCount is not zero: %d", lang_sys_count);
     }
   }
 
