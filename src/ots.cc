@@ -22,12 +22,9 @@
 #include "cff.h"
 #include "cmap.h"
 #include "cvt.h"
-#include "feat.h"
 #include "fpgm.h"
 #include "gasp.h"
 #include "gdef.h"
-#include "glat.h"
-#include "gloc.h"
 #include "glyf.h"
 #include "gpos.h"
 #include "gsub.h"
@@ -45,13 +42,20 @@
 #include "ots.h"
 #include "post.h"
 #include "prep.h"
-#include "sile.h"
-#include "silf.h"
-#include "sill.h"
 #include "vdmx.h"
 #include "vhea.h"
 #include "vmtx.h"
 #include "vorg.h"
+
+// Graphite tables
+#ifdef OTS_GRAPHITE
+#include "feat.h"
+#include "glat.h"
+#include "gloc.h"
+#include "sile.h"
+#include "silf.h"
+#include "sill.h"
+#endif
 
 namespace ots {
 
@@ -131,12 +135,14 @@ const struct {
   { OTS_TAG_VMTX, false },
   { OTS_TAG_MATH, false },
   // Graphite tables
+  #ifdef OTS_GRAPHITE
   { OTS_TAG_GLOC, false },
   { OTS_TAG_GLAT, false },
   { OTS_TAG_FEAT, false },
   { OTS_TAG_SILF, false },
   { OTS_TAG_SILE, false },
   { OTS_TAG_SILL, false },
+  #endif
   { 0, false },
 };
 
@@ -859,12 +865,9 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       case OTS_TAG_CFF:  table = new OpenTypeCFF(this,  tag); break;
       case OTS_TAG_CMAP: table = new OpenTypeCMAP(this, tag); break;
       case OTS_TAG_CVT:  table = new OpenTypeCVT(this,  tag); break;
-      case OTS_TAG_FEAT: table = new OpenTypeFEAT(this, tag); break;
       case OTS_TAG_FPGM: table = new OpenTypeFPGM(this, tag); break;
       case OTS_TAG_GASP: table = new OpenTypeGASP(this, tag); break;
       case OTS_TAG_GDEF: table = new OpenTypeGDEF(this, tag); break;
-      case OTS_TAG_GLAT: table = new OpenTypeGLAT(this, tag); break;
-      case OTS_TAG_GLOC: table = new OpenTypeGLOC(this, tag); break;
       case OTS_TAG_GLYF: table = new OpenTypeGLYF(this, tag); break;
       case OTS_TAG_GPOS: table = new OpenTypeGPOS(this, tag); break;
       case OTS_TAG_GSUB: table = new OpenTypeGSUB(this, tag); break;
@@ -881,13 +884,19 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       case OTS_TAG_OS2:  table = new OpenTypeOS2(this,  tag); break;
       case OTS_TAG_POST: table = new OpenTypePOST(this, tag); break;
       case OTS_TAG_PREP: table = new OpenTypePREP(this, tag); break;
-      case OTS_TAG_SILE: table = new OpenTypeSILE(this, tag); break;
-      case OTS_TAG_SILF: table = new OpenTypeSILF(this, tag); break;
-      case OTS_TAG_SILL: table = new OpenTypeSILL(this, tag); break;
       case OTS_TAG_VDMX: table = new OpenTypeVDMX(this, tag); break;
       case OTS_TAG_VORG: table = new OpenTypeVORG(this, tag); break;
       case OTS_TAG_VHEA: table = new OpenTypeVHEA(this, tag); break;
       case OTS_TAG_VMTX: table = new OpenTypeVMTX(this, tag); break;
+      // Graphite tables
+      #ifdef OTS_GRAPHITE
+      case OTS_TAG_FEAT: table = new OpenTypeFEAT(this, tag); break;
+      case OTS_TAG_GLAT: table = new OpenTypeGLAT(this, tag); break;
+      case OTS_TAG_GLOC: table = new OpenTypeGLOC(this, tag); break;
+      case OTS_TAG_SILE: table = new OpenTypeSILE(this, tag); break;
+      case OTS_TAG_SILF: table = new OpenTypeSILF(this, tag); break;
+      case OTS_TAG_SILL: table = new OpenTypeSILL(this, tag); break;
+      #endif
       default: break;
     }
   }

@@ -5,10 +5,18 @@ ACLOCAL_AMFLAGS = -I m4
 TESTS = \
   cff_type2_charstring_test \
   layout_common_table_test \
-  tests/test_bad_fonts.sh \
   tests/test_fuzzed_fonts.sh \
   $(NULL)
 
+if OTS_GRAPHITE
+TESTS += \
+  tests/test_bad_fonts.sh \
+  $(NULL)
+else
+TESTS += \
+  tests/test_bad_fonts_nonrecursive.sh \
+  $(NULL)
+endif
 
 bin_PROGRAMS = \
   ots-sanitize \
@@ -50,9 +58,14 @@ noinst_PROGRAMS = ots-fuzzer ots-testfuzz
 lib_LIBRARIES = \
   libots.a \
   libbrotli.a \
-  liblz4.a \
   libwoff2.a \
   $(NULL)
+
+if OTS_GRAPHITE
+lib_LIBRARIES += \
+  liblz4.a \
+  $(NULL)
+endif
 
 check_PROGRAMS = \
   cff_type2_charstring_test \
@@ -73,18 +86,12 @@ libots_a_SOURCES = \
   src/cmap.h \
   src/cvt.cc \
   src/cvt.h \
-  src/feat.cc \
-  src/feat.h \
   src/fpgm.cc \
   src/fpgm.h \
   src/gasp.cc \
   src/gasp.h \
   src/gdef.cc \
   src/gdef.h \
-  src/glat.cc \
-  src/glat.h \
-  src/gloc.cc \
-  src/gloc.h \
   src/glyf.cc \
   src/glyf.h \
   src/gpos.cc \
@@ -123,12 +130,6 @@ libots_a_SOURCES = \
   src/post.h \
   src/prep.cc \
   src/prep.h \
-  src/sile.h \
-  src/sile.cc \
-  src/silf.h \
-  src/silf.cc \
-  src/sill.h \
-  src/sill.cc \
   src/vdmx.cc \
   src/vdmx.h \
   src/vhea.cc \
@@ -139,12 +140,34 @@ libots_a_SOURCES = \
   src/vorg.h \
   $(NULL)
 
+if OTS_GRAPHITE
+libots_a_SOURCES += \
+  src/feat.cc \
+  src/feat.h \
+  src/glat.cc \
+  src/glat.h \
+  src/gloc.cc \
+  src/gloc.h \
+  src/graphite.h \
+  src/sile.h \
+  src/sile.cc \
+  src/silf.h \
+  src/silf.cc \
+  src/sill.h \
+  src/sill.cc \
+  $(NULL)
+endif
+
 libots_a_CPPFLAGS = \
   -I$(top_srcdir)/include \
   -I$(top_srcdir)/third_party/woff2/src \
-  -I$(top_srcdir)/third_party/lz4/lib \
   $(NULL)
 
+if OTS_GRAPHITE
+libots_a_CPPFLAGS += \
+  -I$(top_srcdir)/third_party/lz4/lib \
+  $(NULL)
+endif
 
 pkginclude_HEADERS = \
   include/ots-memory-stream.h \
@@ -276,19 +299,29 @@ ots_fuzzer_CPPFLAGS = \
 ots_testfuzz_SOURCES = \
   util/ots-fuzzer.cc \
   $(libbrotli_a_SOURCES) \
-  $(liblz4_a_SOURCES) \
   $(libots_a_SOURCES) \
   $(libwoff2_a_SOURCES) \
   $(NULL)
+
+if OTS_GRAPHITE
+ots_testfuzz_SOURCES += \
+  $(liblz4_a_SOURCES) \
+  $(NULL)
+endif
 
 ots_testfuzz_CPPFLAGS = \
   -I$(top_srcdir)/include \
   -I$(top_srcdir)/src \
   -I$(top_srcdir)/third_party/brotli/dec \
-  -I$(top_srcdir)/third_party/lz4/lib \
   -I$(top_srcdir)/third_party/woff2/src \
   $(AM_CPPFLAGS) \
   $(NULL)
+
+if OTS_GRAPHITE
+ots_testfuzz_CPPFLAGS += \
+  -I$(top_srcdir)/third_party/lz4/lib \
+  $(NULL)
+endif
 
 ots_testfuzz_CXXFLAGS = \
   $(ASAN_CFLAGS) \
@@ -409,9 +442,14 @@ LDADD = \
   libots.a \
   libwoff2.a \
   libbrotli.a \
-  liblz4.a \
   -lz \
   $(NULL)
+
+if OTS_GRAPHITE
+LDADD += \
+  liblz4.a \
+  $(NULL)
+endif
 
 if HAVE_WIN32
 LDADD += -lgdi32
@@ -436,6 +474,7 @@ EXTRA_DIST = \
   tests/fonts/bad/.dummy \
   tests/test_fuzzed_fonts.sh \
   tests/test_bad_fonts.sh \
+  tests/test_bad_fonts_graphite.sh \
   tests/test_good_fonts.sh \
   third_party/brotli/LICENSE \
   third_party/lz4/LICENSE \
