@@ -7,6 +7,14 @@ matrix:
   include:
     - os: linux
       compiler: gcc
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-5
+      # Need to use gold linker due to bug in Ubuntu gcc-5 package.
+      env: MATRIX_EVAL="CC='gcc-5 -fuse-ld=gold' && CXX='g++-5 -fuse-ld=gold'"
     - os: linux
       compiler: clang
     - os: osx
@@ -36,6 +44,9 @@ addons:
     build_command_prepend: "./configure; make clean"
     build_command: "make -j 4"
     branch_pattern: coverity
+
+before_install:
+  - eval "${MATRIX_EVAL}"
 
 install:
   - ./autogen.sh
