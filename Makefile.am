@@ -50,6 +50,7 @@ noinst_PROGRAMS = ots-fuzzer ots-testfuzz
 lib_LIBRARIES = \
   libots.a \
   libbrotli.a \
+  liblz4.a \
   libwoff2.a \
   $(NULL)
 
@@ -106,8 +107,6 @@ libots_a_SOURCES = \
   src/loca.h \
   src/ltsh.cc \
   src/ltsh.h \
-  third_party/lz4/lz4.h \
-  third_party/lz4/lz4.c \
   src/maxp.cc \
   src/maxp.h \
   src/math.cc \
@@ -143,6 +142,7 @@ libots_a_SOURCES = \
 libots_a_CPPFLAGS = \
   -I$(top_srcdir)/include \
   -I$(top_srcdir)/third_party/woff2/src \
+  -I$(top_srcdir)/third_party/lz4/lib \
   $(NULL)
 
 
@@ -172,6 +172,12 @@ libbrotli_a_SOURCES = \
 
 libbrotli_a_CPPFLAGS = \
   -I$(top_srcdir)/third_party/brotli/dec \
+  $(NULL)
+
+
+liblz4_a_SOURCES = \
+  third_party/lz4/lib/lz4.h \
+  third_party/lz4/lib/lz4.c \
   $(NULL)
 
 
@@ -270,6 +276,7 @@ ots_fuzzer_CPPFLAGS = \
 ots_testfuzz_SOURCES = \
   util/ots-fuzzer.cc \
   $(libbrotli_a_SOURCES) \
+  $(liblz4_a_SOURCES) \
   $(libots_a_SOURCES) \
   $(libwoff2_a_SOURCES) \
   $(NULL)
@@ -278,6 +285,7 @@ ots_testfuzz_CPPFLAGS = \
   -I$(top_srcdir)/include \
   -I$(top_srcdir)/src \
   -I$(top_srcdir)/third_party/brotli/dec \
+  -I$(top_srcdir)/third_party/lz4/lib \
   -I$(top_srcdir)/third_party/woff2/src \
   $(AM_CPPFLAGS) \
   $(NULL)
@@ -401,6 +409,7 @@ LDADD = \
   libots.a \
   libwoff2.a \
   libbrotli.a \
+  liblz4.a \
   -lz \
   $(NULL)
 
@@ -429,6 +438,7 @@ EXTRA_DIST = \
   tests/test_bad_fonts.sh \
   tests/test_good_fonts.sh \
   third_party/brotli/LICENSE \
+  third_party/lz4/LICENSE \
   third_party/googletest/googletest/LICENSE \
   third_party/woff2/LICENSE \
   $(NULL)

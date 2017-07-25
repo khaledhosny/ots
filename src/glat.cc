@@ -5,7 +5,7 @@
 #include "glat.h"
 
 #include "gloc.h"
-#include "third_party/lz4/lz4.h"
+#include "lz4.h"
 #include <list>
 
 namespace ots {
