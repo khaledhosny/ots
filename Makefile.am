@@ -5,18 +5,9 @@ ACLOCAL_AMFLAGS = -I m4
 TESTS = \
   cff_type2_charstring_test \
   layout_common_table_test \
+  tests/test_bad_fonts.sh \
   tests/test_fuzzed_fonts.sh \
   $(NULL)
-
-if OTS_GRAPHITE
-TESTS += \
-  tests/test_bad_fonts.sh \
-  $(NULL)
-else
-TESTS += \
-  tests/test_bad_fonts_nonrecursive.sh \
-  $(NULL)
-endif
 
 bin_PROGRAMS = \
   ots-sanitize \
@@ -464,6 +455,11 @@ AM_TESTS_ENVIRONMENT = \
   export top_builddir; \
   $(NULL)
 
+if OTS_GRAPHITE
+AM_TESTS_ENVIRONMENT += \
+  export enable_graphite=true; \
+  $(NULL)
+endif
 
 EXTRA_DIST = \
   LICENSE \
