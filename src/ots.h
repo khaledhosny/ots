@@ -187,9 +187,12 @@ bool IsValidVersionTag(uint32_t tag);
 #define OTS_TAG_CFF  OTS_TAG('C','F','F',' ')
 #define OTS_TAG_CMAP OTS_TAG('c','m','a','p')
 #define OTS_TAG_CVT  OTS_TAG('c','v','t',' ')
+#define OTS_TAG_FEAT OTS_TAG('F','e','a','t')
 #define OTS_TAG_FPGM OTS_TAG('f','p','g','m')
 #define OTS_TAG_GASP OTS_TAG('g','a','s','p')
 #define OTS_TAG_GDEF OTS_TAG('G','D','E','F')
+#define OTS_TAG_GLAT OTS_TAG('G','l','a','t')
+#define OTS_TAG_GLOC OTS_TAG('G','l','o','c')
 #define OTS_TAG_GLYF OTS_TAG('g','l','y','f')
 #define OTS_TAG_GPOS OTS_TAG('G','P','O','S')
 #define OTS_TAG_GSUB OTS_TAG('G','S','U','B')
@@ -206,19 +209,13 @@ bool IsValidVersionTag(uint32_t tag);
 #define OTS_TAG_OS2  OTS_TAG('O','S','/','2')
 #define OTS_TAG_POST OTS_TAG('p','o','s','t')
 #define OTS_TAG_PREP OTS_TAG('p','r','e','p')
+#define OTS_TAG_SILE OTS_TAG('S','i','l','e')
+#define OTS_TAG_SILF OTS_TAG('S','i','l','f')
+#define OTS_TAG_SILL OTS_TAG('S','i','l','l')
 #define OTS_TAG_VDMX OTS_TAG('V','D','M','X')
 #define OTS_TAG_VHEA OTS_TAG('v','h','e','a')
 #define OTS_TAG_VMTX OTS_TAG('v','m','t','x')
 #define OTS_TAG_VORG OTS_TAG('V','O','R','G')
-// Graphite tables
-#ifdef OTS_GRAPHITE
-#define OTS_TAG_FEAT OTS_TAG('F','e','a','t')
-#define OTS_TAG_GLAT OTS_TAG('G','l','a','t')
-#define OTS_TAG_GLOC OTS_TAG('G','l','o','c')
-#define OTS_TAG_SILE OTS_TAG('S','i','l','e')
-#define OTS_TAG_SILF OTS_TAG('S','i','l','f')
-#define OTS_TAG_SILL OTS_TAG('S','i','l','l')
-#endif
 
 struct Font;
 struct FontFile;

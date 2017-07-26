@@ -135,14 +135,14 @@ const struct {
   { OTS_TAG_VMTX, false },
   { OTS_TAG_MATH, false },
   // Graphite tables
-  #ifdef OTS_GRAPHITE
+#ifdef OTS_GRAPHITE
   { OTS_TAG_GLOC, false },
   { OTS_TAG_GLAT, false },
   { OTS_TAG_FEAT, false },
   { OTS_TAG_SILF, false },
   { OTS_TAG_SILE, false },
   { OTS_TAG_SILL, false },
-  #endif
+#endif
   { 0, false },
 };
 
@@ -889,14 +889,14 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       case OTS_TAG_VHEA: table = new OpenTypeVHEA(this, tag); break;
       case OTS_TAG_VMTX: table = new OpenTypeVMTX(this, tag); break;
       // Graphite tables
-      #ifdef OTS_GRAPHITE
+#ifdef OTS_GRAPHITE
       case OTS_TAG_FEAT: table = new OpenTypeFEAT(this, tag); break;
       case OTS_TAG_GLAT: table = new OpenTypeGLAT(this, tag); break;
       case OTS_TAG_GLOC: table = new OpenTypeGLOC(this, tag); break;
       case OTS_TAG_SILE: table = new OpenTypeSILE(this, tag); break;
       case OTS_TAG_SILF: table = new OpenTypeSILF(this, tag); break;
       case OTS_TAG_SILL: table = new OpenTypeSILL(this, tag); break;
-      #endif
+#endif
       default: break;
     }
   }

@@ -29,19 +29,20 @@ AC_SUBST(UBSAN_CFLAGS)
 
 AC_ARG_ENABLE(debug,
               AS_HELP_STRING([--enable-debug=@<:@yes/no@:>@],
-              [Enable extra debugging information for font
-               sanitization @<:@default=no@:>@]),
+                             [Enable extra debugging information for font
+                              sanitization @<:@default=no@:>@]),
               if test $enableval = yes; then
                 AC_DEFINE(OTS_DEBUG, 1, [Enable extra debugging information])
               fi,
               :)
 AC_ARG_ENABLE(graphite,
               AS_HELP_STRING([--enable-graphite=@<:@yes/no@:>@],
-              [Sanitize Graphite tables @<:@default=no@:>@]),
+                             [Sanitize Graphite tables @<:@default=no@:>@]),
               if test $enableval = yes; then
                 AC_DEFINE(OTS_GRAPHITE, 1, [Sanitize Graphite tables])
               fi,
-              :)
+              AC_DEFINE(OTS_GRAPHITE, 1, [Sanitize Graphite tables])
+              enable_graphite=yes)
 AM_CONDITIONAL(OTS_GRAPHITE, [test $enable_graphite = yes])
 
 have_zlib=true
