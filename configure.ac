@@ -37,7 +37,7 @@ AS_IF([test "x$enable_debug" = "xyes"], [
 
 AC_ARG_ENABLE([graphite],
 	AS_HELP_STRING([--enable-graphite=@<:@yes/no@:>@],
-                       [Sanitize Graphite tables @<:@default=no@:>@]))
+                       [Sanitize Graphite tables @<:@default=yes@:>@]))
 AS_IF([test "x$enable_graphite" != "xno"], [
 	AC_DEFINE(OTS_GRAPHITE, 1, [Sanitize Graphite tables])
 ])
