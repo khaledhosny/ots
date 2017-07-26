@@ -27,23 +27,21 @@ AC_SUBST(ASAN_CFLAGS)
 AX_CHECK_COMPILE_FLAG([-fsanitize=undefined], [UBSAN_CFLAGS=-fsanitize=undefined], :)
 AC_SUBST(UBSAN_CFLAGS)
 
-AC_ARG_ENABLE(debug,
-              AS_HELP_STRING([--enable-debug=@<:@yes/no@:>@],
-                             [Enable extra debugging information for font
-                              sanitization @<:@default=no@:>@]),
-              if test $enableval = yes; then
-                AC_DEFINE(OTS_DEBUG, 1, [Enable extra debugging information])
-              fi,
-              :)
-AC_ARG_ENABLE(graphite,
-              AS_HELP_STRING([--enable-graphite=@<:@yes/no@:>@],
-                             [Sanitize Graphite tables @<:@default=no@:>@]),
-              if test $enableval = yes; then
-                AC_DEFINE(OTS_GRAPHITE, 1, [Sanitize Graphite tables])
-              fi,
-              AC_DEFINE(OTS_GRAPHITE, 1, [Sanitize Graphite tables])
-              enable_graphite=yes)
-AM_CONDITIONAL(OTS_GRAPHITE, [test $enable_graphite = yes])
+AC_ARG_ENABLE([debug],
+	AS_HELP_STRING([--enable-debug=@<:@yes/no@:>@],
+	               [Enable extra debugging information for font
+	                sanitization @<:@default=no@:>@]))
+AS_IF([test "x$enable_debug" = "xyes"], [
+	AC_DEFINE(OTS_DEBUG, 1, [Enable extra debugging information])
+])
+
+AC_ARG_ENABLE([graphite],
+	AS_HELP_STRING([--enable-graphite=@<:@yes/no@:>@],
+                       [Sanitize Graphite tables @<:@default=no@:>@]))
+AS_IF([test "x$enable_graphite" != "xno"], [
+	AC_DEFINE(OTS_GRAPHITE, 1, [Sanitize Graphite tables])
+])
+AM_CONDITIONAL(OTS_GRAPHITE, [test "x$enable_graphite" != "xno"])
 
 have_zlib=true
 AX_CHECK_ZLIB([], [have_zlib=false])
