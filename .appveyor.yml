@@ -13,9 +13,14 @@ build_script:
   - set CC=./cccl
   - set CXX=./cccl
   - set CXXFLAGS='-D_HAS_EXCEPTIONS=0 -D_STATIC_CPPLIB'
-  - bash -c "./autogen.sh; ./configure --enable-debug --with-zlib=zlib"
+  - bash -c "./autogen.sh; ./configure --enable-debug --with-zlib=zlib --prefix=$PWD/dist"
   - make
   - make check
+  - make install
 
 # disable automatic tests
 test: off
+
+artifacts:
+  # archive the built binaries in the ci.appveyor.com build report
+  - path: dist\bin\*
