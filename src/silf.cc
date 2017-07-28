@@ -610,7 +610,11 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
       (parent->version >> 16 >= 2 && this->rcCode < this->pcCode)) {
     return parent->Error("SILPass: Failed to read valid rcCode");
   }
-  if (!table.ReadU32(&this->aCode) || this->aCode < this->rcCode) {
+  if (!table.ReadU32(&this->aCode) || this->aCode < this->rcCode ||
+      this->aCode > next_pass_offset) {
+        // This check would normally be covered by SILSub::ParsePart, but it
+        // needs to be done ahead of time because this->aCode is used to
+        // calculate actions_len.
     return parent->Error("SILPass: Failed to read valid aCode");
   }
   if (!table.ReadU32(&this->oDebug) ||
@@ -731,7 +735,8 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
 
   unsigned long actions_len = this->oDebug ? this->oDebug - this->aCode :
                                              next_pass_offset - this->aCode;
-    // !this->oDebug || this->oDebug >= this->aCode
+    // if this->oDebug, then this->oDebug >= this->aCode
+    // next_pass_offset >= this->aCode
   this->oActions.resize(static_cast<unsigned long>(this->numRules) + 1);
   for (unsigned long i = 0; i <= this->numRules; ++i) {
     if (!table.ReadU16(&this->oActions[i]) ||
