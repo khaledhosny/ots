@@ -4,16 +4,13 @@ platform:
 install:
   - set PATH=C:\cygwin\bin;%PATH%
   - appveyor DownloadFile "http://raw.githubusercontent.com/swig/cccl/master/cccl"
-  - appveyor DownloadFile "http://zlib.net/zlib128-dll.zip"
-  - 7z x -ozlib zlib128-dll.zip
-  - copy zlib\lib\zdll.lib zlib\lib\z.lib # FIXME
   - call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" %PLATFORM%
 
 build_script:
   - set CC=./cccl
   - set CXX=./cccl
   - set CXXFLAGS='-D_HAS_EXCEPTIONS=0 -D_STATIC_CPPLIB'
-  - bash -c "./autogen.sh; ./configure --enable-debug --with-zlib=zlib --prefix=$PWD/dist"
+  - bash -c "./autogen.sh && ./configure --enable-debug --prefix=$PWD/dist"
   - make
   - make check
   - make install

@@ -50,6 +50,7 @@ lib_LIBRARIES = \
   libots.a \
   libbrotli.a \
   libwoff2.a \
+  libz.a \
   $(NULL)
 
 if OTS_GRAPHITE
@@ -152,6 +153,7 @@ endif
 libots_a_CPPFLAGS = \
   -I$(top_srcdir)/include \
   -I$(top_srcdir)/third_party/woff2/src \
+  -I$(top_srcdir)/third_party/zlib \
   $(NULL)
 
 if OTS_GRAPHITE
@@ -192,6 +194,25 @@ libbrotli_a_CPPFLAGS = \
 liblz4_a_SOURCES = \
   third_party/lz4/lib/lz4.h \
   third_party/lz4/lib/lz4.c \
+  $(NULL)
+
+
+libz_a_SOURCES = \
+  third_party/zlib/adler32.c \
+  third_party/zlib/compress.c \
+  third_party/zlib/crc32.c \
+  third_party/zlib/deflate.c \
+  third_party/zlib/gzclose.c \
+  third_party/zlib/gzlib.c \
+  third_party/zlib/gzread.c \
+  third_party/zlib/gzwrite.c \
+  third_party/zlib/infback.c \
+  third_party/zlib/inffast.c \
+  third_party/zlib/inflate.c \
+  third_party/zlib/inftrees.c \
+  third_party/zlib/trees.c \
+  third_party/zlib/uncompr.c \
+  third_party/zlib/zutil.c \
   $(NULL)
 
 
@@ -292,6 +313,7 @@ ots_testfuzz_SOURCES = \
   $(libbrotli_a_SOURCES) \
   $(libots_a_SOURCES) \
   $(libwoff2_a_SOURCES) \
+  $(libz_a_SOURCES) \
   $(NULL)
 
 if OTS_GRAPHITE
@@ -305,6 +327,7 @@ ots_testfuzz_CPPFLAGS = \
   -I$(top_srcdir)/src \
   -I$(top_srcdir)/third_party/brotli/dec \
   -I$(top_srcdir)/third_party/woff2/src \
+  -I$(top_srcdir)/third_party/zlib \
   $(AM_CPPFLAGS) \
   $(NULL)
 
@@ -319,9 +342,6 @@ ots_testfuzz_CXXFLAGS = \
   $(UBSAN_CFLAGS) \
   $(NULL)
 
-ots_testfuzz_LDADD = \
-  -lz \
-  $(NULL)
 
 cff_type2_charstring_test_SOURCES = \
   third_party/googletest/googletest/src/gtest_main.cc \
@@ -433,7 +453,7 @@ LDADD = \
   libots.a \
   libwoff2.a \
   libbrotli.a \
-  -lz \
+  libz.a \
   $(NULL)
 
 if OTS_GRAPHITE
@@ -476,6 +496,7 @@ EXTRA_DIST = \
   third_party/lz4/LICENSE \
   third_party/googletest/googletest/LICENSE \
   third_party/woff2/LICENSE \
+  third_party/zlib/README \
   $(NULL)
 
 

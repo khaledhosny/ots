@@ -28,7 +28,7 @@ Building on Windows:
 
    2. Install the required packages:
 
-      $ pacman -S autoconf automake pkg-config gcc make zlib-devel
+      $ pacman -S autoconf automake pkg-config gcc make
 
    3. Follow the general build instructions above.
 

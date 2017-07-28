@@ -43,12 +43,6 @@ AS_IF([test "x$enable_graphite" != "xno"], [
 ])
 AM_CONDITIONAL(OTS_GRAPHITE, [test "x$enable_graphite" != "xno"])
 
-have_zlib=true
-AX_CHECK_ZLIB([], [have_zlib=false])
-if ! $have_zlib; then
-	AC_MSG_ERROR([zlib is required but not found])
-fi
-
 have_freetype=false
 PKG_CHECK_MODULES(FREETYPE, [freetype2], [have_freetype=true], :)
 if $have_freetype; then
