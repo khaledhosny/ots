@@ -29,6 +29,10 @@ bool OpenTypeGLOC::Parse(const uint8_t* data, size_t length) {
     return Error("Failed to read numAttribs");
   }
 
+  if (this->flags & ATTRIB_IDS && this->numAttribs * sizeof(uint16_t) >
+                                  table.remaining()) {
+    return Error("Failed to calulate length of locations");
+  }
   size_t locations_len = (table.remaining() -
     (this->flags & ATTRIB_IDS ? this->numAttribs * sizeof(uint16_t) : 0)) /
     (this->flags & LONG_FORMAT ? sizeof(uint32_t) : sizeof(uint16_t));
