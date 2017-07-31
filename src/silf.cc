@@ -625,7 +625,7 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
     return parent->Error("SILPass: fsmOffset check failed");
   }
   if (!table.ReadU16(&this->numRows) ||
-      this->oDebug && this->numRows < this->numRules) {
+      (this->oDebug && this->numRows < this->numRules)) {
     return parent->Error("SILPass: Failed to read valid numRows");
   }
   if (!table.ReadU16(&this->numTransitional)) {
