@@ -471,6 +471,9 @@ ClassMap::ParsePart(Buffer& table) {
     }
   }
 
+  if (table.offset() - init_offset > this->oClass[this->numLinear]) {
+    return parent->Error("ClassMap: Failed to calculate length of glyphs");
+  }
   unsigned long glyphs_len = (this->oClass[this->numLinear] -
                              (table.offset() - init_offset))/2;
   this->glyphs.resize(glyphs_len);
@@ -610,11 +613,7 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
       (parent->version >> 16 >= 2 && this->rcCode < this->pcCode)) {
     return parent->Error("SILPass: Failed to read valid rcCode");
   }
-  if (!table.ReadU32(&this->aCode) || this->aCode < this->rcCode ||
-      this->aCode > next_pass_offset) {
-        // This check would normally be covered by SILSub::ParsePart, but it
-        // needs to be done ahead of time because this->aCode is used to
-        // calculate actions_len.
+  if (!table.ReadU32(&this->aCode) || this->aCode < this->rcCode) {
     return parent->Error("SILPass: Failed to read valid aCode");
   }
   if (!table.ReadU32(&this->oDebug) ||
@@ -625,8 +624,9 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
       table.offset() != init_offset + this->fsmOffset) {
     return parent->Error("SILPass: fsmOffset check failed");
   }
-  if (!table.ReadU16(&this->numRows)) {
-    return parent->Error("SILPass: Failed to read numRows");
+  if (!table.ReadU16(&this->numRows) ||
+      this->oDebug && this->numRows < this->numRules) {
+    return parent->Error("SILPass: Failed to read valid numRows");
   }
   if (!table.ReadU16(&this->numTransitional)) {
     return parent->Error("SILPass: Failed to read numTransitional");
@@ -687,7 +687,7 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
 
   unsigned startStates_len = this->maxRulePreContext - this->minRulePreContext
                              + 1;
-    // this->maxRulePreContext >= this->minRulePreContext
+    // this->minRulePreContext <= this->maxRulePreContext
   this->startStates.resize(startStates_len);
   for (unsigned i = 0; i < startStates_len; ++i) {
     if (!table.ReadS16(&this->startStates[i])) {
@@ -723,7 +723,7 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
   }
 
   unsigned long ruleConstraints_len = this->aCode - this->rcCode;
-    // this->aCode >= this->rcCode
+    // this->rcCode <= this->aCode
   this->oConstraints.resize(static_cast<unsigned long>(this->numRules) + 1);
   for (unsigned long i = 0; i <= this->numRules; ++i) {
     if (!table.ReadU16(&this->oConstraints[i]) ||
@@ -733,10 +733,12 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
     }
   }
 
+  if (!this->oDebug && this->aCode > next_pass_offset) {
+    return parent->Error("SILPass: Failed to calculate length of actions");
+  }
   unsigned long actions_len = this->oDebug ? this->oDebug - this->aCode :
                                              next_pass_offset - this->aCode;
-    // if this->oDebug, then this->oDebug >= this->aCode
-    // next_pass_offset >= this->aCode
+    // if this->oDebug, then this->aCode <= this->oDebug
   this->oActions.resize(static_cast<unsigned long>(this->numRules) + 1);
   for (unsigned long i = 0; i <= this->numRules; ++i) {
     if (!table.ReadU16(&this->oActions[i]) ||
@@ -813,10 +815,8 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
       }
     }
 
-    if (this->numRules > this->numRows) {
-      return parent->Error("SILPass: numRules is greater than numRows");
-    }
     unsigned dStates_len = this->numRows - this->numRules;
+      // this->numRules <= this->numRows 
     this->dStates.resize(dStates_len);
     for (unsigned i = 0; i < dStates_len; ++i) {
       if (!table.ReadU16(&this->dStates[i]) ||
