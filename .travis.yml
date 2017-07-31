@@ -53,5 +53,5 @@ install:
 
 script:
   - ./configure --enable-debug
-  - make -j
+  - make
   - make -j check || (cat test-suite.log && false)
