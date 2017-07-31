@@ -27,8 +27,9 @@ bool OpenTypeSILE::Parse(const uint8_t* data, size_t length) {
   if (!table.ReadU16(&this->fontNameLength)) {
     return Error("Failed to read fontNameLength");
   }
-  this->fontName.resize(this->fontNameLength);
+  //this->fontName.resize(this->fontNameLength);
   for (unsigned i = 0; i < this->fontNameLength; ++i) {
+    this->fontName.emplace_back();
     if (!table.ReadU16(&this->fontName[i])) {
       return Error("Failed to read fontName[%u]", i);
     }
@@ -37,8 +38,9 @@ bool OpenTypeSILE::Parse(const uint8_t* data, size_t length) {
   if (!table.ReadU16(&this->fontFileLength)) {
     return Error("Failed to read fontFileLength");
   }
-  this->baseFile.resize(this->fontFileLength);
+  //this->baseFile.resize(this->fontFileLength);
   for (unsigned i = 0; i < this->fontFileLength; ++i) {
+    this->baseFile.emplace_back();
     if (!table.ReadU16(&this->baseFile[i])) {
       return Error("Failed to read baseFile[%u]", i);
     }

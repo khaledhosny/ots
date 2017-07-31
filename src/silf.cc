@@ -61,8 +61,9 @@ bool OpenTypeSILF::Parse(const uint8_t* data, size_t length,
   }
 
   unsigned long last_offset = 0;
-  this->offset.resize(this->numSub);
+  //this->offset.resize(this->numSub);
   for (unsigned i = 0; i < this->numSub; ++i) {
+    this->offset.emplace_back();
     if (!table.ReadU32(&this->offset[i]) || this->offset[i] < last_offset) {
       return Error("Failed to read offset[%u]", i);
     }
@@ -172,8 +173,9 @@ bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
     if (!table.ReadU8(&this->numJLevels)) {
       return parent->Error("SILSub: Failed to read numJLevels");
     }
-    this->jLevels.resize(this->numJLevels, parent);
+    //this->jLevels.resize(this->numJLevels, parent);
     for (unsigned i = 0; i < this->numJLevels; ++i) {
+      this->jLevels.emplace_back(parent);
       if (!this->jLevels[i].ParsePart(table)) {
         return parent->Error("SILSub: Failed to read jLevels[%u]", i);
       }
@@ -221,8 +223,9 @@ bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
     if (!table.ReadU8(&this->numCritFeatures)) {
       return parent->Error("SILSub: Failed to read numCritFeatures");
     }
-    this->critFeatures.resize(this->numCritFeatures);
+    //this->critFeatures.resize(this->numCritFeatures);
     for (unsigned i = 0; i < this->numCritFeatures; ++i) {
+      this->critFeatures.emplace_back();
       if (!table.ReadU16(&this->critFeatures[i])) {
         return parent->Error("SILSub: Failed to read critFeatures[%u]", i);
       }
@@ -239,8 +242,9 @@ bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
   if (!table.ReadU8(&this->numScriptTag)) {
     return parent->Error("SILSub: Failed to read numScriptTag");
   }
-  this->scriptTag.resize(this->numScriptTag);
+  //this->scriptTag.resize(this->numScriptTag);
   for (unsigned i = 0; i < this->numScriptTag; ++i) {
+    this->scriptTag.emplace_back();
     if (!table.ReadU32(&this->scriptTag[i])) {
       return parent->Error("SILSub: Failed to read scriptTag[%u]", i);
     }
@@ -255,8 +259,9 @@ bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
     return parent->Error("SILSub: passOffset check failed");
   }
   unsigned long last_oPass = 0;
-  this->oPasses.resize(static_cast<unsigned>(this->numPasses) + 1);
+  //this->oPasses.resize(static_cast<unsigned>(this->numPasses) + 1);
   for (unsigned i = 0; i <= this->numPasses; ++i) {
+    this->oPasses.emplace_back();
     if (!table.ReadU32(&this->oPasses[i]) || this->oPasses[i] < last_oPass) {
       return false;
     }
@@ -283,8 +288,9 @@ bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
     return parent->Error("SILSub: Failed to read valid pseudoShift");
   }
 
-  this->pMaps.resize(this->numPseudo, parent);
+  //this->pMaps.resize(this->numPseudo, parent);
   for (unsigned i = 0; i < numPseudo; i++) {
+    this->pMaps.emplace_back(parent);
     if (!this->pMaps[i].ParsePart(table)) {
       return parent->Error("SILSub: Failed to read pMaps[%u]", i);
     }
@@ -294,8 +300,9 @@ bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
     return parent->Error("SILSub: Failed to read classes");
   }
 
-  this->passes.resize(this->numPasses, parent);
+  //this->passes.resize(this->numPasses, parent);
   for (unsigned i = 0; i < this->numPasses; ++i) {
+    this->passes.emplace_back(parent);
     if (table.offset() != init_offset + this->oPasses[i]) {
       return parent->Error("SILSub: Offset check failed for passes[%u]", i);
     }
@@ -450,10 +457,11 @@ ClassMap::ParsePart(Buffer& table) {
     return parent->Error("ClassMap: Failed to read valid numLinear");
   }
 
-  this->oClass.resize(static_cast<unsigned long>(this->numClass) + 1);
+  //this->oClass.resize(static_cast<unsigned long>(this->numClass) + 1);
   if (parent->version >> 16 >= 4) {
     unsigned long last_oClass = 0;
     for (unsigned long i = 0; i <= this->numClass; ++i) {
+      this->oClass.emplace_back();
       if (!table.ReadU32(&this->oClass[i]) || this->oClass[i] < last_oClass) {
         return parent->Error("ClassMap: Failed to read oClass[%lu]", i);
       }
@@ -467,7 +475,8 @@ ClassMap::ParsePart(Buffer& table) {
       if (!table.ReadU16(&offset) || offset < last_oClass) {
         return parent->Error("ClassMap: Failed to read oClass[%lu]", i);
       }
-      this->oClass[i] = last_oClass = offset;
+      last_oClass = offset;
+      this->oClass.push_back(static_cast<uint32_t>(offset));
     }
   }
 
@@ -476,8 +485,9 @@ ClassMap::ParsePart(Buffer& table) {
   }
   unsigned long glyphs_len = (this->oClass[this->numLinear] -
                              (table.offset() - init_offset))/2;
-  this->glyphs.resize(glyphs_len);
+  //this->glyphs.resize(glyphs_len);
   for (unsigned long i = 0; i < glyphs_len; ++i) {
+    this->glyphs.emplace_back();
     if (!table.ReadU16(&this->glyphs[i])) {
       return parent->Error("ClassMap: Failed to read glyphs[%lu]", i);
     }
@@ -485,8 +495,9 @@ ClassMap::ParsePart(Buffer& table) {
 
   unsigned lookups_len = this->numClass - this->numLinear;
     // this->numLinear <= this->numClass
-  this->lookups.resize(lookups_len, parent);
+  //this->lookups.resize(lookups_len, parent);
   for (unsigned i = 0; i < lookups_len; ++i) {
+    this->lookups.emplace_back(parent);
     if (table.offset() != init_offset + oClass[this->numLinear + i]) {
       return parent->Error("ClassMap: Offset check failed for lookups[%u]", i);
     }
@@ -536,8 +547,9 @@ LookupClass::ParsePart(Buffer& table) {
     return parent->Error("LookupClass: Failed to read valid rangeShift");
   }
 
-  this->lookups.resize(this->numIDs, parent);
+  //this->lookups.resize(this->numIDs, parent);
   for (unsigned i = 0; i < numIDs; ++i) {
+    this->lookups.emplace_back(parent);
     if (!this->lookups[i].ParsePart(table)) {
       return parent->Error("LookupClass: Failed to read lookups[%u]", i);
     }
@@ -653,15 +665,17 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
     return parent->Error("SILPass: Failed to read valid rangeShift");
   }
 
-  this->ranges.resize(this->numRange, parent);
+  //this->ranges.resize(this->numRange, parent);
   for (unsigned i = 0 ; i < this->numRange; ++i) {
+    this->ranges.emplace_back(parent);
     if (!this->ranges[i].ParsePart(table)) {
       return parent->Error("SILPass: Failed to read ranges[%u]", i);
     }
   }
   unsigned ruleMap_len = 0;  // maximum value in oRuleMap
-  this->oRuleMap.resize(static_cast<unsigned long>(this->numSuccess) + 1);
+  //this->oRuleMap.resize(static_cast<unsigned long>(this->numSuccess) + 1);
   for (unsigned long i = 0; i <= this->numSuccess; ++i) {
+    this->oRuleMap.emplace_back();
     if (!table.ReadU16(&this->oRuleMap[i])) {
       return parent->Error("SILPass: Failed to read oRuleMap[%u]", i);
     }
@@ -670,8 +684,9 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
     }
   }
 
-  this->ruleMap.resize(ruleMap_len);
+  //this->ruleMap.resize(ruleMap_len);
   for (unsigned i = 0; i < ruleMap_len; ++i) {
+    this->ruleMap.emplace_back();
     if (!table.ReadU16(&this->ruleMap[i])) {
       return parent->Error("SILPass: Failed to read ruleMap[%u]", i);
     }
@@ -688,22 +703,25 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
   unsigned startStates_len = this->maxRulePreContext - this->minRulePreContext
                              + 1;
     // this->minRulePreContext <= this->maxRulePreContext
-  this->startStates.resize(startStates_len);
+  //this->startStates.resize(startStates_len);
   for (unsigned i = 0; i < startStates_len; ++i) {
+    this->startStates.emplace_back();
     if (!table.ReadS16(&this->startStates[i])) {
       return parent->Error("SILPass: Failed to read startStates[%u]", i);
     }
   }
 
-  this->ruleSortKeys.resize(this->numRules);
+  //this->ruleSortKeys.resize(this->numRules);
   for (unsigned i = 0; i < this->numRules; ++i) {
+    this->ruleSortKeys.emplace_back();
     if (!table.ReadU16(&this->ruleSortKeys[i])) {
       return parent->Error("SILPass: Failed to read ruleSortKeys[%u]", i);
     }
   }
 
-  this->rulePreContext.resize(this->numRules);
+  //this->rulePreContext.resize(this->numRules);
   for (unsigned i = 0; i < this->numRules; ++i) {
+    this->rulePreContext.emplace_back();
     if (!table.ReadU8(&this->rulePreContext[i])) {
       return parent->Error("SILPass: Failed to read rulePreContext[%u]", i);
     }
@@ -724,8 +742,9 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
 
   unsigned long ruleConstraints_len = this->aCode - this->rcCode;
     // this->rcCode <= this->aCode
-  this->oConstraints.resize(static_cast<unsigned long>(this->numRules) + 1);
+  //this->oConstraints.resize(static_cast<unsigned long>(this->numRules) + 1);
   for (unsigned long i = 0; i <= this->numRules; ++i) {
+    this->oConstraints.emplace_back();
     if (!table.ReadU16(&this->oConstraints[i]) ||
         this->oConstraints[i] > ruleConstraints_len) {
       return parent->Error("SILPass: Failed to read valid oConstraints[%lu]",
@@ -739,18 +758,21 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
   unsigned long actions_len = this->oDebug ? this->oDebug - this->aCode :
                                              next_pass_offset - this->aCode;
     // if this->oDebug, then this->aCode <= this->oDebug
-  this->oActions.resize(static_cast<unsigned long>(this->numRules) + 1);
+  //this->oActions.resize(static_cast<unsigned long>(this->numRules) + 1);
   for (unsigned long i = 0; i <= this->numRules; ++i) {
+    this->oActions.emplace_back();
     if (!table.ReadU16(&this->oActions[i]) ||
         (this->oActions[i] > actions_len)) {
       return parent->Error("SILPass: Failed to read valid oActions[%lu]", i);
     }
   }
 
-  this->stateTrans.resize(this->numTransitional);
+  //this->stateTrans.resize(this->numTransitional);
   for (unsigned i = 0; i < this->numTransitional; ++i) {
-    this->stateTrans[i].resize(this->numColumns);
+    this->stateTrans.emplace_back();
+    //this->stateTrans[i].resize(this->numColumns);
     for (unsigned j = 0; j < this->numColumns; ++j) {
+      this->stateTrans[i].emplace_back();
       if (!table.ReadU16(&stateTrans[i][j])) {
         return parent->Error("SILPass: Failed to read stateTrans[%u][%u]",
                              i, j);
@@ -769,8 +791,9 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
     if (table.offset() != SILSub_init_offset + this->pcCode) {
       return parent->Error("SILPass: pcCode check failed");
     }
-    this->passConstraints.resize(this->pConstraint);
+    //this->passConstraints.resize(this->pConstraint);
     for (unsigned i = 0; i < this->pConstraint; ++i) {
+      this->passConstraints.emplace_back();
       if (!table.ReadU8(&this->passConstraints[i])) {
         return parent->Error("SILPass: Failed to read passConstraints[%u]", i);
       }
@@ -780,8 +803,9 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
   if (table.offset() != SILSub_init_offset + this->rcCode) {
     return parent->Error("SILPass: rcCode check failed");
   }
-  this->ruleConstraints.resize(ruleConstraints_len);  // calculated above
+  //this->ruleConstraints.resize(ruleConstraints_len);  // calculated above
   for (unsigned long i = 0; i < ruleConstraints_len; ++i) {
+    this->ruleConstraints.emplace_back();
     if (!table.ReadU8(&this->ruleConstraints[i])) {
       return parent->Error("SILPass: Failed to read ruleConstraints[%u]", i);
     }
@@ -790,8 +814,9 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
   if (table.offset() != SILSub_init_offset + this->aCode) {
     return parent->Error("SILPass: aCode check failed");
   }
-  this->actions.resize(actions_len);  // calculated above
+  //this->actions.resize(actions_len);  // calculated above
   for (unsigned long i = 0; i < actions_len; ++i) {
+    this->actions.emplace_back();
     if (!table.ReadU8(&this->actions[i])) {
       return parent->Error("SILPass: Failed to read actions[%u]", i);
     }
@@ -807,8 +832,9 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
     if (table.offset() != SILSub_init_offset + this->oDebug) {
       return parent->Error("SILPass: oDebug check failed");
     }
-    this->dActions.resize(this->numRules);
+    //this->dActions.resize(this->numRules);
     for (unsigned i = 0; i < this->numRules; ++i) {
+      this->dActions.emplace_back();
       if (!table.ReadU16(&this->dActions[i]) ||
           !name->IsValidNameId(this->dActions[i])) {
         return parent->Error("SILPass: Failed to read dActions[%u]", i);
@@ -817,16 +843,18 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
 
     unsigned dStates_len = this->numRows - this->numRules;
       // this->numRules <= this->numRows 
-    this->dStates.resize(dStates_len);
+    //this->dStates.resize(dStates_len);
     for (unsigned i = 0; i < dStates_len; ++i) {
+      this->dStates.emplace_back();
       if (!table.ReadU16(&this->dStates[i]) ||
           !name->IsValidNameId(this->dStates[i])) {
         return parent->Error("SILPass: Failed to read dStates[%u]", i);
       }
     }
 
-    this->dCols.resize(this->numRules);
+    //this->dCols.resize(this->numRules);
     for (unsigned i = 0; i < this->numRules; ++i) {
+      this->dCols.emplace_back();
       if (!table.ReadU16(&this->dCols[i]) ||
           !name->IsValidNameId(this->dCols[i])) {
         return parent->Error("SILPass: Failed to read dCols[%u]");

@@ -73,8 +73,9 @@ bool OpenTypeGLAT_v1::GlatEntry::ParsePart(Buffer& table) {
     return parent->Error("GlatEntry: Failed to read num");
   }
 
-  this->attributes.resize(this->num);
+  //this->attributes.resize(this->num);
   for (unsigned i = 0; i < this->num; ++i) {
+    this->attributes.emplace_back();
     if (!table.ReadS16(&this->attributes[i])) {
       return parent->Error("GlatEntry: Failed to read attribute %u", i);
     }
@@ -154,8 +155,9 @@ bool OpenTypeGLAT_v2::GlatEntry::ParsePart(Buffer& table) {
     return parent->Error("GlatEntry: Failed to read valid num");
   }
 
-  this->attributes.resize(this->num);
+  //this->attributes.resize(this->num);
   for (unsigned i = 0; i < this->num; ++i) {
+    this->attributes.emplace_back();
     if (!table.ReadS16(&this->attributes[i])) {
       return parent->Error("GlatEntry: Failed to read attribute %u", i);
     }
@@ -221,8 +223,9 @@ bool OpenTypeGLAT_v3::Parse(const uint8_t* data, size_t length,
     return Error("No locations from Gloc table");
   }
   std::list<uint32_t> unverified(locations.begin(), locations.end());
-  this->entries.resize(locations.size() - 1, this);
+  //this->entries.resize(locations.size() - 1, this);
   for (size_t i = 0; i < locations.size() - 1; ++i) {
+    this->entries.emplace_back(this);
     if (table.offset() != unverified.front()) {
       return Error("Offset check failed for a GlyphAttrs");
     }
@@ -304,8 +307,9 @@ OctaboxMetrics::ParsePart(Buffer& table) {
       ++subboxes_len;
     }
   }
-  this->subboxes.resize(subboxes_len, parent);
+  //this->subboxes.resize(subboxes_len, parent);
   for (unsigned i = 0; i < subboxes_len; i++) {
+    this->subboxes.emplace_back(parent);
     if (!this->subboxes[i].ParsePart(table)) {
       return parent->Error("OctaboxMetrics: Failed to read subbox[%u]", i);
     }
@@ -381,8 +385,9 @@ GlatEntry::ParsePart(Buffer& table) {
     return parent->Error("GlatEntry: Failed to read valid num");
   }
 
-  this->attributes.resize(this->num);
+  //this->attributes.resize(this->num);
   for (unsigned i = 0; i < this->num; ++i) {
+    this->attributes.emplace_back();
     if (!table.ReadS16(&this->attributes[i])) {
       return parent->Error("GlatEntry: Failed to read attribute %u", i);
     }

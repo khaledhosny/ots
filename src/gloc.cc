@@ -36,10 +36,11 @@ bool OpenTypeGLOC::Parse(const uint8_t* data, size_t length) {
   size_t locations_len = (table.remaining() -
     (this->flags & ATTRIB_IDS ? this->numAttribs * sizeof(uint16_t) : 0)) /
     (this->flags & LONG_FORMAT ? sizeof(uint32_t) : sizeof(uint16_t));
-  this->locations.resize(locations_len);
+  //this->locations.resize(locations_len);
   if (this->flags & LONG_FORMAT) {
     unsigned long last_location = 0;
     for (size_t i = 0; i < locations_len; ++i) {
+      this->locations.emplace_back();
       uint32_t& location = this->locations[i];
       if (!table.ReadU32(&location) || location < last_location) {
         return Error("Failed to read valid locations[%lu]", i);
@@ -54,7 +55,7 @@ bool OpenTypeGLOC::Parse(const uint8_t* data, size_t length) {
         return Error("Failed to read valid locations[%lu]", i);
       }
       last_location = location;
-      this->locations[i] = location;
+      this->locations.push_back(static_cast<uint32_t>(location));
     }
   }
   if (this->locations.empty()) {
@@ -62,8 +63,9 @@ bool OpenTypeGLOC::Parse(const uint8_t* data, size_t length) {
   }
 
   if (this->flags & ATTRIB_IDS) {  // attribIds array present
-    this->attribIds.resize(numAttribs);
+    //this->attribIds.resize(numAttribs);
     for (unsigned i = 0; i < this->numAttribs; ++i) {
+      this->attribIds.emplace_back();
       if (!table.ReadU16(&this->attribIds[i]) ||
           !name->IsValidNameId(this->attribIds[i])) {
         return Error("Failed to read valid attribIds[%u]", i);

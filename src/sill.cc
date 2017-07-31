@@ -33,8 +33,9 @@ bool OpenTypeSILL::Parse(const uint8_t* data, size_t length) {
   }
 
   std::unordered_set<size_t> unverified;
-  this->entries.resize(static_cast<unsigned long>(this->numLangs) + 1, this);
+  //this->entries.resize(static_cast<unsigned long>(this->numLangs) + 1, this);
   for (unsigned long i = 0; i <= this->numLangs; ++i) {
+    this->entries.emplace_back(this);
     if (!this->entries[i].ParsePart(table)) {
       return Error("Failed to read entries[%u]", i);
     }

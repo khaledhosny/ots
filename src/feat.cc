@@ -34,8 +34,9 @@ bool OpenTypeFEAT::Parse(const uint8_t* data, size_t length) {
   }
 
   std::unordered_set<size_t> unverified;
-  this->features.resize(this->numFeat, this);
+  //this->features.resize(this->numFeat, this);
   for (unsigned i = 0; i < this->numFeat; ++i) {
+    this->features.emplace_back(this);
     FeatureDefn& feature = this->features[i];
     if (!feature.ParsePart(table)) {
       return Error("Failed to read features[%u]", i);
