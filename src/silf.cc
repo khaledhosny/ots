@@ -837,7 +837,7 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
       this->dActions.emplace_back();
       if (!table.ReadU16(&this->dActions[i]) ||
           !name->IsValidNameId(this->dActions[i])) {
-        return parent->Error("SILPass: Failed to read dActions[%u]", i);
+        return parent->Error("SILPass: Failed to read valid dActions[%u]", i);
       }
     }
 
@@ -848,7 +848,7 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
       this->dStates.emplace_back();
       if (!table.ReadU16(&this->dStates[i]) ||
           !name->IsValidNameId(this->dStates[i])) {
-        return parent->Error("SILPass: Failed to read dStates[%u]", i);
+        return parent->Error("SILPass: Failed to read valid dStates[%u]", i);
       }
     }
 
@@ -857,7 +857,7 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
       this->dCols.emplace_back();
       if (!table.ReadU16(&this->dCols[i]) ||
           !name->IsValidNameId(this->dCols[i])) {
-        return parent->Error("SILPass: Failed to read dCols[%u]");
+        return parent->Error("SILPass: Failed to read valid dCols[%u]");
       }
     }
   }

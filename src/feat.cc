@@ -127,8 +127,17 @@ bool OpenTypeFEAT::FeatureDefn::ParsePart(Buffer& table) {
                          "is not a valid setting index", HAS_DEFAULT_SETTING,
                          DEFAULT_SETTING);
   }
-  if (!table.ReadU16(&this->label) || !name->IsValidNameId(this->label)) {
-    return parent->Error("FeatureDefn: Failed to read valid label");
+  if (!table.ReadU16(&this->label)) {
+    return parent->Error("FeatureDefn: Failed to read label");
+  }
+  if (!name->IsValidNameId(this->label)) {
+    if (this->id == 1 && name->IsValidNameId(this->label, true)) {
+      parent->Warning("FeatureDefn: Missing NameRecord repaired for feature"
+                      " with id=%u, label=%u", this->id, this->label);
+    }
+    else {
+      return parent->Error("FeatureDefn: Invalid label");
+    }
   }
   return true;
 }
