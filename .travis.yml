@@ -12,11 +12,6 @@ matrix:
     - os: osx
       compiler: clang
 
-git:
-  submodules: false
-
-sudo: false
-
 addons:
   apt:
     packages:
@@ -24,9 +19,6 @@ addons:
       - fonts-takao-gothic
       - fonts-takao-mincho
       - fonts-takao-pgothic
-
-before_install:
-  - eval "${MATRIX_EVAL}"
 
 install:
   - ./autogen.sh
