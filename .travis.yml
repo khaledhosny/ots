@@ -24,7 +24,26 @@ install:
   - ./autogen.sh
 
 script:
-  - ./configure --enable-debug
+  - ./configure --enable-debug --prefix=$PWD/dist
   - make
   - make -j check || (cat test-suite.log && false)
+  - make install
   - make dist
+  - export ARCHIVE=ots-$TRAVIS_OS_NAME-$TRAVIS_COMMIT
+  - if [ "x$TRAVIS_TAG" != "x" ]; then
+      export ARCHIVE=ots-$TRAVIS_OS_NAME-$TRAVIS_TAG;
+    fi
+  - mkdir -p ots-$ARCHIVE
+  - cp dist/bin/* ots-$ARCHIVE
+  - zip -r ots-$ARCHIVE.zip ots-$ARCHIVE
+  - export DEPLOY_FILE=ots-$ARCHIVE.zip
+
+deploy:
+  provider: releases
+  api_key:
+    - secure: "TLW/tIpobbvcJvEyZNJcdUL1c1Xt91vaxMegUGKvXnyT56Rxn6joLYUVhfFmz6cOKtDG4F409aAXJr60BL8iQ/xra9a8uD4Y+WKgPinQo9O8CViv1bsQpGV2rfBpNQ5UUYU/t09ReicPQNHGb0ONFRnLxmcQLo8eJzlKE1MdOoA="
+  file: "${DEPLOY_FILE}"
+  skip_cleanup: true
+  on:
+    tags: true
+    condition: $CC = clang
