@@ -12,10 +12,6 @@ matrix:
     - os: osx
       compiler: clang
 
-env:
-  global:
-    - secure: "KXfgO6PGxlEcNJHLxMPxZvUtxkCX8V/ZD5plXYxCPaKamTWJknuAvFJAPukhIDTX+1AcUxEBvG/QLszEIiPemPRbDmj4knG5y5GINLx/Jjl3ePKXzYdfc6G/G/QnH3YEQ/GBp6Gvf6w2d+IB3dgEyn9td8VaOt0XmNvW4l76nm4="
-
 git:
   submodules: false
 
@@ -28,14 +24,6 @@ addons:
       - fonts-takao-gothic
       - fonts-takao-mincho
       - fonts-takao-pgothic
-  coverity_scan:
-    project:
-      name: "khaledhosny/ots"
-      description: "Build submitted via Travis CI"
-    notification_email: khaledhosny@eglug.org
-    build_command_prepend: "./configure; make clean"
-    build_command: "make -j 4"
-    branch_pattern: coverity
 
 before_install:
   - eval "${MATRIX_EVAL}"

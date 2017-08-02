@@ -1,10 +1,6 @@
 platform:
   - x86
 
-branches:
-  except:
-    - coverity
-
 skip_branch_with_pr: true
 
 install:
