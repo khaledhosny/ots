@@ -26,9 +26,7 @@ test_script:
 after_build:
   - ps: $env:GIT_HASH = $env:APPVEYOR_REPO_COMMIT.Substring(0, 10)
   - set ARCHIVE=ots-windows-%GIT_HASH%
-  - if %APPVEYOR_REPO_TAG%==true (
-      set ARCHIVE=ots-windows-%APPVEYOR_REPO_TAG_NAME%
-    )
+  - if %APPVEYOR_REPO_TAG%==true (set ARCHIVE=ots-windows-%APPVEYOR_REPO_TAG_NAME%)
   - make install
   - mkdir -p %ARCHIVE%
   - cp %DIST%/bin/* %ARCHIVE%
@@ -36,3 +34,11 @@ after_build:
 
 artifacts:
   - path: /ots-windows-*.zip/
+
+deploy:
+  provider: GitHub
+  auth_token:
+    secure: "Mcg1hVyyuN6rVAvSj55POVX4C14JhWwL9UrP2tQAFTqk3Muke0ttyfYKZfeU4zAi"
+  draft: true
+  on:
+    appveyor_repo_tag: true
