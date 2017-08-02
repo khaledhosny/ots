@@ -51,7 +51,7 @@ class OpenTypeNAME : public Table {
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);
-  bool IsValidNameId(uint16_t name_id) const;
+  bool IsValidNameId(uint16_t nameID, bool addIfMissing = false);
 
  private:
   std::vector<NameRecord> names;
