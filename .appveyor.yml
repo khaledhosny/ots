@@ -1,8 +1,15 @@
 platform:
   - x86
 
+branches:
+  except:
+    - coverity
+
+skip_branch_with_pr: true
+
 install:
   - set PATH=C:\cygwin\bin;%PATH%
+  - set DIST=ots-windows-dist
   - appveyor DownloadFile "http://raw.githubusercontent.com/swig/cccl/master/cccl"
   - call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" %PLATFORM%
 
@@ -10,14 +17,22 @@ build_script:
   - set CC=./cccl
   - set CXX=./cccl
   - set CXXFLAGS='-D_HAS_EXCEPTIONS=0 -D_STATIC_CPPLIB'
-  - bash -c "./autogen.sh && ./configure --enable-debug --prefix=$PWD/dist"
+  - bash -c "./autogen.sh && ./configure --enable-debug --prefix=$PWD/$DIST"
   - make
-  - make check
-  - make install
 
-# disable automatic tests
-test: off
+test_script:
+  - make check
+
+after_build:
+  - ps: $env:GIT_HASH = $env:APPVEYOR_REPO_COMMIT.Substring(0, 10)
+  - set ARCHIVE=ots-windows-%GIT_HASH%
+  - if %APPVEYOR_REPO_TAG%==true (
+      set ARCHIVE=ots-windows-%APPVEYOR_REPO_TAG_NAME%
+    )
+  - make install
+  - mkdir -p %ARCHIVE%
+  - cp %DIST%/bin/* %ARCHIVE%
+  - 7z a %ARCHIVE%.zip %ARCHIVE%
 
 artifacts:
-  # archive the built binaries in the ci.appveyor.com build report
-  - path: dist\bin\*
+  - path: /ots-windows-*.zip/
