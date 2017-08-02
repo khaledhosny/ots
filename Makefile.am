@@ -487,10 +487,8 @@ EXTRA_DIST = \
   docs/HowToFix.md \
   docs/HowToTest.md \
   tests/BLACKLIST.txt \
-  tests/fonts/bad/.dummy \
   tests/test_fuzzed_fonts.sh \
   tests/test_bad_fonts.sh \
-  tests/test_bad_fonts_graphite.sh \
   tests/test_good_fonts.sh \
   third_party/brotli/LICENSE \
   third_party/lz4/LICENSE \
