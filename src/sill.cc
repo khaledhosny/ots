@@ -20,11 +20,13 @@ bool OpenTypeSILL::Parse(const uint8_t* data, size_t length) {
     return Error("Failed to read numLangs");
   }
   if (!table.ReadU16(&this->searchRange) || this->searchRange !=
-      (unsigned)std::pow(2, std::floor(std::log2(this->numLangs)))) {
+      (this->numLangs == 0 ? 0 :  // protect against log2(0)
+       (unsigned)std::pow(2, std::floor(std::log2(this->numLangs))))) {
     return Error("Failed to read valid searchRange");
   }
   if (!table.ReadU16(&this->entrySelector) || this->entrySelector !=
-      (unsigned)std::floor(std::log2(this->numLangs))) {
+      (this->numLangs == 0 ? 0 :  // protect against log2(0)
+       (unsigned)std::floor(std::log2(this->numLangs)))) {
     return Error("Failed to read valid entrySelector");
   }
   if (!table.ReadU16(&this->rangeShift) ||
