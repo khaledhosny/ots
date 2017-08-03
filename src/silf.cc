@@ -276,11 +276,13 @@ bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
     return parent->Error("SILSub: Failed to read numPseudo");
   }
   if (!table.ReadU16(&this->searchPseudo) || this->searchPseudo !=
-      (unsigned)std::pow(2, std::floor(std::log2(this->numPseudo)))) {
+      (this->numPseudo == 0 ? 0 :  // protect against log2(0)
+       (unsigned)std::pow(2, std::floor(std::log2(this->numPseudo))))) {
     return parent->Error("SILSub: Failed to read valid searchPseudo");
   }
   if (!table.ReadU16(&this->pseudoSelector) || this->pseudoSelector !=
-      (unsigned)std::floor(std::log2(this->numPseudo))) {
+      (this->numPseudo == 0 ? 0 :  // protect against log2(0)
+       (unsigned)std::floor(std::log2(this->numPseudo)))) {
     return parent->Error("SILSub: Failed to read valid pseudoSelector");
   }
   if (!table.ReadU16(&this->pseudoShift) ||
@@ -535,11 +537,13 @@ LookupClass::ParsePart(Buffer& table) {
     return parent->Error("LookupClass: Failed to read numIDs");
   }
   if (!table.ReadU16(&this->searchRange) || this->searchRange !=
-      (unsigned)std::pow(2, std::floor(std::log2(this->numIDs)))) {
+      (this->numIDs == 0 ? 0 :  // protect against log2(0)
+       (unsigned)std::pow(2, std::floor(std::log2(this->numIDs))))) {
     return parent->Error("LookupClass: Failed to read valid searchRange");
   }
   if (!table.ReadU16(&this->entrySelector) || this->entrySelector !=
-      (unsigned)std::floor(std::log2(this->numIDs))) {
+      (this->numIDs == 0 ? 0 :  // protect against log2(0)
+       (unsigned)std::floor(std::log2(this->numIDs)))) {
     return parent->Error("LookupClass: Failed to read valid entrySelector");
   }
   if (!table.ReadU16(&this->rangeShift) ||
@@ -653,11 +657,13 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
     return parent->Error("SILPass: Failed to read numRange");
   }
   if (!table.ReadU16(&this->searchRange) || this->searchRange !=
-      (unsigned)std::pow(2, std::floor(std::log2(this->numRange)))) {
+      (this->numRange == 0 ? 0 :  // protect against log2(0)
+       (unsigned)std::pow(2, std::floor(std::log2(this->numRange))))) {
     return parent->Error("SILPass: Failed to read valid searchRange");
   }
   if (!table.ReadU16(&this->entrySelector) || this->entrySelector !=
-      (unsigned)std::floor(std::log2(this->numRange))) {
+      (this->numRange == 0 ? 0 :  // protect against log2(0)
+       (unsigned)std::floor(std::log2(this->numRange)))) {
     return parent->Error("SILPass: Failed to read valid entrySelector");
   }
   if (!table.ReadU16(&this->rangeShift) ||
@@ -842,7 +848,7 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
     }
 
     unsigned dStates_len = this->numRows - this->numRules;
-      // this->numRules <= this->numRows 
+      // this->numRules <= this->numRows
     //this->dStates.resize(dStates_len);
     for (unsigned i = 0; i < dStates_len; ++i) {
       this->dStates.emplace_back();
