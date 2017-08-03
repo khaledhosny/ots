@@ -38,3 +38,4 @@ deploy:
   draft: true
   on:
     appveyor_repo_tag: true
+    branch: master
