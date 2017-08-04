@@ -19,37 +19,37 @@ bool OpenTypeGLAT_v1::Parse(const uint8_t* data, size_t length) {
   OpenTypeGLOC* gloc = static_cast<OpenTypeGLOC*>(
       GetFont()->GetTypedTable(OTS_TAG_GLOC));
   if (!gloc) {
-    return Error("Required Gloc table is missing");
+    return DropGraphite("Required Gloc table is missing");
   }
 
   if (!table.ReadU32(&this->version) || this->version >> 16 != 1) {
-    return Error("Failed to read version");
+    return DropGraphite("Failed to read version");
   }
 
   const std::vector<uint32_t>& locations = gloc->GetLocations();
   if (locations.empty()) {
-    return Error("No locations from Gloc table");
+    return DropGraphite("No locations from Gloc table");
   }
   std::list<uint32_t> unverified(locations.begin(), locations.end());
   while (table.remaining()) {
     GlatEntry entry(this);
     if (table.offset() > unverified.front()) {
-      return Error("Offset check failed for a GlatEntry");
+      return DropGraphite("Offset check failed for a GlatEntry");
     }
     if (table.offset() == unverified.front()) {
       unverified.pop_front();
     }
     if (unverified.empty()) {
-      return Error("Expected more locations");
+      return DropGraphite("Expected more locations");
     }
     if (!entry.ParsePart(table)) {
-      return Error("Failed to read a GlatEntry");
+      return DropGraphite("Failed to read a GlatEntry");
     }
     this->entries.push_back(entry);
   }
 
   if (unverified.size() != 1 || unverified.front() != table.offset()) {
-    return Error("%zu location(s) could not be verified", unverified.size());
+    return DropGraphite("%zu location(s) could not be verified", unverified.size());
   }
   if (table.remaining()) {
     return Warning("%zu bytes unparsed", table.remaining());
@@ -101,37 +101,37 @@ bool OpenTypeGLAT_v2::Parse(const uint8_t* data, size_t length) {
   OpenTypeGLOC* gloc = static_cast<OpenTypeGLOC*>(
       GetFont()->GetTypedTable(OTS_TAG_GLOC));
   if (!gloc) {
-    return Error("Required Gloc table is missing");
+    return DropGraphite("Required Gloc table is missing");
   }
 
   if (!table.ReadU32(&this->version) || this->version >> 16 != 1) {
-    return Error("Failed to read version");
+    return DropGraphite("Failed to read version");
   }
 
   const std::vector<uint32_t>& locations = gloc->GetLocations();
   if (locations.empty()) {
-    return Error("No locations from Gloc table");
+    return DropGraphite("No locations from Gloc table");
   }
   std::list<uint32_t> unverified(locations.begin(), locations.end());
   while (table.remaining()) {
     GlatEntry entry(this);
     if (table.offset() > unverified.front()) {
-      return Error("Offset check failed for a GlatEntry");
+      return DropGraphite("Offset check failed for a GlatEntry");
     }
     if (table.offset() == unverified.front()) {
       unverified.pop_front();
     }
     if (unverified.empty()) {
-      return Error("Expected more locations");
+      return DropGraphite("Expected more locations");
     }
     if (!entry.ParsePart(table)) {
-      return Error("Failed to read a GlatEntry");
+      return DropGraphite("Failed to read a GlatEntry");
     }
     this->entries.push_back(entry);
   }
 
   if (unverified.size() != 1 || unverified.front() != table.offset()) {
-    return Error("%zu location(s) could not be verified", unverified.size());
+    return DropGraphite("%zu location(s) could not be verified", unverified.size());
   }
   if (table.remaining()) {
     return Warning("%zu bytes unparsed", table.remaining());
@@ -184,35 +184,35 @@ bool OpenTypeGLAT_v3::Parse(const uint8_t* data, size_t length,
   OpenTypeGLOC* gloc = static_cast<OpenTypeGLOC*>(
       GetFont()->GetTypedTable(OTS_TAG_GLOC));
   if (!gloc) {
-    return Error("Required Gloc table is missing");
+    return DropGraphite("Required Gloc table is missing");
   }
 
   if (!table.ReadU32(&this->version) || this->version >> 16 != 3) {
-    return Error("Failed to read version");
+    return DropGraphite("Failed to read version");
   }
   if (!table.ReadU32(&this->compHead)) {
-    return Error("Failed to read compression header");
+    return DropGraphite("Failed to read compression header");
   }
   switch ((this->compHead & SCHEME) >> 27) {
     case 0:  // uncompressed
       break;
     case 1: {  // lz4
       if (prevent_decompression) {
-        return Error("Illegal nested compression");
+        return DropGraphite("Illegal nested compression");
       }
       std::vector<uint8_t> decompressed(this->compHead & FULL_SIZE, 0);
-      int status = LZ4_decompress_safe(
+      int ret = LZ4_decompress_safe(
           reinterpret_cast<const char*>(data + table.offset()),
           reinterpret_cast<char*>(decompressed.data()),
           table.remaining(),
           decompressed.size());
-      if (status < 0) {
-        return Error("Decompression failed with error code %d", status);
+      if (ret < 0) {
+        return DropGraphite("Decompression failed with error code %d", ret);
       }
       return this->Parse(decompressed.data(), decompressed.size(), true);
     }
     default:
-      return Error("Unknown compression scheme");
+      return DropGraphite("Unknown compression scheme");
   }
   if (this->compHead & RESERVED) {
     Warning("Nonzero reserved");
@@ -220,26 +220,26 @@ bool OpenTypeGLAT_v3::Parse(const uint8_t* data, size_t length,
 
   const std::vector<uint32_t>& locations = gloc->GetLocations();
   if (locations.empty()) {
-    return Error("No locations from Gloc table");
+    return DropGraphite("No locations from Gloc table");
   }
   std::list<uint32_t> unverified(locations.begin(), locations.end());
   //this->entries.resize(locations.size() - 1, this);
   for (size_t i = 0; i < locations.size() - 1; ++i) {
     this->entries.emplace_back(this);
     if (table.offset() != unverified.front()) {
-      return Error("Offset check failed for a GlyphAttrs");
+      return DropGraphite("Offset check failed for a GlyphAttrs");
     }
     unverified.pop_front();
     if (!this->entries[i].ParsePart(table,
                                     unverified.front() - table.offset())) {
         // unverified.front() is guaranteed to exist because of the number of
         // iterations of this loop
-      return Error("Failed to read a GlyphAttrs");
+      return DropGraphite("Failed to read a GlyphAttrs");
     }
   }
 
   if (unverified.size() != 1 || unverified.front() != table.offset()) {
-    return Error("%zu location(s) could not be verified", unverified.size());
+    return DropGraphite("%zu location(s) could not be verified", unverified.size());
   }
   if (table.remaining()) {
     return Warning("%zu bytes unparsed", table.remaining());
@@ -410,10 +410,13 @@ GlatEntry::SerializePart(OTSStream* out) const {
 // -----------------------------------------------------------------------------
 
 bool OpenTypeGLAT::Parse(const uint8_t* data, size_t length) {
+  if (GetFont()->dropped_graphite) {
+    return Drop("Skipping Graphite table");
+  }
   Buffer table(data, length);
   uint32_t version;
   if (!table.ReadU32(&version)) {
-    return Error("Failed to read version");
+    return DropGraphite("Failed to read version");
   }
   switch (version >> 16) {
     case 1:
@@ -427,7 +430,7 @@ bool OpenTypeGLAT::Parse(const uint8_t* data, size_t length) {
       break;
     }
     default:
-      return Error("Unsupported table version: %u", version >> 16);
+      return DropGraphite("Unsupported table version: %u", version >> 16);
   }
   return this->handler->Parse(data, length);
 }

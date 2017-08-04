@@ -7,42 +7,45 @@
 namespace ots {
 
 bool OpenTypeSILE::Parse(const uint8_t* data, size_t length) {
+  if (GetFont()->dropped_graphite) {
+    return Drop("Skipping Graphite table");
+  }
   Buffer table(data, length);
 
   if (!table.ReadU32(&this->version) || this->version >> 16 != 1) {
-    return Error("Failed to read valid version");
+    return DropGraphite("Failed to read valid version");
   }
   if (!table.ReadU32(&this->checksum)) {
-    return Error("Failed to read checksum");
+    return DropGraphite("Failed to read checksum");
   }
   if (!table.ReadU32(&this->createTime[0]) ||
       !table.ReadU32(&this->createTime[1])) {
-    return Error("Failed to read createTime");
+    return DropGraphite("Failed to read createTime");
   }
   if (!table.ReadU32(&this->modifyTime[0]) ||
       !table.ReadU32(&this->modifyTime[1])) {
-    return Error("Failed to read modifyTime");
+    return DropGraphite("Failed to read modifyTime");
   }
 
   if (!table.ReadU16(&this->fontNameLength)) {
-    return Error("Failed to read fontNameLength");
+    return DropGraphite("Failed to read fontNameLength");
   }
   //this->fontName.resize(this->fontNameLength);
   for (unsigned i = 0; i < this->fontNameLength; ++i) {
     this->fontName.emplace_back();
     if (!table.ReadU16(&this->fontName[i])) {
-      return Error("Failed to read fontName[%u]", i);
+      return DropGraphite("Failed to read fontName[%u]", i);
     }
   }
 
   if (!table.ReadU16(&this->fontFileLength)) {
-    return Error("Failed to read fontFileLength");
+    return DropGraphite("Failed to read fontFileLength");
   }
   //this->baseFile.resize(this->fontFileLength);
   for (unsigned i = 0; i < this->fontFileLength; ++i) {
     this->baseFile.emplace_back();
     if (!table.ReadU16(&this->baseFile[i])) {
-      return Error("Failed to read baseFile[%u]", i);
+      return DropGraphite("Failed to read baseFile[%u]", i);
     }
   }
 

@@ -475,11 +475,6 @@ AM_TESTS_ENVIRONMENT = \
   export top_builddir; \
   $(NULL)
 
-if OTS_GRAPHITE
-AM_TESTS_ENVIRONMENT += \
-  export enable_graphite=true; \
-  $(NULL)
-endif
 
 EXTRA_DIST = \
   LICENSE \

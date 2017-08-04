@@ -251,6 +251,7 @@ class Table {
   bool Error(const char *format, ...);
   bool Warning(const char *format, ...);
   bool Drop(const char *format, ...);
+  bool DropGraphite(const char *format, ...);
 
  private:
   void Message(int level, const char *format, va_list va);
@@ -284,7 +285,8 @@ struct Font {
         num_tables(0),
         search_range(0),
         entry_selector(0),
-        range_shift(0) {
+        range_shift(0),
+        dropped_graphite(false) {
   }
 
   bool ParseTable(const TableEntry& tableinfo, const uint8_t* data,
@@ -296,6 +298,9 @@ struct Font {
   // if not (i.e. if the table was treated as Passthru), it will return NULL.
   Table* GetTypedTable(uint32_t tag) const;
 
+  // Drop all Graphite tables and don't parse new ones.
+  void DropGraphite();
+
   FontFile *file;
 
   uint32_t version;
@@ -303,6 +308,7 @@ struct Font {
   uint16_t search_range;
   uint16_t entry_selector;
   uint16_t range_shift;
+  bool dropped_graphite;
 
  private:
   std::map<uint32_t, Table*> m_tables;

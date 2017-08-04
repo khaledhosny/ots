@@ -938,6 +938,21 @@ Table* Font::GetTypedTable(uint32_t tag) const {
   return NULL;
 }
 
+void Font::DropGraphite() {
+  file->context->Message(0, "Dropping all Graphite tables");
+  for (const std::pair<uint32_t, Table*> entry : m_tables) {
+    if (entry.first == OTS_TAG_FEAT ||
+        entry.first == OTS_TAG_GLAT ||
+        entry.first == OTS_TAG_GLOC ||
+        entry.first == OTS_TAG_SILE ||
+        entry.first == OTS_TAG_SILF ||
+        entry.first == OTS_TAG_SILL) {
+      entry.second->Drop("Discarding Graphite table");
+    }
+  }
+  dropped_graphite = true;
+}
+
 bool Table::ShouldSerialize() {
   return m_shouldSerialize;
 }
@@ -975,6 +990,16 @@ bool Table::Drop(const char *format, ...) {
   m_font->file->context->Message(0, "Table discarded");
   va_end(va);
 
+  return true;
+}
+
+bool Table::DropGraphite(const char *format, ...) {
+  va_list va;
+  va_start(va, format);
+  Message(0, format, va);
+  va_end(va);
+
+  m_font->DropGraphite();
   return true;
 }
 

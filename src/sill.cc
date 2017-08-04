@@ -11,27 +11,30 @@
 namespace ots {
 
 bool OpenTypeSILL::Parse(const uint8_t* data, size_t length) {
+  if (GetFont()->dropped_graphite) {
+    return Drop("Skipping Graphite table");
+  }
   Buffer table(data, length);
 
   if (!table.ReadU32(&this->version) || this->version >> 16 != 1) {
-    return Error("Failed to read valid version");
+    return Drop("Failed to read valid version");
   }
   if (!table.ReadU16(&this->numLangs)) {
-    return Error("Failed to read numLangs");
+    return Drop("Failed to read numLangs");
   }
   if (!table.ReadU16(&this->searchRange) || this->searchRange !=
       (this->numLangs == 0 ? 0 :  // protect against log2(0)
        (unsigned)std::pow(2, std::floor(std::log2(this->numLangs))))) {
-    return Error("Failed to read valid searchRange");
+    return Drop("Failed to read valid searchRange");
   }
   if (!table.ReadU16(&this->entrySelector) || this->entrySelector !=
       (this->numLangs == 0 ? 0 :  // protect against log2(0)
        (unsigned)std::floor(std::log2(this->numLangs)))) {
-    return Error("Failed to read valid entrySelector");
+    return Drop("Failed to read valid entrySelector");
   }
   if (!table.ReadU16(&this->rangeShift) ||
       this->rangeShift != this->numLangs - this->searchRange) {
-    return Error("Failed to read valid rangeShift");
+    return Drop("Failed to read valid rangeShift");
   }
 
   std::unordered_set<size_t> unverified;
@@ -39,7 +42,7 @@ bool OpenTypeSILL::Parse(const uint8_t* data, size_t length) {
   for (unsigned long i = 0; i <= this->numLangs; ++i) {
     this->entries.emplace_back(this);
     if (!this->entries[i].ParsePart(table)) {
-      return Error("Failed to read entries[%u]", i);
+      return Drop("Failed to read entries[%u]", i);
     }
     for (unsigned j = 0; j < this->entries[i].numSettings; ++j) {
       unverified.insert(this->entries[i].offset + j * 8);
@@ -52,13 +55,13 @@ bool OpenTypeSILL::Parse(const uint8_t* data, size_t length) {
     unverified.erase(table.offset());
     LangFeatureSetting setting(this);
     if (!setting.ParsePart(table)) {
-      return Error("Failed to read a LangFeatureSetting");
+      return Drop("Failed to read a LangFeatureSetting");
     }
     settings.push_back(setting);
   }
 
   if (!unverified.empty()) {
-    return Error("%zu incorrect offsets into settings", unverified.size());
+    return Drop("%zu incorrect offsets into settings", unverified.size());
   }
   if (table.remaining()) {
     return Warning("%zu bytes unparsed", table.remaining());
