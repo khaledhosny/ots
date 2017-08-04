@@ -9,25 +9,28 @@
 namespace ots {
 
 bool OpenTypeFEAT::Parse(const uint8_t* data, size_t length) {
+  if (GetFont()->dropped_graphite) {
+    return Drop("Skipping Graphite table");
+  }
   Buffer table(data, length);
 
   if (!table.ReadU32(&this->version)) {
-    return Error("Failed to read version");
+    return DropGraphite("Failed to read version");
   }
   if (this->version >> 16 != 1 && this->version >> 16 != 2) {
-    return Error("Unsupported table version: %u", this->version >> 16);
+    return DropGraphite("Unsupported table version: %u", this->version >> 16);
   }
   if (!table.ReadU16(&this->numFeat)) {
-    return Error("Failed to read numFeat");
+    return DropGraphite("Failed to read numFeat");
   }
   if (!table.ReadU16(&this->reserved)) {
-    return Error("Failed to read reserved");
+    return DropGraphite("Failed to read reserved");
   }
   if (this->reserved != 0) {
     Warning("Nonzero reserved");
   }
   if (!table.ReadU32(&this->reserved2)) {
-    return Error("Failed to read valid reserved2");
+    return DropGraphite("Failed to read valid reserved2");
   }
   if (this->reserved2 != 0) {
     Warning("Nonzero reserved2");
@@ -39,7 +42,7 @@ bool OpenTypeFEAT::Parse(const uint8_t* data, size_t length) {
     this->features.emplace_back(this);
     FeatureDefn& feature = this->features[i];
     if (!feature.ParsePart(table)) {
-      return Error("Failed to read features[%u]", i);
+      return DropGraphite("Failed to read features[%u]", i);
     }
     this->feature_ids.insert(feature.id);
     for (unsigned j = 0; j < feature.numSettings; ++j) {
@@ -53,13 +56,13 @@ bool OpenTypeFEAT::Parse(const uint8_t* data, size_t length) {
     bool used = unverified.erase(table.offset());
     FeatureSettingDefn featSetting(this);
     if (!featSetting.ParsePart(table, used)) {
-      return Error("Failed to read a FeatureSettingDefn");
+      return DropGraphite("Failed to read a FeatureSettingDefn");
     }
     featSettings.push_back(featSetting);
   }
 
   if (!unverified.empty()) {
-    return Error("%zu incorrect offsets into featSettings", unverified.size());
+    return DropGraphite("%zu incorrect offsets into featSettings", unverified.size());
   }
   if (table.remaining()) {
     return Warning("%zu bytes unparsed", table.remaining());

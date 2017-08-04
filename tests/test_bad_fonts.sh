@@ -12,10 +12,6 @@ test "x$top_builddir" = x && top_builddir=.
 BASE_DIR=$top_srcdir/tests/fonts/bad/
 CHECKER=$top_builddir/ots-sanitize$EXEEXT
 
-if [ $enable_graphite = true ] ; then
-  BASE_DIR="$BASE_DIR $top_srcdir/tests/fonts/bad/graphite/"
-fi
-
 if [ ! -x "$CHECKER" ] ; then
   echo "$CHECKER is not found."
   exit 1
@@ -29,7 +25,7 @@ if [ $# -eq 0 ] ; then
     exit 1
   fi
 
-  FONTS=$(find $BASE_DIR -type f -maxdepth 1)
+  FONTS=$(find $BASE_DIR -type f)
   # Recursively call this script.
   FAILS=0
   IFS=$'\n'

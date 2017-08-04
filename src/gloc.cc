@@ -9,29 +9,32 @@
 namespace ots {
 
 bool OpenTypeGLOC::Parse(const uint8_t* data, size_t length) {
+  if (GetFont()->dropped_graphite) {
+    return Drop("Skipping Graphite table");
+  }
   Buffer table(data, length);
   OpenTypeNAME* name = static_cast<OpenTypeNAME*>(
       GetFont()->GetTypedTable(OTS_TAG_NAME));
   if (!name) {
-    return Error("Required name table is missing");
+    return DropGraphite("Required name table is missing");
   }
 
   if (!table.ReadU32(&this->version)) {
-    return Error("Failed to read version");
+    return DropGraphite("Failed to read version");
   }
   if (this->version >> 16 != 1) {
-    return Error("Unsupported table version: %u", this->version >> 16);
+    return DropGraphite("Unsupported table version: %u", this->version >> 16);
   }
   if (!table.ReadU16(&this->flags) || this->flags > 0b11) {
-    return Error("Failed to read valid flags");
+    return DropGraphite("Failed to read valid flags");
   }
   if (!table.ReadU16(&this->numAttribs)) {
-    return Error("Failed to read numAttribs");
+    return DropGraphite("Failed to read numAttribs");
   }
 
   if (this->flags & ATTRIB_IDS && this->numAttribs * sizeof(uint16_t) >
                                   table.remaining()) {
-    return Error("Failed to calulate length of locations");
+    return DropGraphite("Failed to calulate length of locations");
   }
   size_t locations_len = (table.remaining() -
     (this->flags & ATTRIB_IDS ? this->numAttribs * sizeof(uint16_t) : 0)) /
@@ -43,7 +46,7 @@ bool OpenTypeGLOC::Parse(const uint8_t* data, size_t length) {
       this->locations.emplace_back();
       uint32_t& location = this->locations[i];
       if (!table.ReadU32(&location) || location < last_location) {
-        return Error("Failed to read valid locations[%lu]", i);
+        return DropGraphite("Failed to read valid locations[%lu]", i);
       }
       last_location = location;
     }
@@ -52,14 +55,14 @@ bool OpenTypeGLOC::Parse(const uint8_t* data, size_t length) {
     for (size_t i = 0; i < locations_len; ++i) {
       uint16_t location;
       if (!table.ReadU16(&location) || location < last_location) {
-        return Error("Failed to read valid locations[%lu]", i);
+        return DropGraphite("Failed to read valid locations[%lu]", i);
       }
       last_location = location;
       this->locations.push_back(static_cast<uint32_t>(location));
     }
   }
   if (this->locations.empty()) {
-    return Error("No locations");
+    return DropGraphite("No locations");
   }
 
   if (this->flags & ATTRIB_IDS) {  // attribIds array present
@@ -68,7 +71,7 @@ bool OpenTypeGLOC::Parse(const uint8_t* data, size_t length) {
       this->attribIds.emplace_back();
       if (!table.ReadU16(&this->attribIds[i]) ||
           !name->IsValidNameId(this->attribIds[i])) {
-        return Error("Failed to read valid attribIds[%u]", i);
+        return DropGraphite("Failed to read valid attribIds[%u]", i);
       }
     }
   }

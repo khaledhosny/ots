@@ -12,20 +12,23 @@ namespace ots {
 
 bool OpenTypeSILF::Parse(const uint8_t* data, size_t length,
                          bool prevent_decompression) {
+  if (GetFont()->dropped_graphite) {
+    return Drop("Skipping Graphite table");
+  }
   Buffer table(data, length);
 
   if (!table.ReadU32(&this->version)) {
-    return Error("Failed to read version");
+    return DropGraphite("Failed to read version");
   }
   if (this->version >> 16 != 1 &&
       this->version >> 16 != 2 &&
       this->version >> 16 != 3 &&
       this->version >> 16 != 4 &&
       this->version >> 16 != 5) {
-    return Error("Unsupported table version: %u", this->version >> 16);
+    return DropGraphite("Unsupported table version: %u", this->version >> 16);
   }
   if (this->version >> 16 >= 3 && !table.ReadU32(&this->compHead)) {
-    return Error("Failed to read compHead");
+    return DropGraphite("Failed to read compHead");
   }
   if (this->version >> 16 >= 5) {
     switch ((this->compHead & SCHEME) >> 27) {
@@ -33,28 +36,28 @@ bool OpenTypeSILF::Parse(const uint8_t* data, size_t length,
         break;
       case 1: {  // lz4
         if (prevent_decompression) {
-          return Error("Illegal nested compression");
+          return DropGraphite("Illegal nested compression");
         }
         std::vector<uint8_t> decompressed(this->compHead & FULL_SIZE, 0);
-        int status = LZ4_decompress_safe(
+        int ret = LZ4_decompress_safe(
             reinterpret_cast<const char*>(data + table.offset()),
             reinterpret_cast<char*>(decompressed.data()),
             table.remaining(),
             decompressed.size());
-        if (status < 0) {
-          return Error("Decompression failed with error code %d", status);
+        if (ret < 0) {
+          return DropGraphite("Decompression failed with error code %d", ret);
         }
         return this->Parse(decompressed.data(), decompressed.size(), true);
       }
       default:
-        return Error("Unknown compression scheme");
+        return DropGraphite("Unknown compression scheme");
     }
   }
   if (!table.ReadU16(&this->numSub)) {
-    return Error("Failed to read numSub");
+    return DropGraphite("Failed to read numSub");
   }
   if (this->version >> 16 >= 2 && !table.ReadU16(&this->reserved)) {
-    return Error("Failed to read reserved");
+    return DropGraphite("Failed to read reserved");
   }
   if (this->version >> 16 >= 2 && this->reserved != 0) {
     Warning("Nonzero reserved");
@@ -65,18 +68,18 @@ bool OpenTypeSILF::Parse(const uint8_t* data, size_t length,
   for (unsigned i = 0; i < this->numSub; ++i) {
     this->offset.emplace_back();
     if (!table.ReadU32(&this->offset[i]) || this->offset[i] < last_offset) {
-      return Error("Failed to read offset[%u]", i);
+      return DropGraphite("Failed to read offset[%u]", i);
     }
     last_offset = this->offset[i];
   }
 
   for (unsigned i = 0; i < this->numSub; ++i) {
     if (table.offset() != this->offset[i]) {
-      return Error("Offset check failed for tables[%lu]", i);
+      return DropGraphite("Offset check failed for tables[%lu]", i);
     }
     SILSub subtable(this);
     if (!subtable.ParsePart(table)) {
-      return Error("Failed to read tables[%u]", i);
+      return DropGraphite("Failed to read tables[%u]", i);
     }
     tables.push_back(subtable);
   }
