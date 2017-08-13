@@ -41,11 +41,17 @@ bool OpenTypeSILL::Parse(const uint8_t* data, size_t length) {
   //this->entries.resize(static_cast<unsigned long>(this->numLangs) + 1, this);
   for (unsigned long i = 0; i <= this->numLangs; ++i) {
     this->entries.emplace_back(this);
-    if (!this->entries[i].ParsePart(table)) {
+    LanguageEntry& entry = this->entries[i];
+    if (!entry.ParsePart(table)) {
       return Drop("Failed to read entries[%u]", i);
     }
-    for (unsigned j = 0; j < this->entries[i].numSettings; ++j) {
-      unverified.insert(this->entries[i].offset + j * 8);
+    for (unsigned j = 0; j < entry.numSettings; ++j) {
+      size_t offset = entry.offset + j * 8;
+      if (offset < entry.offset || offset > length) {
+        return DropGraphite("Invalid LangFeatureSetting offset %zu/%zu",
+                            offset, length);
+      }
+      unverified.insert(offset);
         // need to verify that this LanguageEntry points to valid
         // LangFeatureSetting
     }
