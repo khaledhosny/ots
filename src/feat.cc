@@ -46,7 +46,12 @@ bool OpenTypeFEAT::Parse(const uint8_t* data, size_t length) {
     }
     this->feature_ids.insert(feature.id);
     for (unsigned j = 0; j < feature.numSettings; ++j) {
-      unverified.insert(feature.offset + j * 4);
+      size_t offset = feature.offset + j * 4;
+      if (offset < feature.offset || offset > length) {
+        return DropGraphite("Invalid FeatSettingDefn offset %zu/%zu",
+                            offset, length);
+      }
+      unverified.insert(offset);
         // need to verify that this FeatureDefn points to valid
         // FeatureSettingDefn
     }
@@ -62,7 +67,8 @@ bool OpenTypeFEAT::Parse(const uint8_t* data, size_t length) {
   }
 
   if (!unverified.empty()) {
-    return DropGraphite("%zu incorrect offsets into featSettings", unverified.size());
+    return DropGraphite("%zu incorrect offsets into featSettings",
+                        unverified.size());
   }
   if (table.remaining()) {
     return Warning("%zu bytes unparsed", table.remaining());
