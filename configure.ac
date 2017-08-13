@@ -27,6 +27,7 @@ if test "$GCC" = yes; then
 fi
 AC_SUBST(ASAN_CFLAGS)
 AC_SUBST(UBSAN_CFLAGS)
+AM_CONDITIONAL(HAVE_FSANITIZE, [test "x$ASAN_CFLAGS" != "x" -o "x$UBSAN_CFLAGS" != "x"])
 
 AC_ARG_ENABLE([debug],
 	AS_HELP_STRING([--enable-debug=@<:@yes/no@:>@],

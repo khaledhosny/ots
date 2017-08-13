@@ -6,7 +6,6 @@ TESTS = \
   cff_type2_charstring_test \
   layout_common_table_test \
   tests/test_bad_fonts.sh \
-  tests/test_fuzzed_fonts.sh \
   $(NULL)
 
 bin_PROGRAMS = \
@@ -44,7 +43,12 @@ endif # HAVE_WIN32
 endif # HAVE_CORETEXT
 endif # HAVE_FREETYPE
 
-noinst_PROGRAMS = ots-fuzzer ots-testfuzz
+noinst_PROGRAMS = ots-fuzzer
+
+if HAVE_FSANITIZE
+noinst_PROGRAMS += ots-testfuzz
+TESTS += tests/test_fuzzed_fonts.sh
+endif
 
 lib_LIBRARIES = \
   libots.a \
