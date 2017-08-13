@@ -21,10 +21,11 @@ PKG_PROG_PKG_CONFIG([0.20])
 
 AX_CXX_COMPILE_STDCXX([11], [noext], [mandatory])
 
-AX_CHECK_COMPILE_FLAG([-fsanitize=address], [ASAN_CFLAGS=-fsanitize=address], :)
+if test "$GCC" = yes; then
+	AX_CHECK_COMPILE_FLAG([-fsanitize=address], [ASAN_CFLAGS=-fsanitize=address], :)
+	AX_CHECK_COMPILE_FLAG([-fsanitize=undefined], [UBSAN_CFLAGS=-fsanitize=undefined], :)
+fi
 AC_SUBST(ASAN_CFLAGS)
-
-AX_CHECK_COMPILE_FLAG([-fsanitize=undefined], [UBSAN_CFLAGS=-fsanitize=undefined], :)
 AC_SUBST(UBSAN_CFLAGS)
 
 AC_ARG_ENABLE([debug],
