@@ -25,12 +25,12 @@ class OpenTypeSILF : public Table {
  private:
   bool Parse(const uint8_t* data, size_t length, bool prevent_decompression);
   struct SILSub : public TablePart<OpenTypeSILF> {
-    SILSub(OpenTypeSILF* parent)
+    explicit SILSub(OpenTypeSILF* parent)
         : TablePart<OpenTypeSILF>(parent), classes(parent) { }
     bool ParsePart(Buffer& table);
     bool SerializePart(OTSStream* out) const;
     struct JustificationLevel : public TablePart<OpenTypeSILF> {
-      JustificationLevel(OpenTypeSILF* parent)
+      explicit JustificationLevel(OpenTypeSILF* parent)
           : TablePart<OpenTypeSILF>(parent) { }
       bool ParsePart(Buffer& table);
       bool SerializePart(OTSStream* out) const;
@@ -44,7 +44,7 @@ class OpenTypeSILF : public Table {
       uint8_t reserved3;
     };
     struct PseudoMap : public TablePart<OpenTypeSILF> {
-      PseudoMap(OpenTypeSILF* parent)
+      explicit PseudoMap(OpenTypeSILF* parent)
           : TablePart<OpenTypeSILF>(parent) { }
       bool ParsePart(Buffer& table);
       bool SerializePart(OTSStream* out) const;
@@ -52,17 +52,17 @@ class OpenTypeSILF : public Table {
       uint16_t nPseudo;
     };
     struct ClassMap : public TablePart<OpenTypeSILF> {
-      ClassMap(OpenTypeSILF* parent)
+      explicit ClassMap(OpenTypeSILF* parent)
           : TablePart<OpenTypeSILF>(parent) { }
       bool ParsePart(Buffer& table);
       bool SerializePart(OTSStream* out) const;
       struct LookupClass : public TablePart<OpenTypeSILF> {
-        LookupClass(OpenTypeSILF* parent)
+        explicit LookupClass(OpenTypeSILF* parent)
             : TablePart<OpenTypeSILF>(parent) { }
         bool ParsePart(Buffer& table);
         bool SerializePart(OTSStream* out) const;
         struct LookupPair : public TablePart<OpenTypeSILF> {
-          LookupPair(OpenTypeSILF* parent)
+          explicit LookupPair(OpenTypeSILF* parent)
               : TablePart<OpenTypeSILF>(parent) { }
           bool ParsePart(Buffer& table);
           bool SerializePart(OTSStream* out) const;
@@ -82,14 +82,14 @@ class OpenTypeSILF : public Table {
       std::vector<LookupClass> lookups;
     };
     struct SILPass : public TablePart<OpenTypeSILF> {
-      SILPass(OpenTypeSILF* parent)
+      explicit SILPass(OpenTypeSILF* parent)
           : TablePart<OpenTypeSILF>(parent) { }
       bool ParsePart(Buffer& table) { return false; }
       bool ParsePart(Buffer& table, const size_t SILSub_init_offset,
                                     const size_t next_pass_offset);
       bool SerializePart(OTSStream* out) const;
       struct PassRange : public TablePart<OpenTypeSILF> {
-        PassRange(OpenTypeSILF* parent)
+        explicit PassRange(OpenTypeSILF* parent)
             : TablePart<OpenTypeSILF>(parent) { }
         bool ParsePart(Buffer& table);
         bool SerializePart(OTSStream* out) const;

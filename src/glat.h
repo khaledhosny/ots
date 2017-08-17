@@ -39,7 +39,7 @@ class OpenTypeGLAT_v1 : public OpenTypeGLAT_Basic {
 
  private:
   struct GlatEntry : public TablePart<OpenTypeGLAT_v1> {
-    GlatEntry(OpenTypeGLAT_v1* parent)
+    explicit GlatEntry(OpenTypeGLAT_v1* parent)
         : TablePart<OpenTypeGLAT_v1>(parent) { }
     bool ParsePart(Buffer& table);
     bool SerializePart(OTSStream* out) const;
@@ -65,7 +65,7 @@ class OpenTypeGLAT_v2 : public OpenTypeGLAT_Basic {
 
  private:
  struct GlatEntry : public TablePart<OpenTypeGLAT_v2> {
-   GlatEntry(OpenTypeGLAT_v2* parent)
+   explicit GlatEntry(OpenTypeGLAT_v2* parent)
       : TablePart<OpenTypeGLAT_v2>(parent) { }
    bool ParsePart(Buffer& table);
    bool SerializePart(OTSStream* out) const;
@@ -94,18 +94,18 @@ class OpenTypeGLAT_v3 : public OpenTypeGLAT_Basic {
  private:
   bool Parse(const uint8_t* data, size_t length, bool prevent_decompression);
   struct GlyphAttrs : public TablePart<OpenTypeGLAT_v3> {
-    GlyphAttrs(OpenTypeGLAT_v3* parent)
+    explicit GlyphAttrs(OpenTypeGLAT_v3* parent)
       : TablePart<OpenTypeGLAT_v3>(parent), octabox(parent) { }
     bool ParsePart(Buffer& table) { return false; }
     bool ParsePart(Buffer& table, const size_t size);
     bool SerializePart(OTSStream* out) const;
     struct OctaboxMetrics : public TablePart<OpenTypeGLAT_v3> {
-      OctaboxMetrics(OpenTypeGLAT_v3* parent)
+      explicit OctaboxMetrics(OpenTypeGLAT_v3* parent)
           : TablePart<OpenTypeGLAT_v3>(parent) { }
       bool ParsePart(Buffer& table);
       bool SerializePart(OTSStream* out) const;
       struct SubboxEntry : public TablePart<OpenTypeGLAT_v3> {
-        SubboxEntry(OpenTypeGLAT_v3* parent)
+        explicit SubboxEntry(OpenTypeGLAT_v3* parent)
             : TablePart<OpenTypeGLAT_v3>(parent) { }
         bool ParsePart(Buffer& table);
         bool SerializePart(OTSStream* out) const;
@@ -126,7 +126,7 @@ class OpenTypeGLAT_v3 : public OpenTypeGLAT_Basic {
       std::vector<SubboxEntry> subboxes;
     };
     struct GlatEntry : public TablePart<OpenTypeGLAT_v3> {
-      GlatEntry(OpenTypeGLAT_v3* parent)
+      explicit GlatEntry(OpenTypeGLAT_v3* parent)
           : TablePart<OpenTypeGLAT_v3>(parent) { }
       bool ParsePart(Buffer& table);
       bool SerializePart(OTSStream* out) const;
