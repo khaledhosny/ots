@@ -22,7 +22,7 @@ class OpenTypeSILL : public Table {
 
  private:
   struct LanguageEntry : public TablePart<OpenTypeSILL> {
-    LanguageEntry(OpenTypeSILL* parent)
+    explicit LanguageEntry(OpenTypeSILL* parent)
         : TablePart<OpenTypeSILL>(parent) { }
     bool ParsePart(Buffer &table);
     bool SerializePart(OTSStream* out) const;
@@ -31,7 +31,7 @@ class OpenTypeSILL : public Table {
     uint16_t offset;
   };
   struct LangFeatureSetting : public TablePart<OpenTypeSILL> {
-    LangFeatureSetting(OpenTypeSILL* parent)
+    explicit LangFeatureSetting(OpenTypeSILL* parent)
         : TablePart<OpenTypeSILL>(parent) { }
     bool ParsePart(Buffer &table);
     bool SerializePart(OTSStream* out) const;

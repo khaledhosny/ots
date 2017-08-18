@@ -24,7 +24,7 @@ class OpenTypeFEAT : public Table {
 
  private:
   struct FeatureDefn : public TablePart<OpenTypeFEAT> {
-    FeatureDefn(OpenTypeFEAT* parent)
+    explicit FeatureDefn(OpenTypeFEAT* parent)
         : TablePart<OpenTypeFEAT>(parent) { }
     bool ParsePart(Buffer& table);
     bool SerializePart(OTSStream* out) const;
@@ -39,7 +39,7 @@ class OpenTypeFEAT : public Table {
     uint16_t label;
   };
   struct FeatureSettingDefn : public TablePart<OpenTypeFEAT> {
-    FeatureSettingDefn(OpenTypeFEAT* parent)
+    explicit FeatureSettingDefn(OpenTypeFEAT* parent)
         : TablePart<OpenTypeFEAT>(parent) { }
     bool ParsePart(Buffer& table) { return ParsePart(table, true); }
     bool ParsePart(Buffer& table, bool used);
