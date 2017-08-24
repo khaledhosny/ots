@@ -173,13 +173,13 @@ pkginclude_HEADERS = \
 
 
 libbrotli_a_SOURCES = \
+  third_party/brotli/common/dictionary.c \
+  third_party/brotli/common/dictionary.h \
   third_party/brotli/dec/bit_reader.c \
   third_party/brotli/dec/bit_reader.h \
   third_party/brotli/dec/context.h \
   third_party/brotli/dec/decode.c \
   third_party/brotli/dec/decode.h \
-  third_party/brotli/dec/dictionary.c \
-  third_party/brotli/dec/dictionary.h \
   third_party/brotli/dec/huffman.c \
   third_party/brotli/dec/huffman.h \
   third_party/brotli/dec/port.h \
@@ -187,11 +187,10 @@ libbrotli_a_SOURCES = \
   third_party/brotli/dec/state.c \
   third_party/brotli/dec/state.h \
   third_party/brotli/dec/transform.h \
-  third_party/brotli/dec/types.h \
   $(NULL)
 
 libbrotli_a_CPPFLAGS = \
-  -I$(top_srcdir)/third_party/brotli/dec \
+  -I$(top_srcdir)/third_party/brotli/include \
   $(NULL)
 
 
@@ -238,7 +237,7 @@ libwoff2_a_SOURCES = \
   $(NULL)
 
 libwoff2_a_CPPFLAGS = \
-  -I$(top_srcdir)/third_party/brotli/dec \
+  -I$(top_srcdir)/third_party/brotli/include \
   -I$(top_srcdir)/third_party/woff2/src \
   $(NULL)
 
@@ -329,7 +328,7 @@ endif
 ots_testfuzz_CPPFLAGS = \
   -I$(top_srcdir)/include \
   -I$(top_srcdir)/src \
-  -I$(top_srcdir)/third_party/brotli/dec \
+  -I$(top_srcdir)/third_party/brotli/include \
   -I$(top_srcdir)/third_party/woff2/src \
   -I$(top_srcdir)/third_party/zlib \
   $(AM_CPPFLAGS) \
