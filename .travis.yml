@@ -32,7 +32,7 @@ script:
 
 before_deploy:
   - export ARCHIVE=ots-$TRAVIS_OS_NAME-$TRAVIS_TAG
-  - export DEPLOY1=ots-$ARCHIVE.zip
+  - export DEPLOY1=$ARCHIVE.zip
   - export DEPLOY2=$(ls ots-?.?.?.tar.gz)
   - mkdir -p $ARCHIVE
   - cp dist/bin/* $ARCHIVE
