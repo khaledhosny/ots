@@ -27,7 +27,7 @@ script:
   - ./configure --enable-debug --prefix=$PWD/dist
   - make
   - make -j check || (cat test-suite.log && false)
-  - make install
+  - make install-strip
   - make dist
 
 before_deploy:
