@@ -254,8 +254,13 @@ bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
     }
   }
 
-  if (!table.ReadU16(&this->lbGID) || this->lbGID > this->maxGlyphID) {
-    return parent->Error("SILSub: Failed to read valid lbGID");
+  if (!table.ReadU16(&this->lbGID)) {
+    return parent->Error("SILSub: Failed to read lbGID");
+  }
+  if (this->lbGID > this->maxGlyphID) {
+    parent->Warning("SILSub: lbGID %u outside range 0..%u, replaced with 0",
+                    this->lbGID, this->maxGlyphID);
+    this->lbGID = 0;
   }
 
   if (parent->version >> 16 >= 3 &&
