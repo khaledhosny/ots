@@ -278,19 +278,26 @@ bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
   if (!table.ReadU16(&this->numPseudo)) {
     return parent->Error("SILSub: Failed to read numPseudo");
   }
-  if (!table.ReadU16(&this->searchPseudo) || this->searchPseudo !=
-      (this->numPseudo == 0 ? 0 :  // protect against log2(0)
-       (unsigned)std::pow(2, std::floor(std::log2(this->numPseudo))))) {
-    return parent->Error("SILSub: Failed to read valid searchPseudo");
+  if (!table.ReadU16(&this->searchPseudo) ||
+      !table.ReadU16(&this->pseudoSelector) ||
+      !table.ReadU16(&this->pseudoShift)) {
+    return parent->Error("SILSub: Failed to read searchPseudo..pseudoShift");
   }
-  if (!table.ReadU16(&this->pseudoSelector) || this->pseudoSelector !=
-      (this->numPseudo == 0 ? 0 :  // protect against log2(0)
-       (unsigned)std::floor(std::log2(this->numPseudo)))) {
-    return parent->Error("SILSub: Failed to read valid pseudoSelector");
-  }
-  if (!table.ReadU16(&this->pseudoShift) ||
-      this->pseudoShift != this->numPseudo - this->searchPseudo) {
-    return parent->Error("SILSub: Failed to read valid pseudoShift");
+  if (this->numPseudo == 0) {
+    if (this->searchPseudo != 0 || this->pseudoSelector != 0 || this->pseudoShift != 0) {
+      parent->Warning("SILSub: Correcting binary-search header for zero-length pseudos list");
+      this->searchPseudo = this->pseudoSelector = this->pseudoShift = 0;
+    }
+  } else {
+    unsigned floorLog2 = std::floor(std::log2(this->numPseudo));
+    if (this->searchPseudo != 6 * (unsigned)std::pow(2, floorLog2) ||
+        this->pseudoSelector != floorLog2 ||
+        this->pseudoShift != 6 * this->numPseudo - this->searchPseudo) {
+      parent->Warning("SILSub: Correcting binary-search header for pseudos list");
+      this->searchPseudo = 6 * (unsigned)std::pow(2, floorLog2);
+      this->pseudoSelector = floorLog2;
+      this->pseudoShift = 6 * this->numPseudo - this->searchPseudo;
+    }
   }
 
   //this->pMaps.resize(this->numPseudo, parent);
@@ -539,19 +546,26 @@ LookupClass::ParsePart(Buffer& table) {
   if (!table.ReadU16(&this->numIDs)) {
     return parent->Error("LookupClass: Failed to read numIDs");
   }
-  if (!table.ReadU16(&this->searchRange) || this->searchRange !=
-      (this->numIDs == 0 ? 0 :  // protect against log2(0)
-       (unsigned)std::pow(2, std::floor(std::log2(this->numIDs))))) {
-    return parent->Error("LookupClass: Failed to read valid searchRange");
+  if (!table.ReadU16(&this->searchRange) ||
+      !table.ReadU16(&this->entrySelector) ||
+      !table.ReadU16(&this->rangeShift)) {
+    return parent->Error("LookupClass: Failed to read searchRange..rangeShift");
   }
-  if (!table.ReadU16(&this->entrySelector) || this->entrySelector !=
-      (this->numIDs == 0 ? 0 :  // protect against log2(0)
-       (unsigned)std::floor(std::log2(this->numIDs)))) {
-    return parent->Error("LookupClass: Failed to read valid entrySelector");
-  }
-  if (!table.ReadU16(&this->rangeShift) ||
-      this->rangeShift != this->numIDs - this->searchRange) {
-    return parent->Error("LookupClass: Failed to read valid rangeShift");
+  if (this->numIDs == 0) {
+    if (this->searchRange != 0 || this->entrySelector != 0 || this->rangeShift != 0) {
+      parent->Warning("LookupClass: Correcting binary-search header for zero-length LookupPair list");
+      this->searchRange = this->entrySelector = this->rangeShift = 0;
+    }
+  } else {
+    unsigned floorLog2 = std::floor(std::log2(this->numIDs));
+    if (this->searchRange != (unsigned)std::pow(2, floorLog2) ||
+        this->entrySelector != floorLog2 ||
+        this->rangeShift != this->numIDs - this->searchRange) {
+      parent->Warning("LookupClass: Correcting binary-search header for LookupPair list");
+      this->searchRange = (unsigned)std::pow(2, floorLog2);
+      this->entrySelector = floorLog2;
+      this->rangeShift = this->numIDs - this->searchRange;
+    }
   }
 
   //this->lookups.resize(this->numIDs, parent);
@@ -659,19 +673,26 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
   if (!table.ReadU16(&this->numRange)) {
     return parent->Error("SILPass: Failed to read numRange");
   }
-  if (!table.ReadU16(&this->searchRange) || this->searchRange !=
-      (this->numRange == 0 ? 0 :  // protect against log2(0)
-       (unsigned)std::pow(2, std::floor(std::log2(this->numRange))))) {
-    return parent->Error("SILPass: Failed to read valid searchRange");
+  if (!table.ReadU16(&this->searchRange) ||
+      !table.ReadU16(&this->entrySelector) ||
+      !table.ReadU16(&this->rangeShift)) {
+    return parent->Error("SILPass: Failed to read searchRange..rangeShift");
   }
-  if (!table.ReadU16(&this->entrySelector) || this->entrySelector !=
-      (this->numRange == 0 ? 0 :  // protect against log2(0)
-       (unsigned)std::floor(std::log2(this->numRange)))) {
-    return parent->Error("SILPass: Failed to read valid entrySelector");
-  }
-  if (!table.ReadU16(&this->rangeShift) ||
-      this->rangeShift != this->numRange - this->searchRange) {
-    return parent->Error("SILPass: Failed to read valid rangeShift");
+  if (this->numRange == 0) {
+    if (this->searchRange != 0 || this->entrySelector != 0 || this->rangeShift != 0) {
+      parent->Warning("SILPass: Correcting binary-search header for zero-length range list");
+      this->searchRange = this->entrySelector = this->rangeShift = 0;
+    }
+  } else {
+    unsigned floorLog2 = std::floor(std::log2(this->numRange));
+    if (this->searchRange != 6 * (unsigned)std::pow(2, floorLog2) ||
+        this->entrySelector != floorLog2 ||
+        this->rangeShift != 6 * this->numRange - this->searchRange) {
+      parent->Warning("SILPass: Correcting binary-search header for range list");
+      this->searchRange = 6 * (unsigned)std::pow(2, floorLog2);
+      this->entrySelector = floorLog2;
+      this->rangeShift = 6 * this->numRange - this->searchRange;
+    }
   }
 
   //this->ranges.resize(this->numRange, parent);

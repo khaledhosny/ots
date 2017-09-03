@@ -22,19 +22,26 @@ bool OpenTypeSILL::Parse(const uint8_t* data, size_t length) {
   if (!table.ReadU16(&this->numLangs)) {
     return Drop("Failed to read numLangs");
   }
-  if (!table.ReadU16(&this->searchRange) || this->searchRange !=
-      (this->numLangs == 0 ? 0 :  // protect against log2(0)
-       (unsigned)std::pow(2, std::floor(std::log2(this->numLangs))))) {
-    return Drop("Failed to read valid searchRange");
+  if (!table.ReadU16(&this->searchRange) ||
+      !table.ReadU16(&this->entrySelector) ||
+      !table.ReadU16(&this->rangeShift)) {
+    return Drop("Failed to read searchRange..rangeShift");
   }
-  if (!table.ReadU16(&this->entrySelector) || this->entrySelector !=
-      (this->numLangs == 0 ? 0 :  // protect against log2(0)
-       (unsigned)std::floor(std::log2(this->numLangs)))) {
-    return Drop("Failed to read valid entrySelector");
-  }
-  if (!table.ReadU16(&this->rangeShift) ||
-      this->rangeShift != this->numLangs - this->searchRange) {
-    return Drop("Failed to read valid rangeShift");
+  if (this->numLangs == 0) {
+    if (this->searchRange != 0 || this->entrySelector != 0 || this->rangeShift != 0) {
+      Warning("Correcting binary-search header for zero-length language list");
+      this->searchRange = this->entrySelector = this->rangeShift = 0;
+    }
+  } else {
+    unsigned floorLog2 = std::floor(std::log2(this->numLangs));
+    if (this->searchRange != (unsigned)std::pow(2, floorLog2) ||
+        this->entrySelector != floorLog2 ||
+        this->rangeShift != this->numLangs - this->searchRange) {
+      Warning("Correcting binary-search header for language list");
+      this->searchRange = (unsigned)std::pow(2, floorLog2);
+      this->entrySelector = floorLog2;
+      this->rangeShift = this->numLangs - this->searchRange;
+    }
   }
 
   std::unordered_set<size_t> unverified;
