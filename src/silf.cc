@@ -38,13 +38,14 @@ bool OpenTypeSILF::Parse(const uint8_t* data, size_t length,
         if (prevent_decompression) {
           return DropGraphite("Illegal nested compression");
         }
-        std::vector<uint8_t> decompressed(this->compHead & FULL_SIZE, 0);
-        int ret = LZ4_decompress_safe(
+        std::vector<uint8_t> decompressed(this->compHead & FULL_SIZE);
+        int ret = LZ4_decompress_safe_partial(
             reinterpret_cast<const char*>(data + table.offset()),
             reinterpret_cast<char*>(decompressed.data()),
-            table.remaining(),
-            decompressed.size());
-        if (ret < 0) {
+            table.remaining(),  // input buffer size (input size + padding)
+            decompressed.size(),  // target output size
+            decompressed.size());  // output buffer size
+        if (ret != decompressed.size()) {
           return DropGraphite("Decompression failed with error code %d", ret);
         }
         return this->Parse(decompressed.data(), decompressed.size(), true);
