@@ -278,6 +278,9 @@ bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
   if (!table.ReadU16(&this->numPseudo)) {
     return parent->Error("SILSub: Failed to read numPseudo");
   }
+
+  // The following three fields are deprecated and ignored. We fix them up here
+  // just for internal consistency, but the Graphite engine doesn't care.
   if (!table.ReadU16(&this->searchPseudo) ||
       !table.ReadU16(&this->pseudoSelector) ||
       !table.ReadU16(&this->pseudoShift)) {
@@ -285,7 +288,6 @@ bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
   }
   if (this->numPseudo == 0) {
     if (this->searchPseudo != 0 || this->pseudoSelector != 0 || this->pseudoShift != 0) {
-      parent->Warning("SILSub: Correcting binary-search header for zero-length pseudos list");
       this->searchPseudo = this->pseudoSelector = this->pseudoShift = 0;
     }
   } else {
@@ -293,7 +295,6 @@ bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
     if (this->searchPseudo != 6 * (unsigned)std::pow(2, floorLog2) ||
         this->pseudoSelector != floorLog2 ||
         this->pseudoShift != 6 * this->numPseudo - this->searchPseudo) {
-      parent->Warning("SILSub: Correcting binary-search header for pseudos list");
       this->searchPseudo = 6 * (unsigned)std::pow(2, floorLog2);
       this->pseudoSelector = floorLog2;
       this->pseudoShift = 6 * this->numPseudo - this->searchPseudo;
@@ -673,6 +674,9 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
   if (!table.ReadU16(&this->numRange)) {
     return parent->Error("SILPass: Failed to read numRange");
   }
+
+  // The following three fields are deprecated and ignored. We fix them up here
+  // just for internal consistency, but the Graphite engine doesn't care.
   if (!table.ReadU16(&this->searchRange) ||
       !table.ReadU16(&this->entrySelector) ||
       !table.ReadU16(&this->rangeShift)) {
@@ -680,7 +684,6 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
   }
   if (this->numRange == 0) {
     if (this->searchRange != 0 || this->entrySelector != 0 || this->rangeShift != 0) {
-      parent->Warning("SILPass: Correcting binary-search header for zero-length range list");
       this->searchRange = this->entrySelector = this->rangeShift = 0;
     }
   } else {
@@ -688,7 +691,6 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
     if (this->searchRange != 6 * (unsigned)std::pow(2, floorLog2) ||
         this->entrySelector != floorLog2 ||
         this->rangeShift != 6 * this->numRange - this->searchRange) {
-      parent->Warning("SILPass: Correcting binary-search header for range list");
       this->searchRange = 6 * (unsigned)std::pow(2, floorLog2);
       this->entrySelector = floorLog2;
       this->rangeShift = 6 * this->numRange - this->searchRange;

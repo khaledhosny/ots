@@ -22,6 +22,9 @@ bool OpenTypeSILL::Parse(const uint8_t* data, size_t length) {
   if (!table.ReadU16(&this->numLangs)) {
     return Drop("Failed to read numLangs");
   }
+
+  // The following three fields are deprecated and ignored. We fix them up here
+  // just for internal consistency, but the Graphite engine doesn't care.
   if (!table.ReadU16(&this->searchRange) ||
       !table.ReadU16(&this->entrySelector) ||
       !table.ReadU16(&this->rangeShift)) {
@@ -29,7 +32,6 @@ bool OpenTypeSILL::Parse(const uint8_t* data, size_t length) {
   }
   if (this->numLangs == 0) {
     if (this->searchRange != 0 || this->entrySelector != 0 || this->rangeShift != 0) {
-      Warning("Correcting binary-search header for zero-length language list");
       this->searchRange = this->entrySelector = this->rangeShift = 0;
     }
   } else {
@@ -37,7 +39,6 @@ bool OpenTypeSILL::Parse(const uint8_t* data, size_t length) {
     if (this->searchRange != (unsigned)std::pow(2, floorLog2) ||
         this->entrySelector != floorLog2 ||
         this->rangeShift != this->numLangs - this->searchRange) {
-      Warning("Correcting binary-search header for language list");
       this->searchRange = (unsigned)std::pow(2, floorLog2);
       this->entrySelector = floorLog2;
       this->rangeShift = this->numLangs - this->searchRange;
