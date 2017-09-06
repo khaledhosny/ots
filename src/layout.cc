@@ -336,7 +336,7 @@ bool ParseClassDefFormat2(const ots::Font *font,
       return OTS_FAILURE_MSG("ClassRangeRecord %d, start > end: %u > %u", i, start, end);
     }
     if (last_end && start <= last_end) {
-      return OTS_FAILURE_MSG("ClassRangeRecord %d start overlaps with end of the previous on: %u <= %u", i, start, last_end);
+      return OTS_FAILURE_MSG("ClassRangeRecord %d start overlaps with end of the previous one: %u <= %u", i, start, last_end);
     }
     if (class_value > num_classes) {
       return OTS_FAILURE_MSG("ClassRangeRecord %d class > number of classes: %u > %u", i, class_value, num_classes);
