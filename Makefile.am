@@ -156,7 +156,7 @@ endif
 
 libots_a_CPPFLAGS = \
   -I$(top_srcdir)/include \
-  -I$(top_srcdir)/third_party/woff2/src \
+  -I$(top_srcdir)/third_party/woff2/include \
   -I$(top_srcdir)/third_party/zlib \
   $(NULL)
 
@@ -230,14 +230,12 @@ libwoff2_a_SOURCES = \
   third_party/woff2/src/woff2_common.cc \
   third_party/woff2/src/woff2_common.h \
   third_party/woff2/src/woff2_dec.cc \
-  third_party/woff2/src/woff2_dec.h \
   third_party/woff2/src/woff2_out.cc \
-  third_party/woff2/src/woff2_out.h \
   $(NULL)
 
 libwoff2_a_CPPFLAGS = \
   -I$(top_srcdir)/third_party/brotli/c/include \
-  -I$(top_srcdir)/third_party/woff2/src \
+  -I$(top_srcdir)/third_party/woff2/include \
   $(NULL)
 
 
@@ -328,7 +326,7 @@ ots_testfuzz_CPPFLAGS = \
   -I$(top_srcdir)/include \
   -I$(top_srcdir)/src \
   -I$(top_srcdir)/third_party/brotli/c/include \
-  -I$(top_srcdir)/third_party/woff2/src \
+  -I$(top_srcdir)/third_party/woff2/include \
   -I$(top_srcdir)/third_party/zlib \
   $(AM_CPPFLAGS) \
   $(NULL)
