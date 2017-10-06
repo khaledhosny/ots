@@ -17,7 +17,7 @@
 #include <woff2/decode.h>
 
 // The OpenType Font File
-// http://www.microsoft.com/typography/otspec/cmap.htm
+// http://www.microsoft.com/typography/otspec/otff.htm
 
 #include "cff.h"
 #include "cmap.h"
