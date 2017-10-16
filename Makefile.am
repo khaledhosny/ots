@@ -219,14 +219,16 @@ libz_a_SOURCES = \
   third_party/zlib/infback.c \
   third_party/zlib/inffast.c \
   third_party/zlib/inffast.h \
+  third_party/zlib/inffixed.h \
   third_party/zlib/inflate.c \
   third_party/zlib/inflate.h \
-  third_party/zlib/inffixed.h \
   third_party/zlib/inftrees.c \
   third_party/zlib/inftrees.h \
   third_party/zlib/trees.c \
   third_party/zlib/trees.h \
   third_party/zlib/uncompr.c \
+  third_party/zlib/zconf.h \
+  third_party/zlib/zlib.h \
   third_party/zlib/zutil.c \
   third_party/zlib/zutil.h \
   $(NULL)
