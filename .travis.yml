@@ -25,15 +25,15 @@ install:
 
 script:
   - ./configure --enable-debug --prefix=$PWD/dist
-  - make
-  - make -j check || (cat test-suite.log && false)
+  - export OTS_VERSION=$(grep PACKAGE_VERSION config.h | cut -d'"' -f2)
+  - make distcheck || (cat ots-$OTS_VERSION/_build/sub/test-suite.log && false)
   - make install-strip
   - make dist
 
 before_deploy:
-  - export ARCHIVE=ots-$TRAVIS_OS_NAME-$TRAVIS_TAG
+  - export ARCHIVE=ots-$TRAVIS_OS_NAME-$OTS_VERSION
   - export DEPLOY1=$ARCHIVE.zip
-  - export DEPLOY2=$(ls ots-?.?.?.tar.gz)
+  - export DEPLOY2=ots-$OTS_VERSION.tar.gz
   - mkdir -p $ARCHIVE
   - cp dist/bin/* $ARCHIVE
   - zip -r $DEPLOY1 $ARCHIVE
