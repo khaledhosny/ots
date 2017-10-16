@@ -175,6 +175,8 @@ pkginclude_HEADERS = \
 libbrotli_a_SOURCES = \
   third_party/brotli/c/common/dictionary.c \
   third_party/brotli/c/common/dictionary.h \
+  third_party/brotli/c/common/constants.h \
+  third_party/brotli/c/common/version.h \
   third_party/brotli/c/dec/bit_reader.c \
   third_party/brotli/c/dec/bit_reader.h \
   third_party/brotli/c/dec/context.h \
@@ -186,6 +188,9 @@ libbrotli_a_SOURCES = \
   third_party/brotli/c/dec/state.c \
   third_party/brotli/c/dec/state.h \
   third_party/brotli/c/dec/transform.h \
+  third_party/brotli/c/include/brotli/decode.h \
+  third_party/brotli/c/include/brotli/port.h \
+  third_party/brotli/c/include/brotli/types.h \
   $(NULL)
 
 libbrotli_a_CPPFLAGS = \
@@ -203,22 +208,33 @@ libz_a_SOURCES = \
   third_party/zlib/adler32.c \
   third_party/zlib/compress.c \
   third_party/zlib/crc32.c \
+  third_party/zlib/crc32.h \
   third_party/zlib/deflate.c \
+  third_party/zlib/deflate.h \
   third_party/zlib/gzclose.c \
+  third_party/zlib/gzguts.h \
   third_party/zlib/gzlib.c \
   third_party/zlib/gzread.c \
   third_party/zlib/gzwrite.c \
   third_party/zlib/infback.c \
   third_party/zlib/inffast.c \
+  third_party/zlib/inffast.h \
   third_party/zlib/inflate.c \
+  third_party/zlib/inflate.h \
+  third_party/zlib/inffixed.h \
   third_party/zlib/inftrees.c \
+  third_party/zlib/inftrees.h \
   third_party/zlib/trees.c \
+  third_party/zlib/trees.h \
   third_party/zlib/uncompr.c \
   third_party/zlib/zutil.c \
+  third_party/zlib/zutil.h \
   $(NULL)
 
 
 libwoff2_a_SOURCES = \
+  third_party/woff2/include/woff2/decode.h \
+  third_party/woff2/include/woff2/output.h \
   third_party/woff2/src/buffer.h \
   third_party/woff2/src/port.h \
   third_party/woff2/src/round.h \
