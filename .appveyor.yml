@@ -28,7 +28,7 @@ after_build:
   - 7z a %ARCHIVE%.zip %ARCHIVE%
 
 artifacts:
-  - path: /ots-windows-*.zip/
+  - path: /ots-*-windows.zip/
 
 deploy:
   provider: GitHub
