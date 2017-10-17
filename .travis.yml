@@ -38,7 +38,7 @@ script:
   - make dist
 
 before_deploy:
-  - export ARCHIVE=ots-$TRAVIS_OS_NAME-$OTS_VERSION
+  - export ARCHIVE=ots-$OTS_VERSION-$TRAVIS_OS_NAME
   - export DEPLOY1=$ARCHIVE.zip
   - export DEPLOY2=ots-$OTS_VERSION.tar.gz
   - mkdir -p $ARCHIVE
