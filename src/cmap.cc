@@ -238,7 +238,7 @@ bool OpenTypeCMAP::ParseFormat4(int platform, int encoding,
         }
         uint16_t glyph;
         std::memcpy(&glyph, data + glyph_id_offset, 2);
-        glyph = ntohs(glyph);
+        glyph = ots_ntohs(glyph);
         if (glyph >= num_glyphs) {
           return Error("Range glyph reference too high (%d > %d)", glyph, num_glyphs - 1);
         }
