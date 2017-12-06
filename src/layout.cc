@@ -190,9 +190,6 @@ bool ParseLookupTable(ots::Font *font, const uint8_t *data,
     return OTS_FAILURE_MSG("Bad lookup type %d", lookup_type);
   }
 
-  ots::OpenTypeGDEF *gdef = static_cast<ots::OpenTypeGDEF*>(
-      font->GetTypedTable(OTS_TAG_GDEF));
-
   bool use_mark_filtering_set = lookup_flag & kUseMarkFilteringSetBit;
 
   std::vector<uint16_t> subtables;
@@ -224,8 +221,12 @@ bool ParseLookupTable(ots::Font *font, const uint8_t *data,
     if (!subtable.ReadU16(&mark_filtering_set)) {
       return OTS_FAILURE_MSG("Failed to read mark filtering set");
     }
-    if (gdef->num_mark_glyph_sets == 0 ||
-        mark_filtering_set >= gdef->num_mark_glyph_sets) {
+
+    ots::OpenTypeGDEF *gdef = static_cast<ots::OpenTypeGDEF*>(
+        font->GetTypedTable(OTS_TAG_GDEF));
+
+    if (gdef && (gdef->num_mark_glyph_sets == 0 ||
+        mark_filtering_set >= gdef->num_mark_glyph_sets)) {
       return OTS_FAILURE_MSG("Bad mark filtering set %d", mark_filtering_set);
     }
   }
