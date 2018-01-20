@@ -18,7 +18,7 @@ build_script:
   - make
 
 test_script:
-  - make check
+  - make check || (cat `find -name '*.log'` && false)
 
 after_build:
   - set ARCHIVE=ots-%OTS_VERSION%-windows

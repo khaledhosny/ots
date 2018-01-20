@@ -33,7 +33,7 @@ install:
 script:
   - ./configure --enable-debug --prefix=$PWD/dist
   - export OTS_VERSION=$(grep PACKAGE_VERSION config.h | cut -d'"' -f2)
-  - make distcheck || (cat ots-$OTS_VERSION/_build/sub/test-suite.log && false)
+  - make distcheck || (cat `find -name '*.log'` && false)
   - make install-strip
   - make dist
 
