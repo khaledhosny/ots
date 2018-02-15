@@ -14,7 +14,7 @@ will be used.
 
 Simply run:
 
-    $ make ckeck
+    $ make check
 
 Which will run tests to verify that:
 
