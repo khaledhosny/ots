@@ -686,7 +686,7 @@ bool ProcessGeneric(ots::FontFile *header,
     }
   }
 
-  if (font->GetTable(OTS_TAG_CFF)) {
+  if (font->GetTable(OTS_TAG_CFF) || font->GetTable(OTS_TAG('C', 'F', 'F', '2'))) {
     // font with PostScript glyph
     if (font->version != OTS_TAG('O','T','T','O')) {
       return OTS_FAILURE_MSG_HDR("wrong font version for PostScript glyph data");
