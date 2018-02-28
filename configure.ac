@@ -54,6 +54,14 @@ AS_IF([test "x$enable_graphite" != "xno"], [
 ])
 AM_CONDITIONAL(OTS_GRAPHITE, [test "x$enable_graphite" != "xno"])
 
+AC_ARG_ENABLE([variations],
+	AS_HELP_STRING([--enable-variations=@<:@yes/no@:>@],
+                       [Sanitize OpenType Variation tables @<:@default=yes@:>@]))
+AS_IF([test "x$enable_variations" != "xno"], [
+	AC_DEFINE(OTS_VARIATIONS, 1, [Sanitize OpenType Variation tables])
+])
+AM_CONDITIONAL(OTS_VARIATIONS, [test "x$enable_variations" != "xno"])
+
 have_freetype=false
 PKG_CHECK_MODULES(FREETYPE, [freetype2], [have_freetype=true], :)
 if $have_freetype; then
