@@ -953,6 +953,23 @@ void Font::DropGraphite() {
   dropped_graphite = true;
 }
 
+void Font::DropVariations() {
+  file->context->Message(0, "Dropping all Variation tables");
+  for (const std::pair<uint32_t, Table*> entry : m_tables) {
+    if (entry.first == OTS_TAG_AVAR ||
+        entry.first == OTS_TAG_CVAR ||
+        entry.first == OTS_TAG_FVAR ||
+        entry.first == OTS_TAG_GVAR ||
+        entry.first == OTS_TAG_HVAR ||
+        entry.first == OTS_TAG_MVAR ||
+        entry.first == OTS_TAG_STAT ||
+        entry.first == OTS_TAG_VVAR) {
+      entry.second->Drop("Discarding Variations table");
+    }
+  }
+  dropped_variations = true;
+}
+
 bool Table::ShouldSerialize() {
   return m_shouldSerialize;
 }
@@ -1000,6 +1017,16 @@ bool Table::DropGraphite(const char *format, ...) {
   va_end(va);
 
   m_font->DropGraphite();
+  return true;
+}
+
+bool Table::DropVariations(const char *format, ...) {
+  va_list va;
+  va_start(va, format);
+  Message(0, format, va);
+  va_end(va);
+
+  m_font->DropVariations();
   return true;
 }
 

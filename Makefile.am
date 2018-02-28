@@ -154,6 +154,28 @@ libots_a_SOURCES += \
   $(NULL)
 endif
 
+if OTS_VARIATIONS
+libots_a_SOURCES += \
+  $(NULL)
+endif
+
+# src/avar.cc \
+# src/avar.h \
+# src/cvar.cc \
+# src/cvar.h \
+# src/fvar.cc \
+# src/fvar.h \
+# src/gvar.cc
+# src/gvar.h
+# src/hvar.cc
+# src/hvar.h
+# src/mvar.cc
+# src/mvar.h
+# src/stat.cc
+# src/stat.h
+# src/vvar.cc
+# src/vvar.h
+
 libots_a_CPPFLAGS = \
   -I$(top_srcdir)/include \
   -I$(top_srcdir)/third_party/woff2/include \
