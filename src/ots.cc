@@ -57,6 +57,10 @@
 #include "sill.h"
 #endif
 
+#ifdef OTS_VARIATIONS
+#include "fvar.h"
+#endif
+
 namespace ots {
 
 struct Arena {
@@ -142,6 +146,9 @@ const struct {
   { OTS_TAG_SILF, false },
   { OTS_TAG_SILE, false },
   { OTS_TAG_SILL, false },
+#endif
+#ifdef OTS_VARIATIONS
+  { OTS_TAG_FVAR, false },
 #endif
   { 0, false },
 };
@@ -896,6 +903,9 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       case OTS_TAG_SILE: table = new OpenTypeSILE(this, tag); break;
       case OTS_TAG_SILF: table = new OpenTypeSILF(this, tag); break;
       case OTS_TAG_SILL: table = new OpenTypeSILL(this, tag); break;
+#endif
+#ifdef OTS_VARIATIONS
+      case OTS_TAG_FVAR: table = new OpenTypeFVAR(this, tag); break;
 #endif
       default: break;
     }
