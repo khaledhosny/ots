@@ -158,6 +158,8 @@ if OTS_VARIATIONS
 libots_a_SOURCES += \
   src/fvar.cc \
   src/fvar.h \
+  src/gvar.cc \
+  src/gvar.h \
   src/stat.cc \
   src/stat.h \
   $(NULL)
@@ -167,8 +169,6 @@ endif
 # src/avar.h
 # src/cvar.cc
 # src/cvar.h
-# src/gvar.cc
-# src/gvar.h
 # src/hvar.cc
 # src/hvar.h
 # src/mvar.cc
