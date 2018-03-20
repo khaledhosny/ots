@@ -23,6 +23,8 @@ class OpenTypeFVAR : public Table {
   bool Parse(const uint8_t* data, size_t length);
   bool Serialize(OTSStream* out);
 
+  const uint16_t AxisCount() const { return axisCount; }
+
  private:
   uint16_t majorVersion;
   uint16_t minorVersion;
