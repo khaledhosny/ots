@@ -160,8 +160,12 @@ libots_a_SOURCES += \
   src/fvar.h \
   src/gvar.cc \
   src/gvar.h \
+  src/hvar.cc \
+  src/hvar.h \
   src/stat.cc \
   src/stat.h \
+  src/variations.cc \
+  src/variations.h \
   $(NULL)
 endif
 
@@ -169,8 +173,6 @@ endif
 # src/avar.h
 # src/cvar.cc
 # src/cvar.h
-# src/hvar.cc
-# src/hvar.h
 # src/mvar.cc
 # src/mvar.h
 # src/vvar.cc
