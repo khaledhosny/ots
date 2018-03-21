@@ -62,6 +62,7 @@
 #include "gvar.h"
 #include "hvar.h"
 #include "stat.h"
+#include "vvar.h"
 #endif
 
 namespace ots {
@@ -155,6 +156,7 @@ const struct {
   { OTS_TAG_GVAR, false },
   { OTS_TAG_HVAR, false },
   { OTS_TAG_STAT, false },
+  { OTS_TAG_VVAR, false },
 #endif
   { 0, false },
 };
@@ -915,6 +917,7 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       case OTS_TAG_GVAR: table = new OpenTypeGVAR(this, tag); break;
       case OTS_TAG_HVAR: table = new OpenTypeHVAR(this, tag); break;
       case OTS_TAG_STAT: table = new OpenTypeSTAT(this, tag); break;
+      case OTS_TAG_VVAR: table = new OpenTypeVVAR(this, tag); break;
 #endif
       default: break;
     }
