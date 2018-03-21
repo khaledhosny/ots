@@ -24,6 +24,9 @@ const uint16_t kNoRequiredFeatureIndexDefined = 0xFFFF;
 const uint16_t kUseMarkFilteringSetBit = 0x0010;
 // The maximum type number of format for device tables.
 const uint16_t kMaxDeltaFormatType = 3;
+// In variation fonts, Device Tables are replaced by VariationIndex tables,
+// indicated by this flag in the deltaFormat field.
+const uint16_t kVariationIndex = 0x8000;
 // The maximum number of class value.
 const uint16_t kMaxClassDefValue = 0xFFFF;
 
@@ -1379,6 +1382,12 @@ bool ParseDeviceTable(const ots::Font *font,
       !subtable.ReadU16(&end_size) ||
       !subtable.ReadU16(&delta_format)) {
     return OTS_FAILURE_MSG("Failed to read device table header");
+  }
+  if (delta_format == kVariationIndex) {
+    // start_size and end_size are replaced by deltaSetOuterIndex
+    // and deltaSetInnerIndex respectively, but we don't attempt to
+    // check them here, so nothing more to do.
+    return true;
   }
   if (start_size > end_size) {
     return OTS_FAILURE_MSG("bad size range: %u > %u", start_size, end_size);
