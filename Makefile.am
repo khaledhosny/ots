@@ -164,6 +164,8 @@ libots_a_SOURCES += \
   src/gvar.h \
   src/hvar.cc \
   src/hvar.h \
+  src/mvar.cc \
+  src/mvar.h \
   src/stat.cc \
   src/stat.h \
   src/variations.cc \
@@ -175,8 +177,6 @@ endif
 
 # src/cvar.cc
 # src/cvar.h
-# src/mvar.cc
-# src/mvar.h
 
 libots_a_CPPFLAGS = \
   -I$(top_srcdir)/include \
