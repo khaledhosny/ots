@@ -15,6 +15,9 @@ bool ParseItemVariationStore(const Font* font, const uint8_t* data, const size_t
 
 bool ParseDeltaSetIndexMap(const Font* font, const uint8_t* data, const size_t length);
 
+bool ParseVariationData(const Font* font, const uint8_t* data, size_t length,
+                        size_t axisCount, size_t sharedTupleCount);
+
 }  // namespace ots
 
 #endif  // OTS_VARIATIONS_H_
