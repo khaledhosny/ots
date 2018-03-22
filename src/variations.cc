@@ -155,4 +155,91 @@ bool ParseDeltaSetIndexMap(const Font* font, const uint8_t* data, const size_t l
   return true;
 }
 
+bool ParseVariationData(const Font* font, const uint8_t* data, size_t length,
+                        size_t axisCount, size_t sharedTupleCount) {
+  Buffer subtable(data, length);
+
+  uint16_t tupleVariationCount;
+  uint16_t dataOffset;
+  if (!subtable.ReadU16(&tupleVariationCount) ||
+      !subtable.ReadU16(&dataOffset)) {
+    return OTS_FAILURE_MSG("Failed to read variation data header");
+  }
+
+  if (dataOffset > length) {
+    return OTS_FAILURE_MSG("Invalid serialized data offset");
+  }
+
+  tupleVariationCount &= 0x0FFF; // mask off flags
+
+  const uint16_t EMBEDDED_PEAK_TUPLE = 0x8000;
+  const uint16_t INTERMEDIATE_REGION = 0x4000;
+  const uint16_t TUPLE_INDEX_MASK    = 0x0FFF;
+
+  for (unsigned i = 0; i < tupleVariationCount; i++) {
+    uint16_t variationDataSize;
+    uint16_t tupleIndex;
+
+    if (!subtable.ReadU16(&variationDataSize) ||
+        !subtable.ReadU16(&tupleIndex)) {
+      return OTS_FAILURE_MSG("Failed to read tuple variation header");
+    }
+
+    if (tupleIndex & EMBEDDED_PEAK_TUPLE) {
+      for (unsigned axis = 0; axis < axisCount; axis++) {
+        int16_t coordinate;
+        if (!subtable.ReadS16(&coordinate)) {
+          return OTS_FAILURE_MSG("Failed to read tuple coordinate");
+        }
+        if (coordinate < -0x4000 || coordinate > 0x4000) {
+          return OTS_FAILURE_MSG("Invalid tuple coordinate");
+        }
+      }
+    }
+
+    if (tupleIndex & INTERMEDIATE_REGION) {
+      std::vector<int16_t> startTuple(axisCount);
+      for (unsigned axis = 0; axis < axisCount; axis++) {
+        int16_t coordinate;
+        if (!subtable.ReadS16(&coordinate)) {
+          return OTS_FAILURE_MSG("Failed to read tuple coordinate");
+        }
+        if (coordinate < -0x4000 || coordinate > 0x4000) {
+          return OTS_FAILURE_MSG("Invalid tuple coordinate");
+        }
+        startTuple.push_back(coordinate);
+      }
+
+      std::vector<int16_t> endTuple(axisCount);
+      for (unsigned axis = 0; axis < axisCount; axis++) {
+        int16_t coordinate;
+        if (!subtable.ReadS16(&coordinate)) {
+          return OTS_FAILURE_MSG("Failed to read tuple coordinate");
+        }
+        if (coordinate < -0x4000 || coordinate > 0x4000) {
+          return OTS_FAILURE_MSG("Invalid tuple coordinate");
+        }
+        endTuple.push_back(coordinate);
+      }
+
+      for (unsigned axis = 0; axis < axisCount; axis++) {
+        if (startTuple[axis] > endTuple[axis]) {
+          return OTS_FAILURE_MSG("Invalid intermediate range");
+        }
+      }
+    }
+
+    if (!(tupleIndex & EMBEDDED_PEAK_TUPLE)) {
+      tupleIndex &= TUPLE_INDEX_MASK;
+      if (tupleIndex >= sharedTupleCount) {
+        return OTS_FAILURE_MSG("Tuple index out of range");
+      }
+    }
+  }
+
+  // TODO: we don't attempt to interpret the serialized data block
+
+  return true;
+}
+
 } // namespace ots

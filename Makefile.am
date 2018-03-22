@@ -158,6 +158,8 @@ if OTS_VARIATIONS
 libots_a_SOURCES += \
   src/avar.cc \
   src/avar.h \
+  src/cvar.cc \
+  src/cvar.h \
   src/fvar.cc \
   src/fvar.h \
   src/gvar.cc \
@@ -174,9 +176,6 @@ libots_a_SOURCES += \
   src/vvar.h \
   $(NULL)
 endif
-
-# src/cvar.cc
-# src/cvar.h
 
 libots_a_CPPFLAGS = \
   -I$(top_srcdir)/include \
