@@ -21,7 +21,16 @@ PKG_PROG_PKG_CONFIG([0.20])
 
 AX_CXX_COMPILE_STDCXX([11], [noext], [mandatory])
 
-if test "$GCC" = yes; then
+AC_ARG_ENABLE([fsanitize],
+	AS_HELP_STRING([--enable-fsanitize=@<:@yes/no/auto@:>@],
+		       [Enable use of compiler -fsanitize options for compilers
+			that support them sanitization @<:@default=auto@:>@]),
+	:,
+	[enable_fsanitize=auto])
+if test "x$enable_fsanitize" = "xauto"; then
+	enable_fsanitize=$GCC
+fi
+if test "x$enable_fsanitize" = "xyes"; then
 	AX_CHECK_COMPILE_FLAG([-fsanitize=address], [ASAN_CFLAGS=-fsanitize=address], :)
 	AX_CHECK_COMPILE_FLAG([-fsanitize=undefined], [UBSAN_CFLAGS=-fsanitize=undefined], :)
 fi

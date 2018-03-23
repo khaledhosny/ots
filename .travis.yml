@@ -13,11 +13,13 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-6
-      env: MATRIX_EVAL="CC='gcc-6' && CXX='g++-6'"
+      env: FSANITIZE=yes MATRIX_EVAL="CC='gcc-6' && CXX='g++-6'"
     - os: linux
       compiler: clang
+      env: FSANITIZE=no
     - os: osx
       compiler: clang
+      env: FSANITIZE=yes
 
 addons:
   apt:
@@ -31,7 +33,8 @@ install:
   - ./autogen.sh
 
 script:
-  - ./configure --enable-debug --prefix=$PWD/dist
+  - export DISTCHECK_CONFIGURE_FLAGS="--enable-debug --enable-fsanitize=$FSANITIZE"
+  - ./configure $DISTCHECK_CONFIGURE_FLAGS --prefix=$PWD/dist
   - export OTS_VERSION=$(grep PACKAGE_VERSION config.h | cut -d'"' -f2)
   - make distcheck || (cat `find -name '*.log'` && false)
   - make install-strip
