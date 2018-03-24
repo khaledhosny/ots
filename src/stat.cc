@@ -206,7 +206,7 @@ bool OpenTypeSTAT::Serialize(OTSStream* out) {
 
   size_t headerSize = 5 * sizeof(uint16_t) + 2 * sizeof(uint32_t);
   if (this->minorVersion >= 1) {
-    headerSize += sizeof(this->elidedFallbackNameID);
+    headerSize += sizeof(uint16_t);
   }
 
   if (this->designAxisCount == 0) {

@@ -47,6 +47,9 @@ class OpenTypeSTAT : public Table {
     uint16_t flags;
     uint16_t valueNameID;
     Fixed    value;
+    static const size_t Length() {
+      return 3 * sizeof(uint16_t) + sizeof(Fixed);
+    }
   };
 
   struct AxisValueFormat2 {
@@ -56,6 +59,9 @@ class OpenTypeSTAT : public Table {
     Fixed    nominalValue;
     Fixed    rangeMinValue;
     Fixed    rangeMaxValue;
+    static const size_t Length() {
+      return 3 * sizeof(uint16_t) + 3 * sizeof(Fixed);
+    }
   };
 
   struct AxisValueFormat3 {
@@ -64,6 +70,9 @@ class OpenTypeSTAT : public Table {
     uint16_t valueNameID;
     Fixed    value;
     Fixed    linkedValue;
+    static const size_t Length() {
+      return 3 * sizeof(uint16_t) + 2 * sizeof(Fixed);
+    }
   };
 
   struct AxisValueFormat4 {
@@ -75,6 +84,9 @@ class OpenTypeSTAT : public Table {
       Fixed    value;
     };
     std::vector<AxisValue> axisValues;
+    const size_t Length() const {
+      return 3 * sizeof(uint16_t) + axisValues.size() * (sizeof(uint16_t) + sizeof(Fixed));
+    }
   };
 
   struct AxisValueRecord {
@@ -118,15 +130,13 @@ class OpenTypeSTAT : public Table {
     uint32_t Length() const {
       switch (format) {
       case 1:
-        return sizeof(uint16_t) + sizeof(AxisValueFormat1);
+        return sizeof(uint16_t) + format1.Length();
       case 2:
-        return sizeof(uint16_t) + sizeof(AxisValueFormat2);
+        return sizeof(uint16_t) + format2.Length();
       case 3:
-        return sizeof(uint16_t) + sizeof(AxisValueFormat3);
+        return sizeof(uint16_t) + format3.Length();
       case 4:
-        return sizeof(uint16_t) +
-               3 * sizeof(uint16_t) +
-               format4.axisValues.size() * sizeof(AxisValueFormat4::AxisValue);
+        return sizeof(uint16_t) + format4.Length();
       default:
         // can't happen
         return 0;
