@@ -89,6 +89,17 @@ struct Arena {
   std::vector<uint8_t*> hunks_;
 };
 
+bool CheckTag(uint32_t tag_value) {
+  for (unsigned i = 0; i < 4; ++i) {
+    const uint32_t check = tag_value & 0xff;
+    if (check < 32 || check > 126) {
+      return false;  // non-ASCII character found.
+    }
+    tag_value >>= 8;
+  }
+  return true;
+}
+
 }; // namespace ots
 
 namespace {
@@ -101,17 +112,6 @@ namespace {
 #define OTS_FAILURE_MSG_HDR(...)       OTS_FAILURE_MSG_(header, __VA_ARGS__)
 #define OTS_WARNING_MSG_HDR(...)       OTS_WARNING_MSG_(header, __VA_ARGS__)
 
-
-bool CheckTag(uint32_t tag_value) {
-  for (unsigned i = 0; i < 4; ++i) {
-    const uint32_t check = tag_value & 0xff;
-    if (check < 32 || check > 126) {
-      return false;  // non-ASCII character found.
-    }
-    tag_value >>= 8;
-  }
-  return true;
-}
 
 const struct {
   uint32_t tag;
@@ -601,7 +601,7 @@ bool ProcessGeneric(ots::FontFile *header,
     }
 
     // all tag names must be built from printable ASCII characters
-    if (!CheckTag(tables[i].tag)) {
+    if (!ots::CheckTag(tables[i].tag)) {
       OTS_WARNING_MSG_HDR("Invalid table tag: 0x%X", tables[i].tag);
     }
 
