@@ -10,17 +10,6 @@ namespace ots {
 // OpenTypeSTAT
 // -----------------------------------------------------------------------------
 
-static bool CheckTag(uint32_t tag_value) {
-  for (unsigned i = 0; i < 4; ++i) {
-    const uint32_t check = tag_value & 0xff;
-    if (check < 32 || check > 126) {
-      return false;  // non-ASCII character found.
-    }
-    tag_value >>= 8;
-  }
-  return true;
-}
-
 bool OpenTypeSTAT::Parse(const uint8_t* data, size_t length) {
   Buffer table(data, length);
   if (!table.ReadU16(&this->majorVersion) ||
