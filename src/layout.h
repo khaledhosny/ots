@@ -72,10 +72,12 @@ bool ParseExtensionSubtable(const Font *font,
 
 // For feature variations table (in GSUB/GPOS v1.1)
 bool ParseConditionTable(const Font *font,
-                         const uint8_t *data, const size_t length);
+                         const uint8_t *data, const size_t length,
+                         const uint16_t axis_count);
 
 bool ParseConditionSetTable(const Font *font,
-                            const uint8_t *data, const size_t length);
+                            const uint8_t *data, const size_t length,
+                            const uint16_t axis_count);
 
 bool ParseFeatureTableSubstitutionTable(const Font *font,
                                         const uint8_t *data, const size_t length,

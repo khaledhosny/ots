@@ -7,6 +7,9 @@
 #include <limits>
 #include <vector>
 
+#ifdef OTS_VARIATIONS
+#include "fvar.h"
+#endif
 #include "gdef.h"
 
 // OpenType Layout Common Table Formats
@@ -1506,7 +1509,8 @@ bool ParseExtensionSubtable(const Font *font,
 }
 
 bool ParseConditionTable(const Font *font,
-                         const uint8_t *data, const size_t length) {
+                         const uint8_t *data, const size_t length,
+                         const uint16_t axis_count) {
   Buffer subtable(data, length);
 
   uint16_t format = 0;
@@ -1528,12 +1532,9 @@ bool ParseConditionTable(const Font *font,
     return OTS_FAILURE_MSG("Failed to read condition table (format 1)");
   }
 
-#if 0
-  /*
-   * TODO: Once fvar support is added, we can validate the axis index here.
-   */
+#ifdef OTS_VARIATIONS // we can't check this if we're not parsing variation tables
   if (axis_index >= axis_count) {
-    return OTS_FAILURE_MSG("Axis index out of range in condition")
+    return OTS_FAILURE_MSG("Axis index out of range in condition");
   }
 #endif
 
@@ -1548,7 +1549,8 @@ bool ParseConditionTable(const Font *font,
 }
 
 bool ParseConditionSetTable(const Font *font,
-                            const uint8_t *data, const size_t length) {
+                            const uint8_t *data, const size_t length,
+                            const uint16_t axis_count) {
   Buffer subtable(data, length);
 
   uint16_t condition_count = 0;
@@ -1564,7 +1566,8 @@ bool ParseConditionSetTable(const Font *font,
     if (condition_offset < subtable.offset() || condition_offset >= length) {
       return OTS_FAILURE_MSG("Offset out of range");
     }
-    if (!ParseConditionTable(font, data + condition_offset, length - condition_offset)) {
+    if (!ParseConditionTable(font, data + condition_offset, length - condition_offset,
+                             axis_count)) {
       return OTS_FAILURE_MSG("Failed to parse condition table");
     }
   }
@@ -1628,6 +1631,16 @@ bool ParseFeatureVariationsTable(const Font *font,
     return OTS_FAILURE_MSG("Failed to read feature variations table header");
   }
 
+#ifdef OTS_VARIATIONS
+  OpenTypeFVAR* fvar = static_cast<OpenTypeFVAR*>(font->GetTypedTable(OTS_TAG_FVAR));
+  if (!fvar) {
+    return OTS_FAILURE_MSG("Not a variation font");
+  }
+  const uint16_t axis_count = fvar->AxisCount();
+#else
+  const uint16_t axis_count = 0;
+#endif
+
   const size_t kEndOfFeatureVariationRecords =
     2 * sizeof(uint16_t) + sizeof(uint32_t) +
     feature_variation_record_count * 2 * sizeof(uint32_t);
@@ -1646,7 +1659,8 @@ bool ParseFeatureVariationsTable(const Font *font,
         return OTS_FAILURE_MSG("Condition set offset out of range");
       }
       if (!ParseConditionSetTable(font, data + condition_set_offset,
-                                  length - condition_set_offset)) {
+                                  length - condition_set_offset,
+                                  axis_count)) {
         return OTS_FAILURE_MSG("Failed to parse condition set table");
       }
     }
