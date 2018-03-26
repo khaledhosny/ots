@@ -137,6 +137,18 @@ const struct {
   { OTS_TAG_LTSH, false },
   { OTS_TAG_VORG, false },
   { OTS_TAG_KERN, false },
+  // We need to parse fvar table before other tables that may need to know
+  // the number of variation axes (if any)
+#ifdef OTS_VARIATIONS
+  { OTS_TAG_FVAR, false },
+  { OTS_TAG_AVAR, false },
+  { OTS_TAG_CVAR, false },
+  { OTS_TAG_GVAR, false },
+  { OTS_TAG_HVAR, false },
+  { OTS_TAG_MVAR, false },
+  { OTS_TAG_STAT, false },
+  { OTS_TAG_VVAR, false },
+#endif
   // We need to parse GDEF table in advance of parsing GSUB/GPOS tables
   // because they could refer GDEF table.
   { OTS_TAG_GDEF, false },
@@ -153,16 +165,6 @@ const struct {
   { OTS_TAG_SILF, false },
   { OTS_TAG_SILE, false },
   { OTS_TAG_SILL, false },
-#endif
-#ifdef OTS_VARIATIONS
-  { OTS_TAG_FVAR, false },
-  { OTS_TAG_AVAR, false },
-  { OTS_TAG_CVAR, false },
-  { OTS_TAG_GVAR, false },
-  { OTS_TAG_HVAR, false },
-  { OTS_TAG_MVAR, false },
-  { OTS_TAG_STAT, false },
-  { OTS_TAG_VVAR, false },
 #endif
   { 0, false },
 };
