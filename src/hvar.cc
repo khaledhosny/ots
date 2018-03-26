@@ -33,6 +33,10 @@ bool OpenTypeHVAR::Parse(const uint8_t* data, size_t length) {
     return DropVariations("Failed to read table header");
   }
 
+  if (majorVersion != 1) {
+    return DropVariations("Unknown table version");
+  }
+
   if (itemVariationStoreOffset > length ||
       advanceWidthMappingOffset > length ||
       lsbMappingOffset > length ||

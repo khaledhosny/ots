@@ -20,8 +20,13 @@ bool OpenTypeAVAR::Parse(const uint8_t* data, size_t length) {
       !table.ReadU16(&this->axisCount)) {
     return Drop("Failed to read table header");
   }
-  if (this->majorVersion != 1 || this->minorVersion != 0) {
+  if (this->majorVersion != 1) {
     return Drop("Unknown table version");
+  }
+  if (this->minorVersion > 0) {
+    // we only know how to serialize version 1.0
+    Warning("Downgrading minor version to 0");
+    this->minorVersion = 0;
   }
   if (this->reserved != 0) {
     Warning("Expected reserved=0");

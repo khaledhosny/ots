@@ -22,8 +22,12 @@ bool OpenTypeFVAR::Parse(const uint8_t* data, size_t length) {
       !table.ReadU16(&this->instanceSize)) {
     return DropVariations("Failed to read table header");
   }
-  if (this->majorVersion != 1 /*|| this->minorVersion != 0*/) {
+  if (this->majorVersion != 1) {
     return DropVariations("Unknown table version");
+  }
+  if (this->minorVersion > 0) {
+    Warning("Downgrading minor version to 0");
+    this->minorVersion = 0;
   }
   if (this->axesArrayOffset > length || this->axesArrayOffset < table.offset()) {
     return DropVariations("Bad axesArrayOffset");

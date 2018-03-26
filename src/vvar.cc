@@ -35,7 +35,7 @@ bool OpenTypeVVAR::Parse(const uint8_t* data, size_t length) {
     return DropVariations("Failed to read table header");
   }
 
-  if (majorVersion != 1 || minorVersion != 0) {
+  if (majorVersion != 1) {
     return DropVariations("Unknown table version");
   }
 
