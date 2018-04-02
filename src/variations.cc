@@ -125,6 +125,9 @@ ParseItemVariationStore(const Font* font, const uint8_t* data, const size_t leng
     if (!subtable.ReadU32(&offset)) {
       return OTS_FAILURE_MSG("Failed to read variation data subtable offset");
     }
+    if (offset >= length) {
+      return OTS_FAILURE_MSG("Bad offset to variation data subtable");
+    }
     if (!ParseVariationDataSubtable(font, data + offset, length - offset, regionCount)) {
       return OTS_FAILURE_MSG("Failed to parse variation data subtable");
     }
