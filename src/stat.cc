@@ -43,12 +43,13 @@ bool OpenTypeSTAT::Parse(const uint8_t* data, size_t length) {
     }
   } else {
     if (this->designAxesOffset < headerEnd ||
-        this->designAxesOffset + this->designAxisCount * this->designAxisSize > length) {
+        size_t(this->designAxesOffset) +
+          size_t(this->designAxisCount) * size_t(this->designAxisSize) > length) {
       return Drop("Invalid designAxesOffset");
     }
   }
 
-  for (unsigned i = 0; i < this->designAxisCount; i++) {
+  for (size_t i = 0; i < this->designAxisCount; i++) {
     table.set_offset(this->designAxesOffset + i * this->designAxisSize);
     this->designAxes.emplace_back();
     auto& axis = this->designAxes[i];
@@ -78,12 +79,13 @@ bool OpenTypeSTAT::Parse(const uint8_t* data, size_t length) {
     }
   } else {
     if (this->offsetToAxisValueOffsets < headerEnd ||
-        this->offsetToAxisValueOffsets + this->axisValueCount * sizeof(uint16_t) > length) {
+        size_t(this->offsetToAxisValueOffsets) +
+          size_t(this->axisValueCount) * sizeof(uint16_t) > length) {
       return Drop("Invalid offsetToAxisValueOffsets");
     }
   }
 
-  for (unsigned i = 0; i < this->axisValueCount; i++) {
+  for (size_t i = 0; i < this->axisValueCount; i++) {
     table.set_offset(this->offsetToAxisValueOffsets + i * sizeof(uint16_t));
     uint16_t axisValueOffset;
     if (!table.ReadU16(&axisValueOffset)) {
