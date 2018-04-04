@@ -89,7 +89,7 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
   SET_TO_ZERO("yStrikeoutSize", strikeout_size);
 #undef SET_TO_ZERO
 
-  static std::string panose_strings[10] = {
+  static const char* panose_strings[10] = {
     "bFamilyType",
     "bSerifStyle",
     "bWeight",
@@ -103,7 +103,7 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
   };
   for (unsigned i = 0; i < 10; ++i) {
     if (!table.ReadU8(&this->table.panose[i])) {
-      return Error("Failed to read PANOSE %s", panose_strings[i].c_str());
+      return Error("Failed to read PANOSE %s", panose_strings[i]);
     }
   }
 
