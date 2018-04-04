@@ -163,8 +163,9 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
   this->table.selection &= 0x3ff;
 
   if (this->table.first_char_index > this->table.last_char_index) {
-    return Error("usFirstCharIndex %d > usLastCharIndex %d",
-                 this->table.first_char_index, this->table.last_char_index);
+    Warning("usFirstCharIndex %d > usLastCharIndex %d",
+            this->table.first_char_index, this->table.last_char_index);
+    this->table.first_char_index = this->table.last_char_index;
   }
   if (this->table.typo_linegap < 0) {
     Warning("Bad sTypoLineGap, setting it to 0: %d", this->table.typo_linegap);
