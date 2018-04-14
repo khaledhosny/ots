@@ -38,17 +38,14 @@ bool OpenTypeOS2::Parse(const uint8_t *data, size_t length) {
     return Error("Unsupported table version: %u", this->table.version);
   }
 
-  // Follow WPF Font Selection Model's advice.
-  if (1 <= this->table.weight_class && this->table.weight_class <= 9) {
-    Warning("Bad usWeightClass: %u, changing it to %u",
-            this->table.weight_class, this->table.weight_class * 100);
-    this->table.weight_class *= 100;
-  }
-  // Ditto.
-  if (this->table.weight_class > 999) {
+  if (this->table.weight_class < 1) {
     Warning("Bad usWeightClass: %u, changing it to %d",
-             this->table.weight_class, 999);
-    this->table.weight_class = 999;
+             this->table.weight_class, 1);
+    this->table.weight_class = 1;
+  } else if (this->table.weight_class > 1000) {
+    Warning("Bad usWeightClass: %u, changing it to %d",
+             this->table.weight_class, 1000);
+    this->table.weight_class = 1000;
   }
 
   if (this->table.width_class < 1) {
