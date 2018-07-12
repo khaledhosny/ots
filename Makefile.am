@@ -50,7 +50,7 @@ noinst_PROGRAMS += ots-testfuzz
 TESTS += tests/test_fuzzed_fonts.sh
 endif
 
-lib_LIBRARIES = \
+noinst_LIBRARIES = \
   libots.a \
   libbrotli.a \
   libwoff2.a \
@@ -58,7 +58,7 @@ lib_LIBRARIES = \
   $(NULL)
 
 if OTS_GRAPHITE
-lib_LIBRARIES += \
+noinst_LIBRARIES += \
   liblz4.a \
   $(NULL)
 endif
