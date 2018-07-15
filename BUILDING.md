@@ -3,32 +3,34 @@ use OTS as a library then the recommended way is to copy the source code and
 integrate it into your existing build system. Our build system does not build
 a shared library intentionally.
 
-General build instructions:
+General build instructions
+--------------------------
 
-  1. Build OTS
+Build OTS: 
+    
+    $ meson build
+    $ ninja -C build
 
-     $ meson build
-     $ ninja -C build
+Run the tests (if you wish):
+    
+    $ ninja -C build test
 
-  2. Run the tests (if you wish)
+Developer build instructions
+----------------------------
 
-     $ ninja -C build test
+If you would like to see the source code lines related to reported 
+errors, then replace meson call above with:
 
-Developer build instructions:
+    $ meson -Ddebug=true build
 
-  1. If you would like to see the source code lines related to reported 
-     errors, then replace meson call above with:
+For example:
 
-     $ meson -Ddebug=true build
-
-     For example,
-
-     $ ./ots-sanitize ~/fonts/ofl/merriweathersans/MerriweatherSans-Bold.ttf
-     ERROR at src/layout.cc:100 (ParseScriptTable)
-     ERROR: Layout: DFLT table doesn't satisfy the spec. for script tag DFLT
-     ERROR at src/layout.cc:1247 (ParseScriptListTable)
-     ERROR: Layout: Failed to parse script table 0
-     ERROR at src/gsub.cc:642 (ots_gsub_parse)
-     ERROR: GSUB: Failed to parse script list table
-     ERROR at src/ots.cc:669 (ProcessGeneric)
-     Failed to sanitize file!
+    $ ./ots-sanitize ~/fonts/ofl/merriweathersans/MerriweatherSans-Bold.ttf
+    ERROR at src/layout.cc:100 (ParseScriptTable)
+    ERROR: Layout: DFLT table doesn't satisfy the spec. for script tag DFLT
+    ERROR at src/layout.cc:1247 (ParseScriptListTable)
+    ERROR: Layout: Failed to parse script table 0
+    ERROR at src/gsub.cc:642 (ots_gsub_parse)
+    ERROR: GSUB: Failed to parse script list table
+    ERROR at src/ots.cc:669 (ProcessGeneric)
+    Failed to sanitize file!
