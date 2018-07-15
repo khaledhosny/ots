@@ -18,7 +18,7 @@ matrix:
         - ninja -C build install
         - ninja -C build dist
         - export DEPLOY1=$ARCHIVE.zip
-        - export DEPLOY2=ots-$OTS_VERSION.tar.gz
+        - export DEPLOY2=ots-$OTS_VERSION.tar.xz
         - zip -r $DEPLOY1 $ARCHIVE
       deploy:
         provider: releases
@@ -66,4 +66,4 @@ before_script:
 
 script:
   - ninja -C build
-  - meson test -C build -v
+  - ninja -v -C build test

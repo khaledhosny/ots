@@ -32,7 +32,7 @@ build_script:
   - ninja -v -C build
 
 test_script:
-  - meson test -v -C build
+  - ninja -v -C build test
 
 after_build:
   - ninja -C build install
