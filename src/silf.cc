@@ -45,7 +45,7 @@ bool OpenTypeSILF::Parse(const uint8_t* data, size_t length,
             table.remaining(),  // input buffer size (input size + padding)
             decompressed.size(),  // target output size
             decompressed.size());  // output buffer size
-        if (ret != decompressed.size()) {
+        if (ret < 0 || unsigned(ret) != decompressed.size()) {
           return DropGraphite("Decompression failed with error code %d", ret);
         }
         return this->Parse(decompressed.data(), decompressed.size(), true);
