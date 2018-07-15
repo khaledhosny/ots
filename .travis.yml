@@ -1,19 +1,51 @@
 language: cpp
 
-dist: trusty
-sudo: false
+dist: xenial
+sudo: true
 
 matrix:
   include:
     - os: linux
       compiler: gcc
-      env: FSANITIZE=yes
+
     - os: linux
       compiler: clang
-      env: FSANITIZE=no
+      before_script:
+        - export OTS_VERSION=$(grep -m1 version meson.build | cut -d"'" -f2)
+        - export ARCHIVE=ots-$OTS_VERSION-$TRAVIS_OS_NAME
+        - meson -Ddebug=true --prefix=$PWD --bindir=$ARCHIVE build
+      before_deploy:
+        - ninja -C build install
+        - ninja -C build dist
+        - export DEPLOY1=$ARCHIVE.zip
+        - export DEPLOY2=ots-$OTS_VERSION.tar.gz
+        - zip -r $DEPLOY1 $ARCHIVE
+      deploy:
+        provider: releases
+        api_key:
+          - secure: "TLW/tIpobbvcJvEyZNJcdUL1c1Xt91vaxMegUGKvXnyT56Rxn6joLYUVhfFmz6cOKtDG4F409aAXJr60BL8iQ/xra9a8uD4Y+WKgPinQo9O8CViv1bsQpGV2rfBpNQ5UUYU/t09ReicPQNHGb0ONFRnLxmcQLo8eJzlKE1MdOoA="
+        file:
+          - "${DEPLOY1}"
+          - "${DEPLOY2}"
+        skip_cleanup: true
+        draft: true
+        overwrite: true
+        tag_name: $TRAVIS_TAG
+        on:
+          tags: true
+          branch: master
+
+    - os: linux
+      compiler: clang
+      before_script:
+        - meson -Db_sanitize=address,undefined build
+
     - os: osx
       compiler: clang
-      env: FSANITIZE=yes
+      before_install:
+        - brew update
+        - brew upgrade python
+        - brew install ninja
 
 addons:
   apt:
@@ -22,38 +54,16 @@ addons:
       - fonts-takao-gothic
       - fonts-takao-mincho
       - fonts-takao-pgothic
+      - ninja-build
+      - python3-pip
+      - python3-setuptools
 
 install:
-  - ./autogen.sh
+  - pip3 install meson
+
+before_script:
+  - meson -Ddebug=true build
 
 script:
-  - export DISTCHECK_CONFIGURE_FLAGS="--enable-debug --enable-fsanitize=$FSANITIZE"
-  - ./configure $DISTCHECK_CONFIGURE_FLAGS --prefix=$PWD/dist
-  - export OTS_VERSION=$(grep PACKAGE_VERSION config.h | cut -d'"' -f2)
-  - make distcheck || (cat `find -name '*.log'` && false)
-  - make install-strip
-  - make dist
-
-before_deploy:
-  - export ARCHIVE=ots-$OTS_VERSION-$TRAVIS_OS_NAME
-  - export DEPLOY1=$ARCHIVE.zip
-  - export DEPLOY2=ots-$OTS_VERSION.tar.gz
-  - mkdir -p $ARCHIVE
-  - cp dist/bin/* $ARCHIVE
-  - zip -r $DEPLOY1 $ARCHIVE
-
-deploy:
-  provider: releases
-  api_key:
-    - secure: "TLW/tIpobbvcJvEyZNJcdUL1c1Xt91vaxMegUGKvXnyT56Rxn6joLYUVhfFmz6cOKtDG4F409aAXJr60BL8iQ/xra9a8uD4Y+WKgPinQo9O8CViv1bsQpGV2rfBpNQ5UUYU/t09ReicPQNHGb0ONFRnLxmcQLo8eJzlKE1MdOoA="
-  file:
-    - "${DEPLOY1}"
-    - "${DEPLOY2}"
-  skip_cleanup: true
-  draft: true
-  overwrite: true
-  tag_name: $TRAVIS_TAG
-  on:
-    tags: true
-    branch: master
-    condition: $CC = clang
+  - ninja -C build
+  - meson test -C build -v
