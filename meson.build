@@ -1,4 +1,4 @@
-project('OTS', 'c', 'cpp',
+project('ots', 'c', 'cpp',
   version: '7.1.1',
   default_options : ['cpp_std=c++11'],
 )
