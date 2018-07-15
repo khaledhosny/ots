@@ -27,7 +27,7 @@ build_script:
   - ps: $env:OTS_VERSION = C:\cygwin\bin\grep -m1 version meson.build | C:\cygwin\bin\cut --% -d"'" -f2
   - set ARCHIVE=ots-%OTS_VERSION%-windows
 
-  - meson --backend=ninja --prefix=%cd% --bindir=%ARCHIVE% build
+  - meson --strip --backend=ninja --prefix=%cd% --bindir=%ARCHIVE% build
   - where link
   - ninja -C build
 
