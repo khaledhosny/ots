@@ -5,39 +5,21 @@ a shared library intentionally.
 
 General build instructions:
 
-  1. If you are building from cloned Git repository, you will need to update
-     the git sub modules, as well as run autoreconf. A convenience script is
-     provided:
+  1. Build OTS
 
-     $ ./autogen.sh
+     $ meson build
+     $ ninja -C build
 
-  2. Build OTS
+  2. Run the tests (if you wish)
 
-     $ ./configure
-     $ make
-
-  3. Run the tests (if you wish)
-
-     $ make check
-
-Building on Windows:
-
-   1. A POSIX-compatible environment is required to build OTS, MSYS2 is
-      recommended. Follow the installation instructions on
-	  https://msys2.github.io/.
-
-   2. Install the required packages:
-
-      $ pacman -S autoconf automake pkg-config gcc make
-
-   3. Follow the general build instructions above.
+     $ ninja -C build test
 
 Developer build instructions:
 
   1. If you would like to see the source code lines related to reported 
-     errors, then replace configure call above with:
+     errors, then replace meson call above with:
 
-     $ ./configure --enable-debug
+     $ meson -Ddebug=true build
 
      For example,
 
