@@ -10,26 +10,13 @@ matrix:
 
     - os: linux
       compiler: clang
+      env: DEPOLY=true
       before_script:
         - meson -Ddebug=true --prefix=$PWD --bindir=$OTS-$TRAVIS_OS_NAME build
       before_deploy:
         - ninja -C build install
         - ninja -C build dist
         - zip -r $OTS-$TRAVIS_OS_NAME.zip $OTS-$TRAVIS_OS_NAME
-      deploy:
-        provider: releases
-        api_key:
-          - secure: "TLW/tIpobbvcJvEyZNJcdUL1c1Xt91vaxMegUGKvXnyT56Rxn6joLYUVhfFmz6cOKtDG4F409aAXJr60BL8iQ/xra9a8uD4Y+WKgPinQo9O8CViv1bsQpGV2rfBpNQ5UUYU/t09ReicPQNHGb0ONFRnLxmcQLo8eJzlKE1MdOoA="
-        file:
-          - "${OTS}-${TRAVIS_OS_NAME}.zip"
-          - "build/meson-dist/${OTS}.tar.xz"
-        skip_cleanup: true
-        draft: true
-        overwrite: true
-        tag_name: $TRAVIS_TAG
-        on:
-          tags: true
-          branch: master
 
     - os: linux
       compiler: clang
@@ -38,6 +25,7 @@ matrix:
 
     - os: osx
       compiler: clang
+      env: DEPOLY=true
       before_install:
         - brew update
         - brew upgrade python
@@ -69,3 +57,19 @@ before_script:
 script:
   - ninja -C build
   - ninja -C build test
+
+deploy:
+  provider: releases
+  api_key:
+    - secure: "TLW/tIpobbvcJvEyZNJcdUL1c1Xt91vaxMegUGKvXnyT56Rxn6joLYUVhfFmz6cOKtDG4F409aAXJr60BL8iQ/xra9a8uD4Y+WKgPinQo9O8CViv1bsQpGV2rfBpNQ5UUYU/t09ReicPQNHGb0ONFRnLxmcQLo8eJzlKE1MdOoA="
+  file:
+    - "${OTS}-${TRAVIS_OS_NAME}.zip"
+    - "build/meson-dist/${OTS}.tar.xz"
+  skip_cleanup: true
+  draft: true
+  overwrite: true
+  tag_name: $TRAVIS_TAG
+  on:
+    tags: true
+    branch: master
+    condition: $DEPLOY = true
