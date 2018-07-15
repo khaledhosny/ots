@@ -19,20 +19,18 @@ been part of the attack surface before, and putting them on the front line is
 a scary proposition... Especially on platforms like Windows, where it's a
 closed-source blob running with high privilege.
 
-Installation
-------------
+Building from source
+--------------------
 
-See [INSTALL][2]
+See [BUILDING](BUILDING.md)
 
 Usage
 -----
 
-See [docs][3]
+See [docs](docs)
 
 * * *
 
 Thanks to Alex Russell for the original idea.
 
 [1]: http://www.w3.org/TR/CSS2/fonts.html#font-descriptions
-[2]: https://github.com/khaledhosny/ots/tree/master/INSTALL
-[3]: https://github.com/khaledhosny/ots/tree/master/docs/
