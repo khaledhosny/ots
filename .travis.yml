@@ -10,7 +10,7 @@ matrix:
 
     - os: linux
       compiler: clang
-      env: DEPOLY=true
+      env: DEPLOY=true
       before_script:
         - meson -Ddebug=true --prefix=$PWD --bindir=$OTS-$TRAVIS_OS_NAME build
       before_deploy:
@@ -25,7 +25,7 @@ matrix:
 
     - os: osx
       compiler: clang
-      env: DEPOLY=true
+      env: DEPLOY=true
       before_install:
         - brew update
         - brew upgrade python
