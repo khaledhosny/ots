@@ -11,22 +11,18 @@ matrix:
     - os: linux
       compiler: clang
       before_script:
-        - export OTS_VERSION=$(grep -m1 version meson.build | cut -d"'" -f2)
-        - export ARCHIVE=ots-$OTS_VERSION-$TRAVIS_OS_NAME
-        - meson -Ddebug=true --prefix=$PWD --bindir=$ARCHIVE build
+        - meson -Ddebug=true --prefix=$PWD --bindir=$OTS-$TRAVIS_OS_NAME build
       before_deploy:
         - ninja -C build install
         - ninja -C build dist
-        - export DEPLOY1=$ARCHIVE.zip
-        - export DEPLOY2=ots-$OTS_VERSION.tar.xz
-        - zip -r $DEPLOY1 $ARCHIVE
+        - zip -r $OTS-$TRAVIS_OS_NAME.zip $OTS-$TRAVIS_OS_NAME
       deploy:
         provider: releases
         api_key:
           - secure: "TLW/tIpobbvcJvEyZNJcdUL1c1Xt91vaxMegUGKvXnyT56Rxn6joLYUVhfFmz6cOKtDG4F409aAXJr60BL8iQ/xra9a8uD4Y+WKgPinQo9O8CViv1bsQpGV2rfBpNQ5UUYU/t09ReicPQNHGb0ONFRnLxmcQLo8eJzlKE1MdOoA="
         file:
-          - "${DEPLOY1}"
-          - "${DEPLOY2}"
+          - "${OTS}-${TRAVIS_OS_NAME}.zip"
+          - "${OTS}.tar.xz"
         skip_cleanup: true
         draft: true
         overwrite: true
@@ -46,6 +42,11 @@ matrix:
         - brew update
         - brew upgrade python
         - brew install ninja
+      before_script:
+        - meson -Ddebug=true --prefix=$PWD --bindir=$OTS-$TRAVIS_OS_NAME build
+      before_deploy:
+        - ninja -C build install
+        - zip -r $OTS-$TRAVIS_OS_NAME.zip $OTS-$TRAVIS_OS_NAME
 
 addons:
   apt:
@@ -59,6 +60,7 @@ addons:
       - python3-setuptools
 
 install:
+  - export OTS=ots-$(grep -m1 version meson.build | cut -d"'" -f2)
   - pip3 install meson
 
 before_script:
