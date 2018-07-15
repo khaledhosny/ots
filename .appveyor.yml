@@ -48,3 +48,4 @@ deploy:
   draft: true
   on:
     appveyor_repo_tag: true
+    ARCH: x64
