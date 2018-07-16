@@ -86,36 +86,6 @@ libwoff2 = static_library('woff2',
 )
 
 
-libz = static_library('z',
-  'third_party/zlib/adler32.c',
-  'third_party/zlib/compress.c',
-  'third_party/zlib/crc32.c',
-  'third_party/zlib/crc32.h',
-  'third_party/zlib/deflate.c',
-  'third_party/zlib/deflate.h',
-  'third_party/zlib/gzclose.c',
-  'third_party/zlib/gzguts.h',
-  'third_party/zlib/gzlib.c',
-  'third_party/zlib/gzread.c',
-  'third_party/zlib/gzwrite.c',
-  'third_party/zlib/infback.c',
-  'third_party/zlib/inffast.c',
-  'third_party/zlib/inffast.h',
-  'third_party/zlib/inffixed.h',
-  'third_party/zlib/inflate.c',
-  'third_party/zlib/inflate.h',
-  'third_party/zlib/inftrees.c',
-  'third_party/zlib/inftrees.h',
-  'third_party/zlib/trees.c',
-  'third_party/zlib/trees.h',
-  'third_party/zlib/uncompr.c',
-  'third_party/zlib/zconf.h',
-  'third_party/zlib/zlib.h',
-  'third_party/zlib/zutil.c',
-  'third_party/zlib/zutil.h',
-)
-
-
 ots_includes = [
   'include',
   'third_party/woff2/include',
@@ -185,7 +155,7 @@ ots_sources = [
   'src/vorg.h',
 ]
 
-ots_libs = [libbrotli, libwoff2, libz]
+ots_libs = [libbrotli, libwoff2]
 
 if get_option('graphite')
   ots_includes += ['third_party/lz4/lib']
@@ -234,10 +204,13 @@ if get_option('variations')
   ]
 endif
 
+zlib = dependency('zlib', fallback : ['zlib', 'zlib_dep'])
+
 libots = static_library('ots',
   ots_sources,
   include_directories: include_directories(ots_includes),
   link_with: ots_libs,
+  dependencies: zlib,
 )
 
 
