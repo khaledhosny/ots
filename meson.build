@@ -318,67 +318,23 @@ if cxx.has_header('sys/time.h')
 endif
 
 
-threads = dependency('threads')
-
-gtest_includes = [
-  'third_party/googletest/googletest',
-  'third_party/googletest/googletest/include'
-]
-
-libgtest = static_library('gtest',
-  'third_party/googletest/googletest/include/gtest/gtest-death-test.h',
-  'third_party/googletest/googletest/include/gtest/gtest.h',
-  'third_party/googletest/googletest/include/gtest/gtest-message.h',
-  'third_party/googletest/googletest/include/gtest/gtest-param-test.h',
-  'third_party/googletest/googletest/include/gtest/gtest_pred_impl.h',
-  'third_party/googletest/googletest/include/gtest/gtest-printers.h',
-  'third_party/googletest/googletest/include/gtest/gtest_prod.h',
-  'third_party/googletest/googletest/include/gtest/gtest-spi.h',
-  'third_party/googletest/googletest/include/gtest/gtest-test-part.h',
-  'third_party/googletest/googletest/include/gtest/gtest-typed-test.h',
-  'third_party/googletest/googletest/include/gtest/internal/custom/gtest.h',
-  'third_party/googletest/googletest/include/gtest/internal/custom/gtest-port.h',
-  'third_party/googletest/googletest/include/gtest/internal/custom/gtest-printers.h',
-  'third_party/googletest/googletest/include/gtest/internal/gtest-death-test-internal.h',
-  'third_party/googletest/googletest/include/gtest/internal/gtest-filepath.h',
-  'third_party/googletest/googletest/include/gtest/internal/gtest-internal.h',
-  'third_party/googletest/googletest/include/gtest/internal/gtest-linked_ptr.h',
-  'third_party/googletest/googletest/include/gtest/internal/gtest-param-util-generated.h',
-  'third_party/googletest/googletest/include/gtest/internal/gtest-param-util.h',
-  'third_party/googletest/googletest/include/gtest/internal/gtest-port-arch.h',
-  'third_party/googletest/googletest/include/gtest/internal/gtest-port.h',
-  'third_party/googletest/googletest/include/gtest/internal/gtest-string.h',
-  'third_party/googletest/googletest/include/gtest/internal/gtest-tuple.h',
-  'third_party/googletest/googletest/include/gtest/internal/gtest-type-util.h',
-  'third_party/googletest/googletest/src/gtest.cc',
-  'third_party/googletest/googletest/src/gtest-death-test.cc',
-  'third_party/googletest/googletest/src/gtest-filepath.cc',
-  'third_party/googletest/googletest/src/gtest-internal-inl.h',
-  'third_party/googletest/googletest/src/gtest-port.cc',
-  'third_party/googletest/googletest/src/gtest-printers.cc',
-  'third_party/googletest/googletest/src/gtest-test-part.cc',
-  'third_party/googletest/googletest/src/gtest-typed-test.cc',
-  include_directories: include_directories(gtest_includes),
-)
-
+gtest = dependency('gtest', fallback: ['gtest', 'gtest_main_dep'])
 
 cff_type2_charstring = executable('cff_type2_charstring',
-  'third_party/googletest/googletest/src/gtest_main.cc',
   'tests/cff_type2_charstring_test.cc',
-  include_directories: include_directories(['include', 'src'] + gtest_includes),
-  link_with: [libots, libgtest],
-  dependencies: threads,
+  include_directories: include_directories(['include', 'src']),
+  link_with: libots,
+  dependencies: gtest,
 )
 
 test('cff_type2_charstring', cff_type2_charstring)
 
 
 layout_common_table = executable('layout_common_table',
-  'third_party/googletest/googletest/src/gtest_main.cc',
   'tests/layout_common_table_test.cc',
-  include_directories: include_directories(['include', 'src'] + gtest_includes),
-  link_with: [libots, libgtest],
-  dependencies: threads,
+  include_directories: include_directories(['include', 'src']),
+  link_with: libots,
+  dependencies: gtest,
 )
 
 test('layout_common_table', layout_common_table)
