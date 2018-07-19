@@ -15,11 +15,8 @@ skip_branch_with_pr: true
 install:
   - git submodule update --init --recursive
 
-  - appveyor DownloadFile https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-win.zip
-  - 7z x ninja-win.zip
-
   - set PATH=%cd%;%PYTHON%;%PYTHON%\Scripts;%PATH%
-  - pip install meson
+  - pip install meson ninja
 
   - call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" %ARCH%
 
