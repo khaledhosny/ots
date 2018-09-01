@@ -2,6 +2,7 @@
 Gungseouche.ttf
 HeadlineA.ttf
 LastResort.ttf
+LastResort.otf
 NISC18030.ttf
 PCmyoungjo.ttf
 Pilgiche.ttf
