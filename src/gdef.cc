@@ -21,8 +21,6 @@
 
 namespace {
 
-// The maximum class value in class definition tables.
-const uint16_t kMaxClassDefValue = 0xFFFF;
 // The maximum class value in the glyph class definision table.
 const uint16_t kMaxGlyphClassDefValue = 4;
 // The maximum format number of caret value tables.
