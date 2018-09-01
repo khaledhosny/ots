@@ -1,6 +1,6 @@
 project('ots', 'c', 'cpp',
   version: '7.1.7',
-  default_options : ['cpp_std=c++11'],
+  default_options : ['cpp_std=c++11', 'default_library=static'],
 )
 
 cxx = meson.get_compiler('cpp')
@@ -43,7 +43,7 @@ configure_file(output: 'config.h',
 
 
 brotli_includes = ['third_party/brotli/c/include']
-libbrotli = static_library('brotli',
+libbrotli = library('brotli',
   'third_party/brotli/c/common/dictionary.c',
   'third_party/brotli/c/common/dictionary.h',
   'third_party/brotli/c/common/constants.h',
@@ -67,7 +67,7 @@ libbrotli = static_library('brotli',
 
 
 woff2_includes = ['third_party/brotli/c/include', 'third_party/woff2/include']
-libwoff2 = static_library('woff2',
+libwoff2 = library('woff2',
   'third_party/woff2/include/woff2/decode.h',
   'third_party/woff2/include/woff2/output.h',
   'third_party/woff2/src/buffer.h',
@@ -86,7 +86,7 @@ libwoff2 = static_library('woff2',
 )
 
 
-libz = static_library('z',
+libz = library('z',
   'third_party/zlib/adler32.c',
   'third_party/zlib/compress.c',
   'third_party/zlib/crc32.c',
@@ -204,7 +204,7 @@ if get_option('graphite')
     'src/sill.h',
     'src/sill.cc',
   ]
-  liblz4 = static_library('lz4',
+  liblz4 = library('lz4',
     'third_party/lz4/lib/lz4.c',
     'third_party/lz4/lib/lz4.h',
   )
@@ -234,7 +234,7 @@ if get_option('variations')
   ]
 endif
 
-libots = static_library('ots',
+libots = library('ots',
   ots_sources,
   include_directories: include_directories(ots_includes),
   link_with: ots_libs,
