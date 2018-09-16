@@ -208,6 +208,7 @@ libots = library('ots',
   ots_sources,
   include_directories: include_directories(ots_includes),
   link_with: ots_libs,
+  cpp_args : '-DHAVE_CONFIG_H',
   dependencies: zlib,
 )
 
