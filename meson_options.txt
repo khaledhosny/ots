@@ -1,3 +1,2 @@
-option('debug', type : 'boolean', value : false, description : 'Enable extra debugging information for font sanitization')
 option('graphite', type : 'boolean', value : true, description : 'Sanitize Graphite tables')
 option('variations', type : 'boolean', value : true, description : 'Sanitize OpenType Variation tables')

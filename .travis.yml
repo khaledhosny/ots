@@ -55,7 +55,7 @@ install:
   - pip3 install meson
 
 before_script:
-  - meson -Ddebug=true build
+  - meson build
 
 script:
   - ninja -C build
