@@ -24,9 +24,7 @@ namespace {
 // The maximum class value in the glyph class definision table.
 const uint16_t kMaxGlyphClassDefValue = 4;
 // The maximum format number of caret value tables.
-// We don't support format 3 for now. See the comment in
-// ParseLigCaretListTable() for the reason.
-const uint16_t kMaxCaretValueFormat = 2;
+const uint16_t kMaxCaretValueFormat = 3;
 
 }  // namespace
 
@@ -167,9 +165,6 @@ bool OpenTypeGDEF::ParseLigCaretListTable(const uint8_t *data, size_t length) {
       if (!subtable.ReadU16(&caret_format)) {
         return Error("Can't read caret values table %d in glyph %d", j, i);
       }
-      // TODO(bashi): We only support caret value format 1 and 2 for now
-      // because there are no fonts which contain caret value format 3
-      // as far as we investigated.
       if (caret_format == 0 || caret_format > kMaxCaretValueFormat) {
         return Error("bad caret value format: %u", caret_format);
       }
