@@ -309,8 +309,8 @@ bool OpenTypeSTAT::Serialize(OTSStream* out) {
         return Error("Failed to write axis value");
       }
       for (unsigned j = 0; j < value.format4.axisValues.size(); j++) {
-        if (!out->WriteU16(value.format4.axisValues[i].axisIndex) ||
-            !out->WriteS32(value.format4.axisValues[i].value)) {
+        if (!out->WriteU16(value.format4.axisValues[j].axisIndex) ||
+            !out->WriteS32(value.format4.axisValues[j].value)) {
           return Error("Failed to write axis value");
         }
       }
