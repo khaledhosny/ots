@@ -173,6 +173,24 @@ bool OpenTypeGDEF::ParseLigCaretListTable(const uint8_t *data, size_t length) {
       if (!subtable.Skip(2)) {
         return Error("Bad caret value table structure %d in glyph %d", j, i);
       }
+      if (caret_format == 3) {
+        uint16_t offset_device = 0;
+        if (!subtable.ReadU16(&offset_device)) {
+          return Error("Can't read device offset for caret value %d "
+                       "in glyph %d", j, i);
+        }
+        uint16_t absolute_offset = lig_glyphs[i] + caret_value_offsets[j]
+                                   + offset_device;
+        if (offset_device == 0 || absolute_offset >= length) {
+          return Error("Bad device offset for caret value %d in glyph %d: %d",
+                       j, i, offset_device);
+        }
+        if (!ots::ParseDeviceTable(GetFont(), data + absolute_offset,
+                                   length - absolute_offset)) {
+          return Error("Bad device table for caret value %d in glyph %d",
+                       j, i, offset_device);
+        }
+      }
     }
   }
   return true;
