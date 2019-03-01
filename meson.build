@@ -1,5 +1,5 @@
 project('ots', 'c', 'cpp',
-  version: '7.1.9',
+  version: '7.1.10',
   default_options : ['cpp_std=c++11', 'default_library=static'],
 )
 
