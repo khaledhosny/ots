@@ -147,7 +147,6 @@ bool ParseDeltaSetIndexMap(const Font* font, const uint8_t* data, const size_t l
     return OTS_FAILURE_MSG("Failed to read delta set index map header");
   }
 
-  const uint16_t INNER_INDEX_BIT_COUNT_MASK = 0x000F;
   const uint16_t MAP_ENTRY_SIZE_MASK = 0x0030;
 
   const uint16_t entrySize = (((entryFormat & MAP_ENTRY_SIZE_MASK) >> 4) + 1);
