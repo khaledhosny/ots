@@ -34,8 +34,8 @@ if [ $# -eq 0 ] ; then
 
   if $(command fc-list &>/dev/null);
   then
-    CFF=$(fc-list --format="%{file}\n" :fontformat=CFF)
-    TTF=$(fc-list --format="%{file}\n" :fontformat=TrueType)
+    CFF=$(fc-list --format="%{file}\n" :fontformat=CFF | sort -u)
+    TTF=$(fc-list --format="%{file}\n" :fontformat=TrueType | sort -u)
     FONTS="$CFF"$'\n'"$TTF"
   else
     # Mac OS X
