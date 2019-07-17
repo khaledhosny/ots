@@ -917,46 +917,40 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
   uint8_t minor = 0;
   uint8_t hdr_size = 0;
   uint8_t off_size = 0;
-  if (!table.ReadU8(&major)) {
-    return OTS_FAILURE();
-  }
-  if (!table.ReadU8(&minor)) {
-    return OTS_FAILURE();
-  }
-  if (!table.ReadU8(&hdr_size)) {
-    return OTS_FAILURE();
-  }
-  if (!table.ReadU8(&off_size)) {
-    return OTS_FAILURE();
-  }
-  if ((off_size == 0) || (off_size > 4)) {
-    return OTS_FAILURE();
+  if (!table.ReadU8(&major) ||
+      !table.ReadU8(&minor) ||
+      !table.ReadU8(&hdr_size) ||
+      !table.ReadU8(&off_size)) {
+    return Error("Failed to read table header");
   }
 
-  if ((major != 1) ||
-      (minor != 0) ||
-      (hdr_size != 4)) {
-    return OTS_FAILURE();
+  if ((off_size == 0) || (off_size > 4)) {
+    return Error("Bad offSize: %d", off_size);
   }
-  if (hdr_size >= length) {
-    return OTS_FAILURE();
+
+  if (major != 1 || minor != 0) {
+    return Error("Unsupported table version: %d.%d", major, minor);
+  }
+
+  if (hdr_size != 4 || hdr_size >= length) {
+    return Error("Bad hdrSize: %d", hdr_size);
   }
 
   // parse "7. Name INDEX"
   table.set_offset(hdr_size);
   CFFIndex name_index;
   if (!ParseIndex(&table, &name_index)) {
-    return OTS_FAILURE();
+    return Error("Failed to parse Name INDEX");
   }
   if (!ParseNameData(&table, name_index, &(this->name))) {
-    return OTS_FAILURE();
+    return Error("Failed to parse Name INDEX data");
   }
 
   // parse "8. Top DICT INDEX"
   table.set_offset(name_index.offset_to_next);
   CFFIndex top_dict_index;
   if (!ParseIndex(&table, &top_dict_index)) {
-    return OTS_FAILURE();
+    return Error("Failed to parse Top DICT INDEX");
   }
   if (name_index.count != top_dict_index.count) {
     return OTS_FAILURE();
@@ -966,10 +960,10 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
   table.set_offset(top_dict_index.offset_to_next);
   CFFIndex string_index;
   if (!ParseIndex(&table, &string_index)) {
-    return OTS_FAILURE();
+    return Error("Failed to parse String INDEX");
   }
   if (string_index.count >= 65000 - kNStdString) {
-    return OTS_FAILURE();
+    return Error("Too many entries in String INDEX: %d", string_index.count);
   }
 
   OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
@@ -985,20 +979,21 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
   if (!ParseDictData(data, length, top_dict_index,
                      num_glyphs, sid_max,
                      DICT_DATA_TOPLEVEL, this)) {
-    return OTS_FAILURE();
+    return Error("Failed to parse Top DICT Data");
   }
 
   // parse "16. Global Subrs INDEX"
   table.set_offset(string_index.offset_to_next);
   CFFIndex global_subrs_index;
   if (!ParseIndex(&table, &global_subrs_index)) {
-    return OTS_FAILURE();
+    return Error("Failed to parse Global Subrs INDEX");
   }
 
   // Check if all fd_index in FDSelect are valid.
   for (const auto& fd_select : this->fd_select) {
     if (fd_select.second >= this->font_dict_length) {
-      return OTS_FAILURE();
+      return Error("Invalid FD index: %d >= %d\n",
+                   fd_select.second, this->font_dict_length);
     }
   }
 
