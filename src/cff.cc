@@ -127,32 +127,28 @@ bool ParseIndex(ots::Buffer *table, ots::CFFIndex *index) {
 bool ParseNameData(
     ots::Buffer *table, const ots::CFFIndex &index, std::string* out_name) {
   uint8_t name[256] = {0};
-  if (index.offsets.size() == 0) {  // just in case.
+
+  const size_t length = index.offsets[1] - index.offsets[0];
+  // font names should be no longer than 127 characters.
+  if (length > 127) {
     return OTS_FAILURE();
   }
-  for (unsigned i = 1; i < index.offsets.size(); ++i) {
-    const size_t length = index.offsets[i] - index.offsets[i - 1];
-    // font names should be no longer than 127 characters.
-    if (length > 127) {
+
+  table->set_offset(index.offsets[0]);
+  if (!table->Read(name, length)) {
+    return OTS_FAILURE();
+  }
+
+  for (size_t i = 0; i < length; ++i) {
+    // setting the first byte to NUL is allowed.
+    if (i == 0 && name[i] == 0) continue;
+    // non-ASCII characters are not recommended (except the first character).
+    if (name[i] < 33 || name[i] > 126) {
       return OTS_FAILURE();
     }
-
-    table->set_offset(index.offsets[i - 1]);
-    if (!table->Read(name, length)) {
+    // [, ], ... are not allowed.
+    if (std::strchr("[](){}<>/% ", name[i])) {
       return OTS_FAILURE();
-    }
-
-    for (size_t j = 0; j < length; ++j) {
-      // setting the first byte to NUL is allowed.
-      if (j == 0 && name[j] == 0) continue;
-      // non-ASCII characters are not recommended (except the first character).
-      if (name[j] < 33 || name[j] > 126) {
-        return OTS_FAILURE();
-      }
-      // [, ], ... are not allowed.
-      if (std::strchr("[](){}<>/% ", name[j])) {
-        return OTS_FAILURE();
-      }
     }
   }
 
@@ -473,7 +469,7 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
                    ots::OpenTypeCFF *out_cff) {
   for (unsigned i = 1; i < index.offsets.size(); ++i) {
     if (type == DICT_DATA_TOPLEVEL) {
-      out_cff->char_strings_array.push_back(new ots::CFFIndex);
+      out_cff->charstrings_index = new ots::CFFIndex;
     }
     size_t dict_length = index.offsets[i] - index.offsets[i - 1];
     ots::Buffer table(data + index.offsets[i - 1], dict_length);
@@ -639,7 +635,7 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
           // parse "14. CharStrings INDEX"
           ots::Buffer cff_table(data, table_length);
           cff_table.set_offset(operands.back().first);
-          ots::CFFIndex *charstring_index = out_cff->char_strings_array.back();
+          ots::CFFIndex *charstring_index = out_cff->charstrings_index;
           if (!ParseIndex(&cff_table, charstring_index)) {
             return OTS_FAILURE();
           }
@@ -942,6 +938,10 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
   if (!ParseIndex(&table, &name_index)) {
     return Error("Failed to parse Name INDEX");
   }
+  if (name_index.count != 1 || name_index.offsets.size() != 2) {
+    return Error("Name INDEX must contain only one entry, not %d",
+		             name_index.count);
+  }
   if (!ParseNameData(&table, name_index, &(this->name))) {
     return Error("Failed to parse Name INDEX data");
   }
@@ -952,8 +952,9 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
   if (!ParseIndex(&table, &top_dict_index)) {
     return Error("Failed to parse Top DICT INDEX");
   }
-  if (name_index.count != top_dict_index.count) {
-    return OTS_FAILURE();
+  if (top_dict_index.count != 1) {
+    return Error("Top DICT INDEX must contain only one entry, not %d",
+                 top_dict_index.count);
   }
 
   // parse "10. String INDEX"
@@ -998,16 +999,14 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
   }
 
   // Check if all charstrings (font hinting code for each glyph) are valid.
-  for (size_t i = 0; i < this->char_strings_array.size(); ++i) {
-    if (!ValidateType2CharStringIndex(font,
-                                      *(this->char_strings_array.at(i)),
-                                      global_subrs_index,
-                                      this->fd_select,
-                                      this->local_subrs_per_font,
-                                      this->local_subrs,
-                                      &table)) {
-      return Error("Failed validating charstring set %d", (int) i);
-    }
+  if (!ValidateType2CharStringIndex(font,
+                                    *(this->charstrings_index),
+                                    global_subrs_index,
+                                    this->fd_select,
+                                    this->local_subrs_per_font,
+                                    this->local_subrs,
+                                    &table)) {
+    return Error("Failed validating CharStrings INDEX");
   }
 
   return true;
@@ -1021,12 +1020,10 @@ bool OpenTypeCFF::Serialize(OTSStream *out) {
 }
 
 OpenTypeCFF::~OpenTypeCFF() {
-  for (size_t i = 0; i < this->char_strings_array.size(); ++i) {
-    delete (this->char_strings_array)[i];
-  }
   for (size_t i = 0; i < this->local_subrs_per_font.size(); ++i) {
     delete (this->local_subrs_per_font)[i];
   }
+  delete this->charstrings_index;
   delete this->local_subrs;
 }
 

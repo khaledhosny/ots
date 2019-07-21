@@ -27,6 +27,7 @@ class OpenTypeCFF : public Table {
   explicit OpenTypeCFF(Font *font, uint32_t tag)
       : Table(font, tag, tag),
         font_dict_length(0),
+        charstrings_index(NULL),
         local_subrs(NULL),
         m_data(NULL),
         m_length(0) {
@@ -46,7 +47,7 @@ class OpenTypeCFF : public Table {
   std::map<uint16_t, uint8_t> fd_select;
 
   // A list of char strings.
-  std::vector<CFFIndex *> char_strings_array;
+  CFFIndex* charstrings_index;
   // A list of Local Subrs associated with FDArrays. Can be empty.
   std::vector<CFFIndex *> local_subrs_per_font;
   // A Local Subrs associated with Top DICT. Can be NULL.
