@@ -761,9 +761,9 @@ bool ExecuteType2CharString(ots::Font *font,
     */
 
       if (!is_operator) {
-        std::fprintf(stderr, "#%d# ", operator_or_operand);
+        std::fprintf(stderr, "%d ", operator_or_operand);
       } else {
-        std::fprintf(stderr, "#%s#\n",
+        std::fprintf(stderr, "%s\n",
            Type2CharStringOperatorToString(
                ots::Type2CharStringOperator(operator_or_operand))
            );
