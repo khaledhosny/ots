@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/khaledhosny/ots.svg?branch=master)](https://travis-ci.org/khaledhosny/ots)
-[![Build status](https://ci.appveyor.com/api/projects/status/0l9ms6g47corescm?svg=true)](https://ci.appveyor.com/project/khaledhosny/ots)
+[![Build status](https://ci.appveyor.com/api/projects/status/0l9ms6g47corescm/branch/master?svg=true)](https://ci.appveyor.com/project/khaledhosny/ots/branch/master)
 
 OpenType Sanitizer
 ==================
