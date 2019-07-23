@@ -817,8 +817,7 @@ bool SelectLocalSubr(const std::map<uint16_t, uint8_t> &fd_select,
   if ((fd_select.size() > 0) &&
       (!local_subrs_per_font.empty())) {
     // Look up FDArray index for the glyph.
-    std::map<uint16_t, uint8_t>::const_iterator iter =
-        fd_select.find(glyph_index);
+    const auto& iter = fd_select.find(glyph_index);
     if (iter == fd_select.end()) {
       return OTS_FAILURE();
     }

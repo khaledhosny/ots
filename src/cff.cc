@@ -996,10 +996,8 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
   }
 
   // Check if all fd_index in FDSelect are valid.
-  std::map<uint16_t, uint8_t>::const_iterator iter;
-  std::map<uint16_t, uint8_t>::const_iterator end = this->fd_select.end();
-  for (iter = this->fd_select.begin(); iter != end; ++iter) {
-    if (iter->second >= this->font_dict_length) {
+  for (const auto& fd_select : this->fd_select) {
+    if (fd_select.second >= this->font_dict_length) {
       return OTS_FAILURE();
     }
   }

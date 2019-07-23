@@ -73,9 +73,8 @@ namespace ots {
 struct Arena {
  public:
   ~Arena() {
-    for (std::vector<uint8_t*>::iterator
-         i = hunks_.begin(); i != hunks_.end(); ++i) {
-      delete[] *i;
+    for (auto& hunk : hunks_) {
+      delete[] hunk;
     }
   }
 
