@@ -468,9 +468,6 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
                    size_t sid_max, DICT_DATA_TYPE type,
                    ots::OpenTypeCFF *out_cff) {
   for (unsigned i = 1; i < index.offsets.size(); ++i) {
-    if (type == DICT_DATA_TOPLEVEL) {
-      out_cff->charstrings_index = new ots::CFFIndex;
-    }
     size_t dict_length = index.offsets[i] - index.offsets[i - 1];
     ots::Buffer table(data + index.offsets[i - 1], dict_length);
 
@@ -977,6 +974,7 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
   // string_index.count == 0 is allowed.
 
   // parse "9. Top DICT Data"
+  this->charstrings_index = new ots::CFFIndex;
   if (!ParseDictData(data, length, top_dict_index,
                      num_glyphs, sid_max,
                      DICT_DATA_TOPLEVEL, this)) {
