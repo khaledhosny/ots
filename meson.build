@@ -222,10 +222,19 @@ executable('ots-sanitize',
 )
 
 
+fuzzer_ldflags = []
+fuzzer_defines = []
+if get_option('fuzzer_ldflags') != ''
+  fuzzer_ldflags += [get_option('fuzzer_ldflags')]
+  fuzzer_defines += ['-DOTS_FUZZER_NO_MAIN']
+endif
+
 executable('ots-fuzzer',
   'util/ots-fuzzer.cc',
   include_directories: include_directories(['include', 'src']),
+  cpp_args: fuzzer_defines,
   link_with: libots,
+  link_args: fuzzer_ldflags,
 )
 
 
