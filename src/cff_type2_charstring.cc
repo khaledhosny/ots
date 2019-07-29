@@ -46,101 +46,101 @@ bool ExecuteType2CharString(ots::Font *font,
 const char *Type2CharStringOperatorToString(ots::Type2CharStringOperator op) {
   switch (op) {
   case ots::kHStem:
-    return "HStem";
+    return "hstem";
   case ots::kVStem:
-    return "VStem";
+    return "vstem";
   case ots::kVMoveTo:
-    return "VMoveTo";
+    return "vmoveto";
   case ots::kRLineTo:
-    return "RLineTo";
+    return "rlineto";
   case ots::kHLineTo:
-    return "HLineTo";
+    return "hlineto";
   case ots::kVLineTo:
-    return "VLineTo";
+    return "vlineto";
   case ots::kRRCurveTo:
-    return "RRCurveTo";
+    return "rrcurveto";
   case ots::kCallSubr:
-    return "CallSubr";
+    return "callsubr";
   case ots::kReturn:
-    return "Return";
+    return "return";
   case ots::kEndChar:
-    return "EndChar";
+    return "endchar";
   case ots::kHStemHm:
-    return "HStemHm";
+    return "hstemhm";
   case ots::kHintMask:
-    return "HintMask";
+    return "hintmask";
   case ots::kCntrMask:
-    return "CntrMask";
+    return "cntrmask";
   case ots::kRMoveTo:
-    return "RMoveTo";
+    return "rmoveto";
   case ots::kHMoveTo:
-    return "HMoveTo";
+    return "hmoveto";
   case ots::kVStemHm:
-    return "VStemHm";
+    return "vstemhm";
   case ots::kRCurveLine:
-    return "RCurveLine";
+    return "rcurveline";
   case ots::kRLineCurve:
-    return "RLineCurve";
+    return "rlinecurve";
   case ots::kVVCurveTo:
     return "VVCurveTo";
   case ots::kHHCurveTo:
-    return "HHCurveTo";
+    return "hhcurveto";
   case ots::kCallGSubr:
-    return "CallGSubr";
+    return "callgsubr";
   case ots::kVHCurveTo:
-    return "VHCurveTo";
+    return "vhcurveto";
   case ots::kHVCurveTo:
     return "HVCurveTo";
   case ots::kDotSection:
-    return "DotSection";
+    return "dotsection";
   case ots::kAnd:
-    return "And";
+    return "and";
   case ots::kOr:
-    return "Or";
+    return "or";
   case ots::kNot:
-    return "Not";
+    return "not";
   case ots::kAbs:
-    return "Abs";
+    return "abs";
   case ots::kAdd:
-    return "Add";
+    return "add";
   case ots::kSub:
-    return "Sub";
+    return "sub";
   case ots::kDiv:
-    return "Div";
+    return "div";
   case ots::kNeg:
-    return "Neg";
+    return "neg";
   case ots::kEq:
-    return "Eq";
+    return "eq";
   case ots::kDrop:
-    return "Drop";
+    return "drop";
   case ots::kPut:
-    return "Put";
+    return "put";
   case ots::kGet:
-    return "Get";
+    return "get";
   case ots::kIfElse:
-    return "IfElse";
+    return "ifelse";
   case ots::kRandom:
-    return "Random";
+    return "random";
   case ots::kMul:
-    return "Mul";
+    return "mul";
   case ots::kSqrt:
-    return "Sqrt";
+    return "sqrt";
   case ots::kDup:
-    return "Dup";
+    return "dup";
   case ots::kExch:
-    return "Exch";
+    return "exch";
   case ots::kIndex:
-    return "Index";
+    return "index";
   case ots::kRoll:
-    return "Roll";
+    return "roll";
   case ots::kHFlex:
-    return "HFlex";
+    return "hflex";
   case ots::kFlex:
-    return "Flex";
+    return "flex";
   case ots::kHFlex1:
-    return "HFlex1";
+    return "hflex1";
   case ots::kFlex1:
-    return "Flex1";
+    return "flex1";
   }
 
   return "UNKNOWN";
