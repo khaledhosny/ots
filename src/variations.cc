@@ -23,6 +23,10 @@ bool ParseVariationRegionList(const ots::Font* font, const uint8_t* data, const 
     return OTS_FAILURE_MSG("Failed to read variation region list header");
   }
 
+  if (*regionCount == 0) {
+    return true;
+  }
+
   const ots::OpenTypeFVAR* fvar =
     static_cast<ots::OpenTypeFVAR*>(font->GetTypedTable(OTS_TAG_FVAR));
   if (!fvar) {
