@@ -17,8 +17,10 @@ matrix:
         - ninja -C build dist
         - zip -r $OTS-$TRAVIS_OS_NAME.zip $OTS-$TRAVIS_OS_NAME
 
-    - os: linux
+    - os: osx
       compiler: clang
+      before_install:
+        - true
       before_script:
         - meson -Db_sanitize=address,undefined build
 
