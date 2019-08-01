@@ -940,7 +940,7 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
   }
   if (name_index.count != 1 || name_index.offsets.size() != 2) {
     return Error("Name INDEX must contain only one entry, not %d",
-		             name_index.count);
+                 name_index.count);
   }
   if (!ParseNameData(&table, name_index, &(this->name))) {
     return Error("Failed to parse Name INDEX data");
