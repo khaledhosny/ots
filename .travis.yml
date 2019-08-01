@@ -1,6 +1,6 @@
 language: cpp
 
-dist: bionic
+dist: xenial
 
 matrix:
   include:
@@ -27,8 +27,6 @@ matrix:
     - os: osx
       compiler: clang
       env: DEPLOY=true
-      before_install:
-        - true
       before_script:
         - meson --unity=on --buildtype=release --strip -Ddebug=true --prefix=$PWD --bindir=$OTS-$TRAVIS_OS_NAME build
       before_deploy:
@@ -43,11 +41,6 @@ addons:
       - fonts-takao-mincho
       - fonts-takao-pgothic
       - python3-pip
-
-# APT addons above are ignored, install manually for now.
-before_install:
-  - sudo apt update
-  - sudo apt install -y python3-pip fonts-inconsolata fonts-takao-gothic fonts-takao-mincho fonts-takao-pgothic
 
 install:
   - export OTS=ots-$(grep -m1 version meson.build | cut -d"'" -f2)
