@@ -19,33 +19,41 @@
 // The OpenType Font File
 // http://www.microsoft.com/typography/otspec/otff.htm
 
+#include "avar.h"
 #include "cff.h"
 #include "cmap.h"
+#include "cvar.h"
 #include "cvt.h"
 #include "fpgm.h"
+#include "fvar.h"
 #include "gasp.h"
 #include "gdef.h"
 #include "glyf.h"
 #include "gpos.h"
 #include "gsub.h"
+#include "gvar.h"
 #include "hdmx.h"
 #include "head.h"
 #include "hhea.h"
 #include "hmtx.h"
+#include "hvar.h"
 #include "kern.h"
 #include "loca.h"
 #include "ltsh.h"
 #include "math_.h"
 #include "maxp.h"
+#include "mvar.h"
 #include "name.h"
 #include "os2.h"
 #include "ots.h"
 #include "post.h"
 #include "prep.h"
+#include "stat.h"
 #include "vdmx.h"
 #include "vhea.h"
 #include "vmtx.h"
 #include "vorg.h"
+#include "vvar.h"
 
 // Graphite tables
 #ifdef OTS_GRAPHITE
@@ -55,17 +63,6 @@
 #include "sile.h"
 #include "silf.h"
 #include "sill.h"
-#endif
-
-#ifdef OTS_VARIATIONS
-#include "avar.h"
-#include "cvar.h"
-#include "fvar.h"
-#include "gvar.h"
-#include "hvar.h"
-#include "mvar.h"
-#include "stat.h"
-#include "vvar.h"
 #endif
 
 namespace ots {
@@ -138,7 +135,6 @@ const struct {
   { OTS_TAG_KERN, false },
   // We need to parse fvar table before other tables that may need to know
   // the number of variation axes (if any)
-#ifdef OTS_VARIATIONS
   { OTS_TAG_FVAR, false },
   { OTS_TAG_AVAR, false },
   { OTS_TAG_CVAR, false },
@@ -147,7 +143,6 @@ const struct {
   { OTS_TAG_MVAR, false },
   { OTS_TAG_STAT, false },
   { OTS_TAG_VVAR, false },
-#endif
   // We need to parse GDEF table in advance of parsing GSUB/GPOS tables
   // because they could refer GDEF table.
   { OTS_TAG_GDEF, false },
@@ -884,32 +879,40 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
     table = new TablePassthru(this, tag);
   } else {
     switch (tag) {
+      case OTS_TAG_AVAR: table = new OpenTypeAVAR(this, tag); break;
       case OTS_TAG_CFF:  table = new OpenTypeCFF(this,  tag); break;
       case OTS_TAG_CMAP: table = new OpenTypeCMAP(this, tag); break;
+      case OTS_TAG_CVAR: table = new OpenTypeCVAR(this, tag); break;
       case OTS_TAG_CVT:  table = new OpenTypeCVT(this,  tag); break;
       case OTS_TAG_FPGM: table = new OpenTypeFPGM(this, tag); break;
+      case OTS_TAG_FVAR: table = new OpenTypeFVAR(this, tag); break;
       case OTS_TAG_GASP: table = new OpenTypeGASP(this, tag); break;
       case OTS_TAG_GDEF: table = new OpenTypeGDEF(this, tag); break;
       case OTS_TAG_GLYF: table = new OpenTypeGLYF(this, tag); break;
       case OTS_TAG_GPOS: table = new OpenTypeGPOS(this, tag); break;
       case OTS_TAG_GSUB: table = new OpenTypeGSUB(this, tag); break;
+      case OTS_TAG_GVAR: table = new OpenTypeGVAR(this, tag); break;
       case OTS_TAG_HDMX: table = new OpenTypeHDMX(this, tag); break;
       case OTS_TAG_HEAD: table = new OpenTypeHEAD(this, tag); break;
       case OTS_TAG_HHEA: table = new OpenTypeHHEA(this, tag); break;
       case OTS_TAG_HMTX: table = new OpenTypeHMTX(this, tag); break;
+      case OTS_TAG_HVAR: table = new OpenTypeHVAR(this, tag); break;
       case OTS_TAG_KERN: table = new OpenTypeKERN(this, tag); break;
       case OTS_TAG_LOCA: table = new OpenTypeLOCA(this, tag); break;
       case OTS_TAG_LTSH: table = new OpenTypeLTSH(this, tag); break;
       case OTS_TAG_MATH: table = new OpenTypeMATH(this, tag); break;
       case OTS_TAG_MAXP: table = new OpenTypeMAXP(this, tag); break;
+      case OTS_TAG_MVAR: table = new OpenTypeMVAR(this, tag); break;
       case OTS_TAG_NAME: table = new OpenTypeNAME(this, tag); break;
       case OTS_TAG_OS2:  table = new OpenTypeOS2(this,  tag); break;
       case OTS_TAG_POST: table = new OpenTypePOST(this, tag); break;
       case OTS_TAG_PREP: table = new OpenTypePREP(this, tag); break;
+      case OTS_TAG_STAT: table = new OpenTypeSTAT(this, tag); break;
       case OTS_TAG_VDMX: table = new OpenTypeVDMX(this, tag); break;
-      case OTS_TAG_VORG: table = new OpenTypeVORG(this, tag); break;
       case OTS_TAG_VHEA: table = new OpenTypeVHEA(this, tag); break;
       case OTS_TAG_VMTX: table = new OpenTypeVMTX(this, tag); break;
+      case OTS_TAG_VORG: table = new OpenTypeVORG(this, tag); break;
+      case OTS_TAG_VVAR: table = new OpenTypeVVAR(this, tag); break;
       // Graphite tables
 #ifdef OTS_GRAPHITE
       case OTS_TAG_FEAT: table = new OpenTypeFEAT(this, tag); break;
@@ -918,16 +921,6 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       case OTS_TAG_SILE: table = new OpenTypeSILE(this, tag); break;
       case OTS_TAG_SILF: table = new OpenTypeSILF(this, tag); break;
       case OTS_TAG_SILL: table = new OpenTypeSILL(this, tag); break;
-#endif
-#ifdef OTS_VARIATIONS
-      case OTS_TAG_AVAR: table = new OpenTypeAVAR(this, tag); break;
-      case OTS_TAG_CVAR: table = new OpenTypeCVAR(this, tag); break;
-      case OTS_TAG_FVAR: table = new OpenTypeFVAR(this, tag); break;
-      case OTS_TAG_GVAR: table = new OpenTypeGVAR(this, tag); break;
-      case OTS_TAG_HVAR: table = new OpenTypeHVAR(this, tag); break;
-      case OTS_TAG_MVAR: table = new OpenTypeMVAR(this, tag); break;
-      case OTS_TAG_STAT: table = new OpenTypeSTAT(this, tag); break;
-      case OTS_TAG_VVAR: table = new OpenTypeVVAR(this, tag); break;
 #endif
       default: break;
     }

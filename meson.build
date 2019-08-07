@@ -17,10 +17,6 @@ if get_option('graphite')
   conf.set('OTS_GRAPHITE', 1)
 endif
 
-if get_option('variations')
-  conf.set('OTS_VARIATIONS', 1)
-endif
-
 freetype = dependency('freetype2', required: false)
 if freetype.found()
   conf.set('HAVE_FREETYPE', 1)
@@ -91,16 +87,22 @@ ots_includes = [
 ]
 
 ots_sources = [
+  'src/avar.cc',
+  'src/avar.h',
   'src/cff.cc',
   'src/cff.h',
   'src/cff_type2_charstring.cc',
   'src/cff_type2_charstring.h',
   'src/cmap.cc',
   'src/cmap.h',
+  'src/cvar.cc',
+  'src/cvar.h',
   'src/cvt.cc',
   'src/cvt.h',
   'src/fpgm.cc',
   'src/fpgm.h',
+  'src/fvar.cc',
+  'src/fvar.h',
   'src/gasp.cc',
   'src/gasp.h',
   'src/gdef.cc',
@@ -111,6 +113,8 @@ ots_sources = [
   'src/gpos.h',
   'src/gsub.cc',
   'src/gsub.h',
+  'src/gvar.cc',
+  'src/gvar.h',
   'src/hdmx.cc',
   'src/hdmx.h',
   'src/head.cc',
@@ -119,6 +123,8 @@ ots_sources = [
   'src/hhea.h',
   'src/hmtx.cc',
   'src/hmtx.h',
+  'src/hvar.cc',
+  'src/hvar.h',
   'src/kern.cc',
   'src/kern.h',
   'src/layout.cc',
@@ -127,12 +133,14 @@ ots_sources = [
   'src/loca.h',
   'src/ltsh.cc',
   'src/ltsh.h',
-  'src/maxp.cc',
-  'src/maxp.h',
   'src/math.cc',
   'src/math_.h',
+  'src/maxp.cc',
+  'src/maxp.h',
   'src/metrics.cc',
   'src/metrics.h',
+  'src/mvar.cc',
+  'src/mvar.h',
   'src/name.cc',
   'src/name.h',
   'src/os2.cc',
@@ -143,6 +151,10 @@ ots_sources = [
   'src/post.h',
   'src/prep.cc',
   'src/prep.h',
+  'src/stat.cc',
+  'src/stat.h',
+  'src/variations.cc',
+  'src/variations.h',
   'src/vdmx.cc',
   'src/vdmx.h',
   'src/vhea.cc',
@@ -151,6 +163,8 @@ ots_sources = [
   'src/vmtx.h',
   'src/vorg.cc',
   'src/vorg.h',
+  'src/vvar.cc',
+  'src/vvar.h',
 ]
 
 ots_libs = [libbrotli, libwoff2]
@@ -177,29 +191,6 @@ if get_option('graphite')
     'third_party/lz4/lib/lz4.h',
   )
   ots_libs += [liblz4]
-endif
-
-if get_option('variations')
-  ots_sources += [
-    'src/avar.cc',
-    'src/avar.h',
-    'src/cvar.cc',
-    'src/cvar.h',
-    'src/fvar.cc',
-    'src/fvar.h',
-    'src/gvar.cc',
-    'src/gvar.h',
-    'src/hvar.cc',
-    'src/hvar.h',
-    'src/mvar.cc',
-    'src/mvar.h',
-    'src/stat.cc',
-    'src/stat.h',
-    'src/variations.cc',
-    'src/variations.h',
-    'src/vvar.cc',
-    'src/vvar.h',
-  ]
 endif
 
 zlib = dependency('zlib', fallback : ['zlib', 'zlib_dep'])
