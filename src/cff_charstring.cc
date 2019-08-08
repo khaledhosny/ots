@@ -30,20 +30,20 @@ const size_t kMaxSubrNesting = 10;
 // will fail with the dummy value.
 const int32_t dummy_result = INT_MAX;
 
-bool ExecuteType2CharString(ots::Font *font,
-                            size_t call_depth,
-                            const ots::CFFIndex& global_subrs_index,
-                            const ots::CFFIndex& local_subrs_index,
-                            ots::Buffer *cff_table,
-                            ots::Buffer *char_string,
-                            std::stack<int32_t> *argument_stack,
-                            bool *out_found_endchar,
-                            bool *out_found_width,
-                            size_t *in_out_num_stems);
+bool ExecuteCharString(ots::Font *font,
+                       size_t call_depth,
+                       const ots::CFFIndex& global_subrs_index,
+                       const ots::CFFIndex& local_subrs_index,
+                       ots::Buffer *cff_table,
+                       ots::Buffer *char_string,
+                       std::stack<int32_t> *argument_stack,
+                       bool *out_found_endchar,
+                       bool *out_found_width,
+                       size_t *in_out_num_stems);
 
 #ifdef DUMP_T2CHARSTRING
 // Converts |op| to a string and returns it.
-const char *Type2CharStringOperatorToString(ots::Type2CharStringOperator op) {
+const char *CharStringOperatorToString(ots::CharStringOperator op) {
   switch (op) {
   case ots::kHStem:
     return "hstem";
@@ -150,9 +150,9 @@ const char *Type2CharStringOperatorToString(ots::Type2CharStringOperator op) {
 // Read one or more bytes from the |char_string| buffer and stores the number
 // read on |out_number|. If the number read is an operator (ex 'vstem'), sets
 // true on |out_is_operator|. Returns true if the function read a number.
-bool ReadNextNumberFromType2CharString(ots::Buffer *char_string,
-                                       int32_t *out_number,
-                                       bool *out_is_operator) {
+bool ReadNextNumberFromCharString(ots::Buffer *char_string,
+                                  int32_t *out_number,
+                                  bool *out_is_operator) {
   uint8_t v = 0;
   if (!char_string->ReadU8(&v)) {
     return OTS_FAILURE();
@@ -174,7 +174,7 @@ bool ReadNextNumberFromType2CharString(ots::Buffer *char_string,
     *out_is_operator = true;
   } else if (v <= 27) {
     // Special handling for v==19 and v==20 are implemented in
-    // ExecuteType2CharStringOperator().
+    // ExecuteCharStringOperator().
     *out_number = v;
     *out_is_operator = true;
   } else if (v == 28) {
@@ -223,19 +223,19 @@ bool ReadNextNumberFromType2CharString(ots::Buffer *char_string,
 
 // Executes |op| and updates |argument_stack|. Returns true if the execution
 // succeeds. If the |op| is kCallSubr or kCallGSubr, the function recursively
-// calls ExecuteType2CharString() function. The arguments other than |op| and
+// calls ExecuteCharString() function. The arguments other than |op| and
 // |argument_stack| are passed for that reason.
-bool ExecuteType2CharStringOperator(ots::Font *font,
-                                    int32_t op,
-                                    size_t call_depth,
-                                    const ots::CFFIndex& global_subrs_index,
-                                    const ots::CFFIndex& local_subrs_index,
-                                    ots::Buffer *cff_table,
-                                    ots::Buffer *char_string,
-                                    std::stack<int32_t> *argument_stack,
-                                    bool *out_found_endchar,
-                                    bool *in_out_found_width,
-                                    size_t *in_out_num_stems) {
+bool ExecuteCharStringOperator(ots::Font *font,
+                               int32_t op,
+                               size_t call_depth,
+                               const ots::CFFIndex& global_subrs_index,
+                               const ots::CFFIndex& local_subrs_index,
+                               ots::Buffer *cff_table,
+                               ots::Buffer *char_string,
+                               std::stack<int32_t> *argument_stack,
+                               bool *out_found_endchar,
+                               bool *in_out_found_width,
+                               size_t *in_out_num_stems) {
   const size_t stack_size = argument_stack->size();
 
   switch (op) {
@@ -290,16 +290,16 @@ bool ExecuteType2CharStringOperator(ots::Font *font,
     }
     ots::Buffer char_string_to_jump(cff_table->buffer() + offset, length);
 
-    return ExecuteType2CharString(font,
-                                  call_depth + 1,
-                                  global_subrs_index,
-                                  local_subrs_index,
-                                  cff_table,
-                                  &char_string_to_jump,
-                                  argument_stack,
-                                  out_found_endchar,
-                                  in_out_found_width,
-                                  in_out_num_stems);
+    return ExecuteCharString(font,
+                             call_depth + 1,
+                             global_subrs_index,
+                             local_subrs_index,
+                             cff_table,
+                             &char_string_to_jump,
+                             argument_stack,
+                             out_found_endchar,
+                             in_out_found_width,
+                             in_out_num_stems);
   }
 
   case ots::kReturn:
@@ -729,16 +729,16 @@ bool ExecuteType2CharStringOperator(ots::Font *font,
 // in_out_found_width: true is set if |char_string| contains 'width' byte (which
 //                     is 0 or 1 byte.)
 // in_out_num_stems: total number of hstems and vstems processed so far.
-bool ExecuteType2CharString(ots::Font *font,
-                            size_t call_depth,
-                            const ots::CFFIndex& global_subrs_index,
-                            const ots::CFFIndex& local_subrs_index,
-                            ots::Buffer *cff_table,
-                            ots::Buffer *char_string,
-                            std::stack<int32_t> *argument_stack,
-                            bool *out_found_endchar,
-                            bool *in_out_found_width,
-                            size_t *in_out_num_stems) {
+bool ExecuteCharString(ots::Font *font,
+                       size_t call_depth,
+                       const ots::CFFIndex& global_subrs_index,
+                       const ots::CFFIndex& local_subrs_index,
+                       ots::Buffer *cff_table,
+                       ots::Buffer *char_string,
+                       std::stack<int32_t> *argument_stack,
+                       bool *out_found_endchar,
+                       bool *in_out_found_width,
+                       size_t *in_out_num_stems) {
   if (call_depth > kMaxSubrNesting) {
     return OTS_FAILURE();
   }
@@ -748,7 +748,7 @@ bool ExecuteType2CharString(ots::Font *font,
   while (char_string->offset() < length) {
     int32_t operator_or_operand = 0;
     bool is_operator = false;
-    if (!ReadNextNumberFromType2CharString(char_string,
+    if (!ReadNextNumberFromCharString(char_string,
                                            &operator_or_operand,
                                            &is_operator)) {
       return OTS_FAILURE();
@@ -764,8 +764,8 @@ bool ExecuteType2CharString(ots::Font *font,
         std::fprintf(stderr, "%d ", operator_or_operand);
       } else {
         std::fprintf(stderr, "%s\n",
-           Type2CharStringOperatorToString(
-               ots::Type2CharStringOperator(operator_or_operand))
+           CharStringOperatorToString(
+               ots::CharStringOperator(operator_or_operand))
            );
       }
 #endif
@@ -779,17 +779,17 @@ bool ExecuteType2CharString(ots::Font *font,
     }
 
     // An operator is found. Execute it.
-    if (!ExecuteType2CharStringOperator(font,
-                                        operator_or_operand,
-                                        call_depth,
-                                        global_subrs_index,
-                                        local_subrs_index,
-                                        cff_table,
-                                        char_string,
-                                        argument_stack,
-                                        out_found_endchar,
-                                        in_out_found_width,
-                                        in_out_num_stems)) {
+    if (!ExecuteCharStringOperator(font,
+                                   operator_or_operand,
+                                   call_depth,
+                                   global_subrs_index,
+                                   local_subrs_index,
+                                   cff_table,
+                                   char_string,
+                                   argument_stack,
+                                   out_found_endchar,
+                                   in_out_found_width,
+                                   in_out_num_stems)) {
       return OTS_FAILURE();
     }
     if (*out_found_endchar) {
@@ -843,7 +843,7 @@ bool SelectLocalSubr(const std::map<uint16_t, uint8_t> &fd_select,
 
 namespace ots {
 
-bool ValidateType2CharStringIndex(
+bool ValidateCFFCharStrings(
     ots::Font *font,
     const CFFIndex& char_strings_index,
     const CFFIndex& global_subrs_index,
@@ -892,11 +892,11 @@ bool ValidateType2CharStringIndex(
     bool found_endchar = false;
     bool found_width = false;
     size_t num_stems = 0;
-    if (!ExecuteType2CharString(font,
-                                0 /* initial call_depth is zero */,
-                                global_subrs_index, *local_subrs_to_use,
-                                cff_table, &char_string, &argument_stack,
-                                &found_endchar, &found_width, &num_stems)) {
+    if (!ExecuteCharString(font,
+                           0 /* initial call_depth is zero */,
+                           global_subrs_index, *local_subrs_to_use,
+                           cff_table, &char_string, &argument_stack,
+                           &found_endchar, &found_width, &num_stems)) {
       return OTS_FAILURE();
     }
     if (!found_endchar) {

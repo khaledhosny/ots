@@ -34,7 +34,7 @@ namespace ots {
 //  local_subrs: A Local Subrs associated with Top DICT. Can be NULL.
 //  cff_table: A buffer which contains actual byte code of charstring, global
 //             subroutines and local subroutines.
-bool ValidateType2CharStringIndex(
+bool ValidateCFFCharStrings(
     Font *font,
     const CFFIndex &char_strings_index,
     const CFFIndex &global_subrs_index,
@@ -44,7 +44,7 @@ bool ValidateType2CharStringIndex(
     Buffer *cff_table);
 
 // The list of Operators. See Appendix. A in Adobe Technical Note #5177.
-enum Type2CharStringOperator {
+enum CharStringOperator {
   kHStem = 1,
   kVStem = 3,
   kVMoveTo = 4,

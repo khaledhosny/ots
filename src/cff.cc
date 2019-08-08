@@ -999,13 +999,13 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
   }
 
   // Check if all charstrings (font hinting code for each glyph) are valid.
-  if (!ValidateType2CharStringIndex(font,
-                                    *(this->charstrings_index),
-                                    global_subrs_index,
-                                    this->fd_select,
-                                    this->local_subrs_per_font,
-                                    this->local_subrs,
-                                    &table)) {
+  if (!ValidateCFFCharStrings(font,
+                              *(this->charstrings_index),
+                              global_subrs_index,
+                              this->fd_select,
+                              this->local_subrs_per_font,
+                              this->local_subrs,
+                              &table)) {
     return Error("Failed validating CharStrings INDEX");
   }
 

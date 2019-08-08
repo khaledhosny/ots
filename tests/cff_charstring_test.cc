@@ -154,13 +154,13 @@ bool Validate(const int *char_string, size_t char_string_len,
   ots::FontFile* file = new ots::FontFile();
   ots::Font* font = new ots::Font(file);
   file->context = new ots::OTSContext();
-  bool ret = ots::ValidateType2CharStringIndex(font,
-                                           char_strings_index,
-                                           global_subrs_index,
-                                           fd_select,
-                                           local_subrs_per_font,
-                                           &local_subrs_index,
-                                           &ots_buffer);
+  bool ret = ots::ValidateCFFCharStrings(font,
+                                         char_strings_index,
+                                         global_subrs_index,
+                                         fd_select,
+                                         local_subrs_per_font,
+                                         &local_subrs_index,
+                                         &ots_buffer);
   delete file->context;
   delete file;
   delete font;
