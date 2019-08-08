@@ -73,8 +73,7 @@ bool ParseIndex(ots::Buffer &table, ots::CFFIndex &index) {
   if (!table.ReadU8(&(index.off_size))) {
     return OTS_FAILURE();
   }
-  if ((index.off_size == 0) ||
-      (index.off_size > 4)) {
+  if (index.off_size < 1 || index.off_size > 4) {
     return OTS_FAILURE();
   }
 
@@ -907,7 +906,7 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
     return Error("Failed to read table header");
   }
 
-  if ((off_size == 0) || (off_size > 4)) {
+  if (off_size < 1 || off_size > 4) {
     return Error("Bad offSize: %d", off_size);
   }
 
