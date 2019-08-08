@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "cff_type2_charstring.h"
+#include "cff_charstring.h"
 
 #include <gtest/gtest.h>
 

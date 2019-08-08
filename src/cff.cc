@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "maxp.h"
-#include "cff_type2_charstring.h"
+#include "cff_charstring.h"
 
 // CFF - PostScript font program (Compact Font Format) table
 // http://www.microsoft.com/typography/otspec/cff.htm

@@ -5,7 +5,7 @@
 // A parser for the Type 2 Charstring Format.
 // http://www.adobe.com/devnet/font/pdfs/5177.Type2.pdf
 
-#include "cff_type2_charstring.h"
+#include "cff_charstring.h"
 
 #include <climits>
 #include <cstdio>
