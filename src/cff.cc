@@ -352,6 +352,21 @@ bool OperandsOverflow(std::vector<Operand>& operands, bool cff2) {
   return false;
 }
 
+bool ParseDictDataReadOperands(ots::Buffer& dict,
+                               std::vector<Operand>& operands,
+                               bool cff2) {
+  if (!ParseDictDataReadNext(dict, operands)) {
+    return OTS_FAILURE();
+  }
+  if (operands.empty()) {
+    return OTS_FAILURE();
+  }
+  if (OperandsOverflow(operands, cff2)) {
+    return OTS_FAILURE();
+  }
+  return true;
+}
+
 bool ValidCFF2DictOp(uint32_t op, DICT_DATA_TYPE type) {
   if (type == DICT_DATA_TOPLEVEL) {
     switch (op) {
@@ -399,13 +414,7 @@ bool ParsePrivateDictData(
   }
 
   while (dict.offset() < dict.length()) {
-    if (!ParseDictDataReadNext(dict, operands)) {
-      return OTS_FAILURE();
-    }
-    if (operands.empty()) {
-      return OTS_FAILURE();
-    }
-    if (OperandsOverflow(operands, cff2)) {
+    if (!ParseDictDataReadOperands(dict, operands, cff2)) {
       return OTS_FAILURE();
     }
     if (operands.back().second != DICT_OPERATOR) {
@@ -618,13 +627,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
   size_t charset_offset = 0;
 
   while (dict.offset() < dict.length()) {
-    if (!ParseDictDataReadNext(dict, operands)) {
-      return OTS_FAILURE();
-    }
-    if (operands.empty()) {
-      return OTS_FAILURE();
-    }
-    if (OperandsOverflow(operands, cff2)) {
+    if (!ParseDictDataReadOperands(dict, operands, cff2)) {
       return OTS_FAILURE();
     }
     if (operands.back().second != DICT_OPERATOR) continue;
