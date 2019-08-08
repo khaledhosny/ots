@@ -28,6 +28,7 @@ enum DICT_OPERAND_TYPE {
 enum DICT_DATA_TYPE {
   DICT_DATA_TOPLEVEL,
   DICT_DATA_FDARRAY,
+  DICT_DATA_PRIVATE,
 };
 
 enum FONT_FORMAT {
@@ -350,6 +351,36 @@ bool OperandsOverflow(std::vector<Operand>& operands, bool cff2) {
   return false;
 }
 
+bool ValidCFF2DictOp(uint32_t op, DICT_DATA_TYPE type) {
+  if (type == DICT_DATA_TOPLEVEL) {
+    switch (op) {
+      case (12U << 8) + 7:  // FontMatrix
+      case 17:              // CharStrings
+      case (12U << 8) + 36: // FDArray
+      case (12U << 8) + 37: // FDSelect
+      case 24:              // vstore
+        return true;
+      default:
+        return false;
+    }
+  } else if (type == DICT_DATA_FDARRAY) {
+    if (op == 18) // Private DICT
+      return true;
+  } else if (type == DICT_DATA_PRIVATE) {
+    switch (op) {
+      case (12U << 8) + 14: // ForceBold
+      case (12U << 8) + 19: // initialRandomSeed
+      case 20:              // defaultWidthX
+      case 21:              // nominalWidthX
+        return false;
+      default:
+        return true;
+    }
+  }
+
+  return false;
+}
+
 bool ParsePrivateDictData(
     ots::Buffer &table, size_t offset, size_t dict_length,
     DICT_DATA_TYPE type, ots::OpenTypeCFF *out_cff) {
@@ -381,6 +412,10 @@ bool ParsePrivateDictData(
     // got operator
     const uint32_t op = operands.back().first;
     operands.pop_back();
+
+    if (cff2 && !ValidCFF2DictOp(op, DICT_DATA_PRIVATE)) {
+      return OTS_FAILURE();
+    }
 
     switch (op) {
       // hints
@@ -465,6 +500,10 @@ bool ParsePrivateDictData(
         }
         break;
 
+      case 22:  // vsindex
+      case 23:  // blend
+        return OTS_FAILURE();
+
       default:
         return OTS_FAILURE();
     }
@@ -518,6 +557,10 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
     // got operator
     const uint32_t op = operands.back().first;
     operands.pop_back();
+
+    if (cff2 && !ValidCFF2DictOp(op, type)) {
+      return OTS_FAILURE();
+    }
 
     switch (op) {
       // SID
