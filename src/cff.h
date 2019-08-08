@@ -24,6 +24,8 @@ struct CFFIndex {
   uint32_t offset_to_next;
 };
 
+typedef std::map<uint32_t, uint16_t> CFFFDSelect;
+
 class OpenTypeCFF : public Table {
  public:
   explicit OpenTypeCFF(Font *font, uint32_t tag)
@@ -50,7 +52,7 @@ class OpenTypeCFF : public Table {
   // The number of fonts the file has.
   size_t font_dict_length;
   // A map from glyph # to font #.
-  std::map<uint16_t, uint8_t> fd_select;
+  CFFFDSelect fd_select;
 
   // A list of char strings.
   CFFIndex* charstrings_index;
