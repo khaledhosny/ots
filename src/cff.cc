@@ -595,7 +595,6 @@ bool ParseDictData(ots::Buffer& table, const ots::CFFIndex &index,
             return OTS_FAILURE();
           }
 
-          // parse sub dictionary INDEX.
           table.set_offset(operands.back().first);
           uint8_t format = 0;
           if (!table.ReadU8(&format)) {
@@ -649,7 +648,7 @@ bool ParseDictData(ots::Buffer& table, const ots::CFFIndex &index,
             return OTS_FAILURE();
           }
 
-          // parse sub dictionary INDEX.
+          // parse Font DICT INDEX.
           table.set_offset(operands.back().first);
           ots::CFFIndex sub_dict_index;
           if (!ParseIndex(table, sub_dict_index)) {
