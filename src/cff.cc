@@ -466,7 +466,7 @@ bool ParseDictData(ots::Buffer& table, const ots::CFFIndex &index,
 
     FONT_FORMAT font_format = FORMAT_UNKNOWN;
     bool have_ros = false;
-    uint16_t charstring_glyphs = 0;
+    bool have_charstrings = false;
     size_t charset_offset = 0;
 
     while (dict.offset() < dict.length()) {
@@ -628,11 +628,11 @@ bool ParseDictData(ots::Buffer& table, const ots::CFFIndex &index,
           if (charstring_index->count < 2) {
             return OTS_FAILURE();
           }
-          if (charstring_glyphs) {
+          if (have_charstrings) {
             return OTS_FAILURE();  // multiple charstring tables?
           }
-          charstring_glyphs = charstring_index->count;
-          if (charstring_glyphs != glyphs) {
+          have_charstrings = true;
+          if (charstring_index->count != glyphs) {
             return OTS_FAILURE();  // CFF and maxp have different number of glyphs?
           }
           break;
