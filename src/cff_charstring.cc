@@ -863,7 +863,7 @@ bool ExecuteCharString(ots::OpenTypeCFF& cff,
 
 // Selects a set of subroutings for |glyph_index| from |cff| and sets it on
 // |out_local_subrs_to_use|. Returns true on success.
-bool SelectLocalSubr(const std::map<uint16_t, uint8_t> &fd_select,
+bool SelectLocalSubr(const ots::CFFFDSelect &fd_select,
                      const std::vector<ots::CFFIndex *> &local_subrs_per_font,
                      const ots::CFFIndex *local_subrs,
                      uint16_t glyph_index,  // 0-origin
@@ -878,7 +878,7 @@ bool SelectLocalSubr(const std::map<uint16_t, uint8_t> &fd_select,
     if (iter == fd_select.end()) {
       return OTS_FAILURE();
     }
-    const uint8_t fd_index = iter->second;
+    const auto fd_index = iter->second;
     if (fd_index >= local_subrs_per_font.size()) {
       return OTS_FAILURE();
     }

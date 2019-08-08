@@ -794,7 +794,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
 
             // Copy the mapping to |out_cff->fd_select|.
             if (j != 0) {
-              for (uint16_t k = last_gid; k < first; ++k) {
+              for (auto k = last_gid; k < first; ++k) {
                 if (!out_cff->fd_select.insert(
                         std::make_pair(k, fd_index)).second) {
                   return OTS_FAILURE();
@@ -815,7 +815,61 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
           if (last_gid >= sentinel) {
             return OTS_FAILURE();
           }
-          for (uint16_t k = last_gid; k < sentinel; ++k) {
+          for (auto k = last_gid; k < sentinel; ++k) {
+            if (!out_cff->fd_select.insert(
+                    std::make_pair(k, fd_index)).second) {
+              return OTS_FAILURE();
+            }
+          }
+        } else if (cff2 && format == 4) {
+          uint32_t n_ranges = 0;
+          if (!table.ReadU32(&n_ranges)) {
+            return OTS_FAILURE();
+          }
+          if (n_ranges == 0) {
+            return OTS_FAILURE();
+          }
+
+          uint32_t last_gid = 0;
+          uint16_t fd_index = 0;
+          for (unsigned j = 0; j < n_ranges; ++j) {
+            uint32_t first = 0;  // GID
+            if (!table.ReadU32(&first)) {
+              return OTS_FAILURE();
+            }
+
+            // Sanity checks.
+            if ((j == 0) && (first != 0)) {
+              return OTS_FAILURE();
+            }
+            if ((j != 0) && (last_gid >= first)) {
+              return OTS_FAILURE();  // not increasing order.
+            }
+
+            // Copy the mapping to |out_cff->fd_select|.
+            if (j != 0) {
+              for (auto k = last_gid; k < first; ++k) {
+                if (!out_cff->fd_select.insert(
+                        std::make_pair(k, fd_index)).second) {
+                  return OTS_FAILURE();
+                }
+              }
+            }
+
+            if (!table.ReadU16(&fd_index)) {
+              return OTS_FAILURE();
+            }
+            last_gid = first;
+            // TODO(yusukes): check GID?
+          }
+          uint32_t sentinel = 0;
+          if (!table.ReadU32(&sentinel)) {
+            return OTS_FAILURE();
+          }
+          if (last_gid >= sentinel) {
+            return OTS_FAILURE();
+          }
+          for (auto k = last_gid; k < sentinel; ++k) {
             if (!out_cff->fd_select.insert(
                     std::make_pair(k, fd_index)).second) {
               return OTS_FAILURE();
