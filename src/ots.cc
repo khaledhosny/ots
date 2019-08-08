@@ -124,6 +124,7 @@ const struct {
   { OTS_TAG_LOCA, false },
   { OTS_TAG_GLYF, false },
   { OTS_TAG_CFF,  false },
+  { OTS_TAG_CFF2, false },
   { OTS_TAG_VDMX, false },
   { OTS_TAG_HDMX, false },
   { OTS_TAG_GASP, false },
@@ -703,7 +704,7 @@ bool ProcessGeneric(ots::FontFile *header,
     }
   }
 
-  if (font->GetTable(OTS_TAG_CFF) || font->GetTable(OTS_TAG('C', 'F', 'F', '2'))) {
+  if (font->GetTable(OTS_TAG_CFF) || font->GetTable(OTS_TAG_CFF2)) {
     // font with PostScript glyph
     if (font->version != OTS_TAG('O','T','T','O')) {
       return OTS_FAILURE_MSG_HDR("wrong font version for PostScript glyph data");
@@ -881,6 +882,7 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
     switch (tag) {
       case OTS_TAG_AVAR: table = new OpenTypeAVAR(this, tag); break;
       case OTS_TAG_CFF:  table = new OpenTypeCFF(this,  tag); break;
+      case OTS_TAG_CFF2: table = new OpenTypeCFF2(this, tag); break;
       case OTS_TAG_CMAP: table = new OpenTypeCMAP(this, tag); break;
       case OTS_TAG_CVAR: table = new OpenTypeCVAR(this, tag); break;
       case OTS_TAG_CVT:  table = new OpenTypeCVT(this,  tag); break;
