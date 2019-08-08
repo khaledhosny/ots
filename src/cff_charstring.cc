@@ -233,6 +233,36 @@ bool ReadNextNumberFromCharString(ots::Buffer *char_string,
   return true;
 }
 
+bool ValidCFF2Operator(int32_t op) {
+  switch (op) {
+  case ots::kReturn:
+  case ots::kEndChar:
+  case ots::kAbs:
+  case ots::kAdd:
+  case ots::kSub:
+  case ots::kDiv:
+  case ots::kNeg:
+  case ots::kRandom:
+  case ots::kMul:
+  case ots::kSqrt:
+  case ots::kDrop:
+  case ots::kExch:
+  case ots::kIndex:
+  case ots::kRoll:
+  case ots::kDup:
+  case ots::kPut:
+  case ots::kGet:
+  case ots::kAnd:
+  case ots::kOr:
+  case ots::kNot:
+  case ots::kEq:
+  case ots::kIfElse:
+    return false;
+  }
+
+  return true;
+}
+
 // Executes |op| and updates |argument_stack|. Returns true if the execution
 // succeeds. If the |op| is kCallSubr or kCallGSubr, the function recursively
 // calls ExecuteCharString() function. The arguments other than |op| and
@@ -251,6 +281,10 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
                                bool cff2) {
   ots::Font* font = cff.GetFont();
   const size_t stack_size = argument_stack->size();
+
+  if (cff2 && !ValidCFF2Operator(op)) {
+    return OTS_FAILURE();
+  }
 
   switch (op) {
   case ots::kCallSubr:
@@ -911,7 +945,9 @@ bool ValidateCFFCharStrings(
     // Check a charstring for the |i|-th glyph.
     std::stack<int32_t> argument_stack;
     bool found_endchar = false;
-    bool found_width = false;
+    // CFF2 CharString has no value for width, so we start with true here to
+    // error out if width is found.
+    bool found_width = cff2;
     size_t num_stems = 0;
     if (!ExecuteCharString(cff,
                            0 /* initial call_depth is zero */,
