@@ -61,6 +61,9 @@ class OpenTypeCFF : public Table {
   // A Local Subrs associated with Top DICT. Can be NULL.
   CFFIndex *local_subrs;
 
+  // CFF2 VariationStore regionIndexCount.
+  std::vector<uint16_t> region_index_count;
+
  private:
   const uint8_t *m_data;
   size_t m_length;

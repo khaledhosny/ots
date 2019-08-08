@@ -124,7 +124,6 @@ const struct {
   { OTS_TAG_LOCA, false },
   { OTS_TAG_GLYF, false },
   { OTS_TAG_CFF,  false },
-  { OTS_TAG_CFF2, false },
   { OTS_TAG_VDMX, false },
   { OTS_TAG_HDMX, false },
   { OTS_TAG_GASP, false },
@@ -144,6 +143,7 @@ const struct {
   { OTS_TAG_MVAR, false },
   { OTS_TAG_STAT, false },
   { OTS_TAG_VVAR, false },
+  { OTS_TAG_CFF2, false },
   // We need to parse GDEF table in advance of parsing GSUB/GPOS tables
   // because they could refer GDEF table.
   { OTS_TAG_GDEF, false },

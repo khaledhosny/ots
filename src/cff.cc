@@ -10,6 +10,7 @@
 
 #include "maxp.h"
 #include "cff_charstring.h"
+#include "variations.h"
 
 // CFF - PostScript font program (Compact Font Format) table
 // http://www.microsoft.com/typography/otspec/cff.htm
@@ -326,7 +327,7 @@ bool ParseDictDataReadNext(ots::Buffer &table,
   if (!table.ReadU8(&op)) {
     return OTS_FAILURE();
   }
-  if (op <= 21) {
+  if (op <= 24) {
     if (op == 12) {
       return ParseDictDataEscapedOperator(table, operands);
     }
@@ -387,6 +388,8 @@ bool ParsePrivateDictData(
   ots::Buffer dict(table.buffer() + offset, dict_length);
   std::vector<Operand> operands;
   bool cff2 = (out_cff->major == 2);
+  bool blend_seen = false;
+  uint32_t vsindex = 0;
 
   // Since a Private DICT for FDArray might not have a Local Subr (e.g. Hiragino
   // Kaku Gothic Std W8), we create an empty Local Subr here to match the size
@@ -417,6 +420,7 @@ bool ParsePrivateDictData(
       return OTS_FAILURE();
     }
 
+    bool clear_operands = true;
     switch (op) {
       // hints
       case 6:  // BlueValues
@@ -500,14 +504,84 @@ bool ParsePrivateDictData(
         }
         break;
 
-      case 22:  // vsindex
-      case 23:  // blend
-        return OTS_FAILURE();
+      case 22: { // vsindex
+        if (!cff2) {
+          return OTS_FAILURE();
+        }
+        if (operands.size() != 1) {
+          return OTS_FAILURE();
+        }
+        if (operands.back().second != DICT_OPERAND_INTEGER) {
+          return OTS_FAILURE();
+        }
+        if (blend_seen) {
+          return OTS_FAILURE();
+        }
+        vsindex = operands.back().first;
+        if (vsindex >= out_cff->region_index_count.size()) {
+          return OTS_FAILURE();
+        }
+        break;
+      }
+
+      case 23: { // blend
+        if (!cff2) {
+          return OTS_FAILURE();
+        }
+        if (operands.size() < 1) {
+          return OTS_FAILURE();
+        }
+        if (vsindex >= out_cff->region_index_count.size()) {
+          return OTS_FAILURE();
+        }
+        uint16_t k = out_cff->region_index_count.at(vsindex);
+        int32_t n = operands.back().first;
+        if (operands.size() < n * (k + 1) + 1) {
+          return OTS_FAILURE();
+        }
+        size_t operands_size = operands.size();
+        // Keep the 1st n operands on the stack for the next operator to use
+        // and pop the rest. There can be multiple consecutive blend operator,
+        // so this makes sure the operands of all of them are kept on the
+        // stack.
+        while (operands.size() > operands_size - ((n * k) + 1))
+          operands.pop_back();
+        clear_operands = false;
+        blend_seen = true;
+        break;
+      }
 
       default:
         return OTS_FAILURE();
     }
-    operands.clear();
+    if (clear_operands) {
+      operands.clear();
+    }
+  }
+
+  return true;
+}
+
+bool ParseVariationStore(ots::OpenTypeCFF& out_cff, ots::Buffer& table) {
+  uint16_t length;
+
+  if (!table.ReadU16(&length)) {
+    return OTS_FAILURE();
+  }
+
+  // Empty VariationStore is allowed.
+  if (!length) {
+    return true;
+  }
+
+  if (length > table.remaining()) {
+    return OTS_FAILURE();
+  }
+
+  if (!ParseItemVariationStore(out_cff.GetFont(),
+                               table.buffer() + table.offset(), length,
+                               &(out_cff.region_index_count))) {
+    return OTS_FAILURE();
   }
 
   return true;
@@ -540,6 +614,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
   FONT_FORMAT font_format = FORMAT_UNKNOWN;
   bool have_ros = false;
   bool have_charstrings = false;
+  bool have_vstore = false;
   size_t charset_offset = 0;
 
   while (dict.offset() < dict.length()) {
@@ -709,6 +784,31 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
         have_charstrings = true;
         if (charstring_index->count != glyphs) {
           return OTS_FAILURE();  // CFF and maxp have different number of glyphs?
+        }
+        break;
+      }
+
+      case 24: {  // vstore
+        if (!cff2) {
+          return OTS_FAILURE();
+        }
+        if (type != DICT_DATA_TOPLEVEL) {
+          return OTS_FAILURE();
+        }
+        if (operands.size() != 1) {
+          return OTS_FAILURE();
+        }
+        if (!CheckOffset(operands.back(), table.length())) {
+          return OTS_FAILURE();
+        }
+        if (have_vstore) {
+          return OTS_FAILURE();  // multiple vstore tables?
+        }
+        have_vstore = true;
+        // parse "VariationStore Data Contents"
+        table.set_offset(operands.back().first);
+        if (!ParseVariationStore(*out_cff, table)) {
+          return OTS_FAILURE();
         }
         break;
       }

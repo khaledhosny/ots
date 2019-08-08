@@ -278,6 +278,9 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
                                bool *out_found_endchar,
                                bool *in_out_found_width,
                                size_t *in_out_num_stems,
+                               bool *in_out_have_blend,
+                               bool *in_out_have_visindex,
+                               int32_t *in_out_vsindex,
                                bool cff2) {
   ots::Font* font = cff.GetFont();
   const size_t stack_size = argument_stack->size();
@@ -359,9 +362,50 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     *in_out_found_width = true;  // just in case.
     return true;
 
-  case ots::kVSIndex:
-  case ots::kBlend:
-    return OTS_FAILURE();
+  case ots::kVSIndex: {
+    if (!cff2) {
+      return OTS_FAILURE();
+    }
+    if (stack_size != 1) {
+      return OTS_FAILURE();
+    }
+    if (*in_out_have_blend || *in_out_have_visindex) {
+      return OTS_FAILURE();
+    }
+    if (argument_stack->top() >= cff.region_index_count.size()) {
+      return OTS_FAILURE();
+    }
+    *in_out_have_visindex = true;
+    *in_out_vsindex = argument_stack->top();
+    while (!argument_stack->empty())
+      argument_stack->pop();
+    return true;
+  }
+
+  case ots::kBlend: {
+    if (!cff2) {
+      return OTS_FAILURE();
+    }
+    if (stack_size < 1) {
+      return OTS_FAILURE();
+    }
+    if (*in_out_vsindex >= cff.region_index_count.size()) {
+      return OTS_FAILURE();
+    }
+    uint16_t k = cff.region_index_count.at(*in_out_vsindex);
+    int32_t n = argument_stack->top();
+    if (stack_size < n * (k + 1) + 1) {
+      return OTS_FAILURE();
+    }
+
+    // Keep the 1st n operands on the stack for the next operator to use and
+    // pop the rest. There can be multiple consecutive blend operator, so this
+    // makes sure the operands of all of them are kept on the stack.
+    while (argument_stack->size() > stack_size - ((n * k) + 1))
+      argument_stack->pop();
+    *in_out_have_blend = true;
+    return true;
+  }
 
   case ots::kHStem:
   case ots::kVStem:
@@ -798,6 +842,8 @@ bool ExecuteCharString(ots::OpenTypeCFF& cff,
   }
   *out_found_endchar = false;
 
+  bool in_out_have_blend = false, in_out_have_visindex = false;
+  int32_t in_out_vsindex = 0;
   const size_t length = char_string->length();
   while (char_string->offset() < length) {
     int32_t operator_or_operand = 0;
@@ -844,6 +890,9 @@ bool ExecuteCharString(ots::OpenTypeCFF& cff,
                                    out_found_endchar,
                                    in_out_found_width,
                                    in_out_num_stems,
+                                   &in_out_have_blend,
+                                   &in_out_have_visindex,
+                                   &in_out_vsindex,
                                    cff2)) {
       return OTS_FAILURE();
     }
@@ -863,31 +912,32 @@ bool ExecuteCharString(ots::OpenTypeCFF& cff,
 
 // Selects a set of subroutings for |glyph_index| from |cff| and sets it on
 // |out_local_subrs_to_use|. Returns true on success.
-bool SelectLocalSubr(const ots::CFFFDSelect &fd_select,
-                     const std::vector<ots::CFFIndex *> &local_subrs_per_font,
-                     const ots::CFFIndex *local_subrs,
+bool SelectLocalSubr(const ots::OpenTypeCFF& cff,
                      uint16_t glyph_index,  // 0-origin
                      const ots::CFFIndex **out_local_subrs_to_use) {
+  bool cff2 = (cff.major == 2);
   *out_local_subrs_to_use = NULL;
 
   // First, find local subrs from |local_subrs_per_font|.
-  if ((fd_select.size() > 0) &&
-      (!local_subrs_per_font.empty())) {
+  if ((cff.fd_select.size() > 0) &&
+      (!cff.local_subrs_per_font.empty())) {
     // Look up FDArray index for the glyph.
-    const auto& iter = fd_select.find(glyph_index);
-    if (iter == fd_select.end()) {
+    const auto& iter = cff.fd_select.find(glyph_index);
+    if (iter == cff.fd_select.end()) {
       return OTS_FAILURE();
     }
     const auto fd_index = iter->second;
-    if (fd_index >= local_subrs_per_font.size()) {
+    if (fd_index >= cff.local_subrs_per_font.size()) {
       return OTS_FAILURE();
     }
-    *out_local_subrs_to_use = local_subrs_per_font.at(fd_index);
-  } else if (local_subrs) {
+    *out_local_subrs_to_use = cff.local_subrs_per_font.at(fd_index);
+  } else if (cff.local_subrs) {
     // Second, try to use |local_subrs|. Most Latin fonts don't have FDSelect
     // entries. If The font has a local subrs index associated with the Top
     // DICT (not FDArrays), use it.
-    *out_local_subrs_to_use = local_subrs;
+    *out_local_subrs_to_use = cff.local_subrs;
+  } else if (cff2 && cff.local_subrs_per_font.size() == 1) {
+    *out_local_subrs_to_use = cff.local_subrs_per_font.at(0);
   } else {
     // Just return NULL.
     *out_local_subrs_to_use = NULL;
@@ -929,9 +979,7 @@ bool ValidateCFFCharStrings(
     // Get a local subrs for the glyph.
     const unsigned glyph_index = i - 1;  // index in the map is 0-origin.
     const CFFIndex *local_subrs_to_use = NULL;
-    if (!SelectLocalSubr(cff.fd_select,
-                         cff.local_subrs_per_font,
-                         cff.local_subrs,
+    if (!SelectLocalSubr(cff,
                          glyph_index,
                          &local_subrs_to_use)) {
       return OTS_FAILURE();
