@@ -35,12 +35,8 @@ namespace ots {
 //  cff_table: A buffer which contains actual byte code of charstring, global
 //             subroutines and local subroutines.
 bool ValidateCFFCharStrings(
-    Font *font,
-    const CFFIndex &char_strings_index,
+    OpenTypeCFF& cff,
     const CFFIndex &global_subrs_index,
-    const std::map<uint16_t, uint8_t> &fd_select,
-    const std::vector<CFFIndex *> &local_subrs_per_font,
-    const CFFIndex *local_subrs,
     Buffer *cff_table);
 
 // The list of Operators. See Appendix. A in Adobe Technical Note #5177.

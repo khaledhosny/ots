@@ -30,7 +30,7 @@ const size_t kMaxSubrNesting = 10;
 // will fail with the dummy value.
 const int32_t dummy_result = INT_MAX;
 
-bool ExecuteCharString(ots::Font *font,
+bool ExecuteCharString(ots::OpenTypeCFF& cff,
                        size_t call_depth,
                        const ots::CFFIndex& global_subrs_index,
                        const ots::CFFIndex& local_subrs_index,
@@ -225,7 +225,7 @@ bool ReadNextNumberFromCharString(ots::Buffer *char_string,
 // succeeds. If the |op| is kCallSubr or kCallGSubr, the function recursively
 // calls ExecuteCharString() function. The arguments other than |op| and
 // |argument_stack| are passed for that reason.
-bool ExecuteCharStringOperator(ots::Font *font,
+bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
                                int32_t op,
                                size_t call_depth,
                                const ots::CFFIndex& global_subrs_index,
@@ -236,6 +236,7 @@ bool ExecuteCharStringOperator(ots::Font *font,
                                bool *out_found_endchar,
                                bool *in_out_found_width,
                                size_t *in_out_num_stems) {
+  ots::Font* font = cff.GetFont();
   const size_t stack_size = argument_stack->size();
 
   switch (op) {
@@ -290,7 +291,7 @@ bool ExecuteCharStringOperator(ots::Font *font,
     }
     ots::Buffer char_string_to_jump(cff_table->buffer() + offset, length);
 
-    return ExecuteCharString(font,
+    return ExecuteCharString(cff,
                              call_depth + 1,
                              global_subrs_index,
                              local_subrs_index,
@@ -729,7 +730,7 @@ bool ExecuteCharStringOperator(ots::Font *font,
 // in_out_found_width: true is set if |char_string| contains 'width' byte (which
 //                     is 0 or 1 byte.)
 // in_out_num_stems: total number of hstems and vstems processed so far.
-bool ExecuteCharString(ots::Font *font,
+bool ExecuteCharString(ots::OpenTypeCFF& cff,
                        size_t call_depth,
                        const ots::CFFIndex& global_subrs_index,
                        const ots::CFFIndex& local_subrs_index,
@@ -779,7 +780,7 @@ bool ExecuteCharString(ots::Font *font,
     }
 
     // An operator is found. Execute it.
-    if (!ExecuteCharStringOperator(font,
+    if (!ExecuteCharStringOperator(cff,
                                    operator_or_operand,
                                    call_depth,
                                    global_subrs_index,
@@ -844,13 +845,10 @@ bool SelectLocalSubr(const std::map<uint16_t, uint8_t> &fd_select,
 namespace ots {
 
 bool ValidateCFFCharStrings(
-    ots::Font *font,
-    const CFFIndex& char_strings_index,
+    ots::OpenTypeCFF& cff,
     const CFFIndex& global_subrs_index,
-    const std::map<uint16_t, uint8_t> &fd_select,
-    const std::vector<CFFIndex *> &local_subrs_per_font,
-    const CFFIndex *local_subrs,
     Buffer* cff_table) {
+  const CFFIndex& char_strings_index = *(cff.charstrings_index);
   if (char_strings_index.offsets.size() == 0) {
     return OTS_FAILURE();  // no charstring.
   }
@@ -874,9 +872,9 @@ bool ValidateCFFCharStrings(
     // Get a local subrs for the glyph.
     const unsigned glyph_index = i - 1;  // index in the map is 0-origin.
     const CFFIndex *local_subrs_to_use = NULL;
-    if (!SelectLocalSubr(fd_select,
-                         local_subrs_per_font,
-                         local_subrs,
+    if (!SelectLocalSubr(cff.fd_select,
+                         cff.local_subrs_per_font,
+                         cff.local_subrs,
                          glyph_index,
                          &local_subrs_to_use)) {
       return OTS_FAILURE();
@@ -892,7 +890,7 @@ bool ValidateCFFCharStrings(
     bool found_endchar = false;
     bool found_width = false;
     size_t num_stems = 0;
-    if (!ExecuteCharString(font,
+    if (!ExecuteCharString(cff,
                            0 /* initial call_depth is zero */,
                            global_subrs_index, *local_subrs_to_use,
                            cff_table, &char_string, &argument_stack,

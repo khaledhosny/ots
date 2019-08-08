@@ -124,13 +124,13 @@ bool Validate(const int *char_string, size_t char_string_len,
               const int *global_subrs, size_t global_subrs_len,
               const int *local_subrs, size_t local_subrs_len) {
   std::vector<uint8_t> buffer;
-  ots::CFFIndex char_strings_index;
+  ots::CFFIndex* char_strings_index = new ots::CFFIndex;
   ots::CFFIndex global_subrs_index;
-  ots::CFFIndex local_subrs_index;
+  ots::CFFIndex* local_subrs_index = new ots::CFFIndex;
 
   if (char_string) {
     if (!AddSubr(char_string, char_string_len,
-                 &buffer, &char_strings_index)) {
+                 &buffer, char_strings_index)) {
       return false;
     }
   }
@@ -142,28 +142,26 @@ bool Validate(const int *char_string, size_t char_string_len,
   }
   if (local_subrs) {
     if (!AddSubr(local_subrs, local_subrs_len,
-                 &buffer, &local_subrs_index)) {
+                 &buffer, local_subrs_index)) {
       return false;
     }
   }
 
-  const std::map<uint16_t, uint8_t> fd_select;  // empty
-  const std::vector<ots::CFFIndex *> local_subrs_per_font;  // empty
   ots::Buffer ots_buffer(&buffer[0], buffer.size());
 
   ots::FontFile* file = new ots::FontFile();
-  ots::Font* font = new ots::Font(file);
   file->context = new ots::OTSContext();
-  bool ret = ots::ValidateCFFCharStrings(font,
-                                         char_strings_index,
+  ots::Font* font = new ots::Font(file);
+  ots::OpenTypeCFF* cff = new ots::OpenTypeCFF(font, OTS_TAG_CFF);
+  cff->charstrings_index = char_strings_index;
+  cff->local_subrs = local_subrs_index;
+  bool ret = ots::ValidateCFFCharStrings(*cff,
                                          global_subrs_index,
-                                         fd_select,
-                                         local_subrs_per_font,
-                                         &local_subrs_index,
                                          &ots_buffer);
   delete file->context;
   delete file;
   delete font;
+  delete cff;
 
   return ret;
 }
