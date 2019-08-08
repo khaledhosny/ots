@@ -13,6 +13,9 @@
 
 namespace ots {
 
+const size_t kMaxCFF1ArgumentStack = 48;
+const size_t kMaxCFF2ArgumentStack = 513;
+
 // Validates all charstrings in |char_strings_index|. Charstring is a small
 // language for font hinting defined in Adobe Technical Note #5177.
 // http://www.adobe.com/devnet/font/pdfs/5177.Type2.pdf
@@ -40,6 +43,7 @@ bool ValidateCFFCharStrings(
     Buffer *cff_table);
 
 // The list of Operators. See Appendix. A in Adobe Technical Note #5177.
+// and https://docs.microsoft.com/en-us/typography/opentype/spec/cff2charstr
 enum CharStringOperator {
   kHStem = 1,
   kVStem = 3,
@@ -51,6 +55,8 @@ enum CharStringOperator {
   kCallSubr = 10,
   kReturn = 11,
   kEndChar = 14,
+  kVSIndex = 15,
+  kBlend = 16,
   kHStemHm = 18,
   kHintMask = 19,
   kCntrMask = 20,

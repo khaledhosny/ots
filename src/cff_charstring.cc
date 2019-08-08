@@ -22,7 +22,6 @@ namespace {
 // Note #5177.
 const int32_t kMaxSubrsCount = 65536;
 const size_t kMaxCharStringLength = 65535;
-const size_t kMaxArgumentStack = 48;
 const size_t kMaxNumberOfStemHints = 96;
 const size_t kMaxSubrNesting = 10;
 
@@ -39,7 +38,16 @@ bool ExecuteCharString(ots::OpenTypeCFF& cff,
                        std::stack<int32_t> *argument_stack,
                        bool *out_found_endchar,
                        bool *out_found_width,
-                       size_t *in_out_num_stems);
+                       size_t *in_out_num_stems,
+                       bool cff2);
+
+bool ArgumentStackOverflows(std::stack<int32_t> *argument_stack, bool cff2) {
+  if ((cff2 && argument_stack->size() > ots::kMaxCFF2ArgumentStack) ||
+      (!cff2 && argument_stack->size() > ots::kMaxCFF1ArgumentStack)) {
+    return true;
+  }
+  return false;
+}
 
 #ifdef DUMP_T2CHARSTRING
 // Converts |op| to a string and returns it.
@@ -65,6 +73,10 @@ const char *CharStringOperatorToString(ots::CharStringOperator op) {
     return "return";
   case ots::kEndChar:
     return "endchar";
+  case ots::kVSIndex:
+    return "vsindex";
+  case ots::kBlend:
+    return "blend";
   case ots::kHStemHm:
     return "hstemhm";
   case ots::kHintMask:
@@ -235,7 +247,8 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
                                std::stack<int32_t> *argument_stack,
                                bool *out_found_endchar,
                                bool *in_out_found_width,
-                               size_t *in_out_num_stems) {
+                               size_t *in_out_num_stems,
+                               bool cff2) {
   ots::Font* font = cff.GetFont();
   const size_t stack_size = argument_stack->size();
 
@@ -300,7 +313,8 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
                              argument_stack,
                              out_found_endchar,
                              in_out_found_width,
-                             in_out_num_stems);
+                             in_out_num_stems,
+                             cff2);
   }
 
   case ots::kReturn:
@@ -310,6 +324,10 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     *out_found_endchar = true;
     *in_out_found_width = true;  // just in case.
     return true;
+
+  case ots::kVSIndex:
+  case ots::kBlend:
+    return OTS_FAILURE();
 
   case ots::kHStem:
   case ots::kVStem:
@@ -650,7 +668,7 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     argument_stack->pop();
     argument_stack->push(dummy_result);
     argument_stack->push(dummy_result);
-    if (argument_stack->size() > kMaxArgumentStack) {
+    if (ArgumentStackOverflows(argument_stack, cff2)) {
       return OTS_FAILURE();
     }
     // TODO(yusukes): Implement this. We should push a real value for all
@@ -739,7 +757,8 @@ bool ExecuteCharString(ots::OpenTypeCFF& cff,
                        std::stack<int32_t> *argument_stack,
                        bool *out_found_endchar,
                        bool *in_out_found_width,
-                       size_t *in_out_num_stems) {
+                       size_t *in_out_num_stems,
+                       bool cff2) {
   if (call_depth > kMaxSubrNesting) {
     return OTS_FAILURE();
   }
@@ -773,7 +792,7 @@ bool ExecuteCharString(ots::OpenTypeCFF& cff,
 
     if (!is_operator) {
       argument_stack->push(operator_or_operand);
-      if (argument_stack->size() > kMaxArgumentStack) {
+      if (ArgumentStackOverflows(argument_stack, cff2)) {
         return OTS_FAILURE();
       }
       continue;
@@ -790,7 +809,8 @@ bool ExecuteCharString(ots::OpenTypeCFF& cff,
                                    argument_stack,
                                    out_found_endchar,
                                    in_out_found_width,
-                                   in_out_num_stems)) {
+                                   in_out_num_stems,
+                                   cff2)) {
       return OTS_FAILURE();
     }
     if (*out_found_endchar) {
@@ -802,6 +822,8 @@ bool ExecuteCharString(ots::OpenTypeCFF& cff,
   }
 
   // No endchar operator is found.
+  if (cff2)
+    return true;
   return OTS_FAILURE();
 }
 
@@ -853,6 +875,7 @@ bool ValidateCFFCharStrings(
     return OTS_FAILURE();  // no charstring.
   }
 
+  bool cff2 = (cff.major == 2);
   // For each glyph, validate the corresponding charstring.
   for (unsigned i = 1; i < char_strings_index.offsets.size(); ++i) {
     // Prepare a Buffer object, |char_string|, which contains the charstring
@@ -894,10 +917,11 @@ bool ValidateCFFCharStrings(
                            0 /* initial call_depth is zero */,
                            global_subrs_index, *local_subrs_to_use,
                            cff_table, &char_string, &argument_stack,
-                           &found_endchar, &found_width, &num_stems)) {
+                           &found_endchar, &found_width, &num_stems,
+                           cff2)) {
       return OTS_FAILURE();
     }
-    if (!found_endchar) {
+    if (!cff2 && !found_endchar) {
       return OTS_FAILURE();
     }
   }
