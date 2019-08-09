@@ -626,6 +626,43 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
   bool have_vstore = false;
   size_t charset_offset = 0;
 
+  if (cff2) {
+    // Parse VariationStore first, since it might be referenced in other places
+    // (e.g. FDArray) that might be parsed after it.
+    size_t dict_offset = dict.offset();
+    while (dict.offset() < dict.length()) {
+      if (!ParseDictDataReadOperands(dict, operands, cff2)) {
+        return OTS_FAILURE();
+      }
+      if (operands.back().second != DICT_OPERATOR) continue;
+
+      // got operator
+      const uint32_t op = operands.back().first;
+      operands.pop_back();
+
+      if (op == 24) {  // vstore
+        if (type != DICT_DATA_TOPLEVEL) {
+          return OTS_FAILURE();
+        }
+        if (operands.size() != 1) {
+          return OTS_FAILURE();
+        }
+        if (!CheckOffset(operands.back(), table.length())) {
+          return OTS_FAILURE();
+        }
+        // parse "VariationStore Data Contents"
+        table.set_offset(operands.back().first);
+        if (!ParseVariationStore(*out_cff, table)) {
+          return OTS_FAILURE();
+        }
+        break;
+      }
+      operands.clear();
+    }
+    operands.clear();
+    dict.set_offset(dict_offset);
+  }
+
   while (dict.offset() < dict.length()) {
     if (!ParseDictDataReadOperands(dict, operands, cff2)) {
       return OTS_FAILURE();
@@ -795,24 +832,11 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
         if (!cff2) {
           return OTS_FAILURE();
         }
-        if (type != DICT_DATA_TOPLEVEL) {
-          return OTS_FAILURE();
-        }
-        if (operands.size() != 1) {
-          return OTS_FAILURE();
-        }
-        if (!CheckOffset(operands.back(), table.length())) {
-          return OTS_FAILURE();
-        }
         if (have_vstore) {
           return OTS_FAILURE();  // multiple vstore tables?
         }
         have_vstore = true;
-        // parse "VariationStore Data Contents"
-        table.set_offset(operands.back().first);
-        if (!ParseVariationStore(*out_cff, table)) {
-          return OTS_FAILURE();
-        }
+        // parsed above.
         break;
       }
 
