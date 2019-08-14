@@ -64,6 +64,9 @@ class OpenTypeCFF : public Table {
   // CFF2 VariationStore regionIndexCount.
   std::vector<uint16_t> region_index_count;
 
+ protected:
+  bool ValidateFDSelect(uint16_t num_glyphs);
+
  private:
   const uint8_t *m_data;
   size_t m_length;
