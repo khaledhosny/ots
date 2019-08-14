@@ -252,6 +252,7 @@ bool ValidCFF2Operator(int32_t op) {
   case ots::kDup:
   case ots::kPut:
   case ots::kGet:
+  case ots::kDotSection:
   case ots::kAnd:
   case ots::kOr:
   case ots::kNot:
