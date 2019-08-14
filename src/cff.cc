@@ -933,7 +933,6 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
               return OTS_FAILURE();
             }
             last_gid = first;
-            // TODO(yusukes): check GID?
           }
           uint16_t sentinel = 0;
           if (!table.ReadU16(&sentinel)) {
@@ -987,7 +986,6 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
               return OTS_FAILURE();
             }
             last_gid = first;
-            // TODO(yusukes): check GID?
           }
           uint32_t sentinel = 0;
           if (!table.ReadU32(&sentinel)) {
@@ -1136,6 +1134,20 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
 
 namespace ots {
 
+bool OpenTypeCFF::ValidateFDSelect(uint16_t num_glyphs) {
+  for (const auto& fd_select : this->fd_select) {
+    if (fd_select.first >= num_glyphs) {
+      return Error("Invalid glyph index in FDSelect: %d >= %d\n",
+                   fd_select.first, num_glyphs);
+    }
+    if (fd_select.second >= this->font_dict_length) {
+      return Error("Invalid FD index: %d >= %d\n",
+                   fd_select.second, this->font_dict_length);
+    }
+  }
+  return true;
+}
+
 bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
@@ -1229,12 +1241,9 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
     return Error("Failed to parse Global Subrs INDEX");
   }
 
-  // Check if all fd_index in FDSelect are valid.
-  for (const auto& fd_select : this->fd_select) {
-    if (fd_select.second >= this->font_dict_length) {
-      return Error("Invalid FD index: %d >= %d\n",
-                   fd_select.second, this->font_dict_length);
-    }
+  // Check if all fd and glyph indices in FDSelect are valid.
+  if (!ValidateFDSelect(num_glyphs)) {
+    return Error("Failed to validate FDSelect");
   }
 
   // Check if all charstrings (font hinting code for each glyph) are valid.
@@ -1319,12 +1328,9 @@ bool OpenTypeCFF2::Parse(const uint8_t *data, size_t length) {
     return Error("Failed to parse Global Subrs INDEX");
   }
 
-  // Check if all fd_index in FDSelect are valid.
-  for (const auto& fd_select : this->fd_select) {
-    if (fd_select.second >= this->font_dict_length) {
-      return Error("Invalid FD index: %d >= %d\n",
-                   fd_select.second, this->font_dict_length);
-    }
+  // Check if all fd and glyph indices in FDSelect are valid.
+  if (!ValidateFDSelect(num_glyphs)) {
+    return Error("Failed to validate FDSelect");
   }
 
   // Check if all charstrings (font hinting code for each glyph) are valid.
