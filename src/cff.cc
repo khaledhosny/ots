@@ -1299,7 +1299,7 @@ bool OpenTypeCFF2::Parse(const uint8_t *data, size_t length) {
     return Error("Bad hdrSize: %d", hdr_size);
   }
 
-  if (top_dict_size == 0) {
+  if (top_dict_size == 0 || hdr_size + top_dict_size > length) {
     return Error("Bad topDictLength: %d", top_dict_size);
   }
 
