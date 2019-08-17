@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "maxp.h"
-#include "cff_charstring.h"
 #include "variations.h"
 
 // CFF - PostScript font program (Compact Font Format) table
@@ -52,7 +51,7 @@ bool OpenTypeCFF::ReadOffset(Buffer &table, uint8_t off_size,
   return true;
 }
 
-bool OpenTypeCFF::ParseIndex(Buffer &table, CFFIndex &index) {
+bool OpenTypeCFF::ParseIndex(Buffer &table, Index &index) {
   index.off_size = 0;
   index.offsets.clear();
 
@@ -127,7 +126,7 @@ bool OpenTypeCFF::ParseIndex(Buffer &table, CFFIndex &index) {
   return true;
 }
 
-bool OpenTypeCFF::ParseNameData(Buffer *table, const ots::CFFIndex &index,
+bool OpenTypeCFF::ParseNameData(Buffer *table, const Index &index,
                                 std::string* out_name) {
   uint8_t name[256] = {0};
 
@@ -395,7 +394,7 @@ bool OpenTypeCFF::ParsePrivateDictData(Buffer &table, size_t offset,
   // Kaku Gothic Std W8), we create an empty Local Subr here to match the size
   // of FDArray the size of |local_subrs_per_font|.
   if (type == DICT_DATA_FDARRAY) {
-    this->local_subrs_per_font.push_back(new ots::CFFIndex);
+    this->local_subrs_per_font.push_back(new Index);
   }
 
   while (dict.offset() < dict.length()) {
@@ -466,7 +465,7 @@ bool OpenTypeCFF::ParsePrivateDictData(Buffer &table, size_t offset,
         }
         // parse "16. Local Subrs INDEX"
         table.set_offset(operands.back().first + offset);
-        ots::CFFIndex *local_subrs_index = NULL;
+        Index *local_subrs_index = NULL;
         if (type == DICT_DATA_FDARRAY) {
           if (this->local_subrs_per_font.empty()) {
             return OTS_FAILURE();  // not reached.
@@ -476,7 +475,7 @@ bool OpenTypeCFF::ParsePrivateDictData(Buffer &table, size_t offset,
           if (this->local_subrs) {
             return OTS_FAILURE();  // two or more local_subrs?
           }
-          local_subrs_index = new ots::CFFIndex;
+          local_subrs_index = new Index;
           this->local_subrs = local_subrs_index;
         }
         if (!ParseIndex(table, *local_subrs_index)) {
@@ -581,7 +580,7 @@ bool OpenTypeCFF::ParseVariationStore(Buffer& table) {
   return true;
 }
 
-bool OpenTypeCFF::ParseDictData(Buffer& table, const CFFIndex &index,
+bool OpenTypeCFF::ParseDictData(Buffer& table, const Index &index,
                                 uint16_t glyphs, size_t sid_max,
                                 DICT_DATA_TYPE type) {
   for (unsigned i = 1; i < index.offsets.size(); ++i) {
@@ -791,7 +790,7 @@ bool OpenTypeCFF::ParseDictData(Buffer& table, Buffer& dict, uint16_t glyphs,
         }
         // parse "14. CharStrings INDEX"
         table.set_offset(operands.back().first);
-        ots::CFFIndex *charstring_index = this->charstrings_index;
+        Index *charstring_index = this->charstrings_index;
         if (!ParseIndex(table, *charstring_index)) {
           return OTS_FAILURE();
         }
@@ -833,7 +832,7 @@ bool OpenTypeCFF::ParseDictData(Buffer& table, Buffer& dict, uint16_t glyphs,
 
         // parse Font DICT INDEX.
         table.set_offset(operands.back().first);
-        ots::CFFIndex sub_dict_index;
+        Index sub_dict_index;
         if (!ParseIndex(table, sub_dict_index)) {
           return OTS_FAILURE();
         }
@@ -1171,7 +1170,7 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
 
   // parse "7. Name INDEX"
   table.set_offset(hdr_size);
-  CFFIndex name_index;
+  Index name_index;
   if (!ParseIndex(table, name_index)) {
     return Error("Failed to parse Name INDEX");
   }
@@ -1185,7 +1184,7 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
 
   // parse "8. Top DICT INDEX"
   table.set_offset(name_index.offset_to_next);
-  CFFIndex top_dict_index;
+  Index top_dict_index;
   if (!ParseIndex(table, top_dict_index)) {
     return Error("Failed to parse Top DICT INDEX");
   }
@@ -1196,7 +1195,7 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
 
   // parse "10. String INDEX"
   table.set_offset(top_dict_index.offset_to_next);
-  CFFIndex string_index;
+  Index string_index;
   if (!ParseIndex(table, string_index)) {
     return Error("Failed to parse String INDEX");
   }
@@ -1214,7 +1213,7 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
   // string_index.count == 0 is allowed.
 
   // parse "9. Top DICT Data"
-  this->charstrings_index = new ots::CFFIndex;
+  this->charstrings_index = new Index;
   if (!ParseDictData(table, top_dict_index,
                      num_glyphs, sid_max,
                      DICT_DATA_TOPLEVEL)) {
@@ -1223,7 +1222,7 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
 
   // parse "16. Global Subrs INDEX"
   table.set_offset(string_index.offset_to_next);
-  CFFIndex global_subrs_index;
+  Index global_subrs_index;
   if (!ParseIndex(table, global_subrs_index)) {
     return Error("Failed to parse Global Subrs INDEX");
   }
@@ -1234,7 +1233,7 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
   }
 
   // Check if all charstrings (font hinting code for each glyph) are valid.
-  if (!ValidateCFFCharStrings(*this, global_subrs_index, &table)) {
+  if (!ValidateCharStrings(global_subrs_index, &table)) {
     return Error("Failed validating CharStrings INDEX");
   }
 
@@ -1301,7 +1300,7 @@ bool OpenTypeCFF2::Parse(const uint8_t *data, size_t length) {
   // parse "7. Top DICT Data"
   ots::Buffer top_dict(data + hdr_size, top_dict_size);
   table.set_offset(hdr_size);
-  this->charstrings_index = new ots::CFFIndex;
+  this->charstrings_index = new Index;
   if (!ParseDictData(table, top_dict,
                      num_glyphs, sid_max,
                      DICT_DATA_TOPLEVEL)) {
@@ -1310,7 +1309,7 @@ bool OpenTypeCFF2::Parse(const uint8_t *data, size_t length) {
 
   // parse "9. Global Subrs INDEX"
   table.set_offset(hdr_size + top_dict_size);
-  CFFIndex global_subrs_index;
+  Index global_subrs_index;
   if (!ParseIndex(table, global_subrs_index)) {
     return Error("Failed to parse Global Subrs INDEX");
   }
@@ -1321,7 +1320,7 @@ bool OpenTypeCFF2::Parse(const uint8_t *data, size_t length) {
   }
 
   // Check if all charstrings (font hinting code for each glyph) are valid.
-  if (!ValidateCFFCharStrings(*this, global_subrs_index, &table)) {
+  if (!ValidateCharStrings(global_subrs_index, &table)) {
     return Error("Failed validating CharStrings INDEX");
   }
 

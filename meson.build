@@ -92,7 +92,6 @@ ots_sources = [
   'src/cff.cc',
   'src/cff.h',
   'src/cff_charstring.cc',
-  'src/cff_charstring.h',
   'src/cmap.cc',
   'src/cmap.h',
   'src/cvar.cc',
@@ -292,14 +291,14 @@ endif
 
 gtest = dependency('gtest', fallback: ['gtest', 'gtest_main_dep'])
 
-cff_charstring = executable('cff_charstring',
-  'tests/cff_charstring_test.cc',
-  include_directories: include_directories(['include', 'src']),
-  link_with: libots,
-  dependencies: gtest,
-)
-
-test('cff_charstring', cff_charstring)
+#cff_charstring = executable('cff_charstring',
+#  'tests/cff_charstring_test.cc',
+#  include_directories: include_directories(['include', 'src']),
+#  link_with: libots,
+#  dependencies: gtest,
+#)
+#
+#test('cff_charstring', cff_charstring)
 
 
 layout_common_table = executable('layout_common_table',
