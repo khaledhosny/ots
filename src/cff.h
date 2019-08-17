@@ -65,6 +65,41 @@ class OpenTypeCFF : public Table {
   std::vector<uint16_t> region_index_count;
 
  protected:
+  enum DICT_OPERAND_TYPE {
+    DICT_OPERAND_INTEGER,
+    DICT_OPERAND_REAL,
+    DICT_OPERATOR,
+  };
+
+  enum DICT_DATA_TYPE {
+    DICT_DATA_TOPLEVEL,
+    DICT_DATA_FDARRAY,
+    DICT_DATA_PRIVATE,
+  };
+
+  typedef std::pair<uint32_t, DICT_OPERAND_TYPE> Operand;
+
+  bool ReadOffset(Buffer &table, uint8_t off_size, uint32_t *offset);
+  bool ParseIndex(Buffer &table, CFFIndex &index);
+  bool ParseNameData(Buffer *table, const CFFIndex &index,
+                     std::string* out_name);
+  bool CheckOffset(const Operand& operand, size_t table_length);
+  bool CheckSid(const Operand& operand, size_t sid_max);
+  bool ParseDictDataBcd(Buffer &table, std::vector<Operand> &operands);
+  bool ParseDictDataEscapedOperator(Buffer &table,
+                                    std::vector<Operand> &operands);
+  bool ParseDictDataNumber(Buffer &table, uint8_t b0,
+                           std::vector<Operand> &operands);
+  bool ParseDictDataReadNext(Buffer &table, std::vector<Operand> &operands);
+  bool ParseDictDataReadOperands(Buffer& dict, std::vector<Operand>& operands);
+  bool ValidCFF2DictOp(uint32_t op, DICT_DATA_TYPE type);
+  bool ParsePrivateDictData(Buffer &table, size_t offset, size_t dict_length,
+                            DICT_DATA_TYPE type);
+  bool ParseVariationStore(Buffer& table);
+  bool ParseDictData(Buffer& table, const CFFIndex &index, uint16_t glyphs,
+                     size_t sid_max, DICT_DATA_TYPE type);
+  bool ParseDictData(Buffer& table, Buffer& dict, uint16_t glyphs,
+                     size_t sid_max, DICT_DATA_TYPE type);
   bool ValidateFDSelect(uint16_t num_glyphs);
 
  private:

@@ -20,18 +20,6 @@
 
 namespace {
 
-enum DICT_OPERAND_TYPE {
-  DICT_OPERAND_INTEGER,
-  DICT_OPERAND_REAL,
-  DICT_OPERATOR,
-};
-
-enum DICT_DATA_TYPE {
-  DICT_DATA_TOPLEVEL,
-  DICT_DATA_FDARRAY,
-  DICT_DATA_PRIVATE,
-};
-
 enum FONT_FORMAT {
   FORMAT_UNKNOWN,
   FORMAT_CID_KEYED,
@@ -41,9 +29,12 @@ enum FONT_FORMAT {
 // see Appendix. A
 const size_t kNStdString = 390;
 
-typedef std::pair<uint32_t, DICT_OPERAND_TYPE> Operand;
+}  // namespace
 
-bool ReadOffset(ots::Buffer &table, uint8_t off_size, uint32_t *offset) {
+namespace ots {
+
+bool OpenTypeCFF::ReadOffset(Buffer &table, uint8_t off_size,
+                             uint32_t *offset) {
   if (off_size > 4) {
     return OTS_FAILURE();
   }
@@ -61,11 +52,11 @@ bool ReadOffset(ots::Buffer &table, uint8_t off_size, uint32_t *offset) {
   return true;
 }
 
-bool ParseIndex(ots::Buffer &table, ots::CFFIndex &index, bool cff2 = false) {
+bool OpenTypeCFF::ParseIndex(Buffer &table, CFFIndex &index) {
   index.off_size = 0;
   index.offsets.clear();
 
-  if (cff2) {
+  if (this->major == 2) {
     if (!table.ReadU32(&(index.count))) {
       return OTS_FAILURE();
     }
@@ -136,8 +127,8 @@ bool ParseIndex(ots::Buffer &table, ots::CFFIndex &index, bool cff2 = false) {
   return true;
 }
 
-bool ParseNameData(
-    ots::Buffer *table, const ots::CFFIndex &index, std::string* out_name) {
+bool OpenTypeCFF::ParseNameData(Buffer *table, const ots::CFFIndex &index,
+                                std::string* out_name) {
   uint8_t name[256] = {0};
 
   const size_t length = index.offsets[1] - index.offsets[0];
@@ -168,7 +159,7 @@ bool ParseNameData(
   return true;
 }
 
-bool CheckOffset(const Operand& operand, size_t table_length) {
+bool OpenTypeCFF::CheckOffset(const Operand& operand, size_t table_length) {
   if (operand.second != DICT_OPERAND_INTEGER) {
     return OTS_FAILURE();
   }
@@ -178,7 +169,7 @@ bool CheckOffset(const Operand& operand, size_t table_length) {
   return true;
 }
 
-bool CheckSid(const Operand& operand, size_t sid_max) {
+bool OpenTypeCFF::CheckSid(const Operand& operand, size_t sid_max) {
   if (operand.second != DICT_OPERAND_INTEGER) {
     return OTS_FAILURE();
   }
@@ -188,7 +179,8 @@ bool CheckSid(const Operand& operand, size_t sid_max) {
   return true;
 }
 
-bool ParseDictDataBcd(ots::Buffer &table, std::vector<Operand> &operands) {
+bool OpenTypeCFF::ParseDictDataBcd(Buffer &table,
+                                   std::vector<Operand> &operands) {
   bool read_decimal_point = false;
   bool read_e = false;
 
@@ -246,8 +238,8 @@ bool ParseDictDataBcd(ots::Buffer &table, std::vector<Operand> &operands) {
   }
 }
 
-bool ParseDictDataEscapedOperator(ots::Buffer &table,
-                                  std::vector<Operand> &operands) {
+bool OpenTypeCFF::ParseDictDataEscapedOperator(
+    Buffer &table, std::vector<Operand> &operands) {
   uint8_t op = 0;
   if (!table.ReadU8(&op)) {
     return OTS_FAILURE();
@@ -264,8 +256,8 @@ bool ParseDictDataEscapedOperator(ots::Buffer &table,
   return OTS_FAILURE();
 }
 
-bool ParseDictDataNumber(ots::Buffer &table, uint8_t b0,
-                         std::vector<Operand> &operands) {
+bool OpenTypeCFF::ParseDictDataNumber(ots::Buffer &table, uint8_t b0,
+                                      std::vector<Operand> &operands) {
   uint8_t b1 = 0;
   uint8_t b2 = 0;
   uint8_t b3 = 0;
@@ -321,8 +313,8 @@ bool ParseDictDataNumber(ots::Buffer &table, uint8_t b0,
   return true;
 }
 
-bool ParseDictDataReadNext(ots::Buffer &table,
-                           std::vector<Operand> &operands) {
+bool OpenTypeCFF::ParseDictDataReadNext(Buffer &table,
+                                        std::vector<Operand> &operands) {
   uint8_t op = 0;
   if (!table.ReadU8(&op)) {
     return OTS_FAILURE();
@@ -342,32 +334,25 @@ bool ParseDictDataReadNext(ots::Buffer &table,
   return ParseDictDataNumber(table, op, operands);
 }
 
-bool OperandsOverflow(std::vector<Operand>& operands, bool cff2) {
-  // An operator may be preceded by up to a maximum of 48 operands in CFF1 and
-  // 513 operands in CFF2.
-  if ((cff2 && operands.size() > ots::kMaxCFF2ArgumentStack) ||
-      (!cff2 && operands.size() > ots::kMaxCFF1ArgumentStack)) {
-    return true;
-  }
-  return false;
-}
-
-bool ParseDictDataReadOperands(ots::Buffer& dict,
-                               std::vector<Operand>& operands,
-                               bool cff2) {
+bool OpenTypeCFF::ParseDictDataReadOperands(Buffer& dict,
+                                            std::vector<Operand>& operands) {
   if (!ParseDictDataReadNext(dict, operands)) {
     return OTS_FAILURE();
   }
   if (operands.empty()) {
     return OTS_FAILURE();
   }
-  if (OperandsOverflow(operands, cff2)) {
+  // An operator may be preceded by up to a maximum of 48 operands in CFF1 and
+  // 513 operands in CFF2.
+  bool cff2 = (this->major == 2);
+  if ((cff2 && operands.size() > ots::kMaxCFF2ArgumentStack) ||
+      (!cff2 && operands.size() > ots::kMaxCFF1ArgumentStack)) {
     return OTS_FAILURE();
   }
   return true;
 }
 
-bool ValidCFF2DictOp(uint32_t op, DICT_DATA_TYPE type) {
+bool OpenTypeCFF::ValidCFF2DictOp(uint32_t op, DICT_DATA_TYPE type) {
   if (type == DICT_DATA_TOPLEVEL) {
     switch (op) {
       case (12U << 8) + 7:  // FontMatrix
@@ -397,12 +382,12 @@ bool ValidCFF2DictOp(uint32_t op, DICT_DATA_TYPE type) {
   return false;
 }
 
-bool ParsePrivateDictData(
-    ots::Buffer &table, size_t offset, size_t dict_length,
-    DICT_DATA_TYPE type, ots::OpenTypeCFF *out_cff) {
+bool OpenTypeCFF::ParsePrivateDictData(Buffer &table, size_t offset,
+                                       size_t dict_length,
+                                       DICT_DATA_TYPE type) {
   ots::Buffer dict(table.buffer() + offset, dict_length);
   std::vector<Operand> operands;
-  bool cff2 = (out_cff->major == 2);
+  bool cff2 = (this->major == 2);
   bool blend_seen = false;
   uint32_t vsindex = 0;
 
@@ -410,11 +395,11 @@ bool ParsePrivateDictData(
   // Kaku Gothic Std W8), we create an empty Local Subr here to match the size
   // of FDArray the size of |local_subrs_per_font|.
   if (type == DICT_DATA_FDARRAY) {
-    out_cff->local_subrs_per_font.push_back(new ots::CFFIndex);
+    this->local_subrs_per_font.push_back(new ots::CFFIndex);
   }
 
   while (dict.offset() < dict.length()) {
-    if (!ParseDictDataReadOperands(dict, operands, cff2)) {
+    if (!ParseDictDataReadOperands(dict, operands)) {
       return OTS_FAILURE();
     }
     if (operands.back().second != DICT_OPERATOR) {
@@ -483,18 +468,18 @@ bool ParsePrivateDictData(
         table.set_offset(operands.back().first + offset);
         ots::CFFIndex *local_subrs_index = NULL;
         if (type == DICT_DATA_FDARRAY) {
-          if (out_cff->local_subrs_per_font.empty()) {
+          if (this->local_subrs_per_font.empty()) {
             return OTS_FAILURE();  // not reached.
           }
-          local_subrs_index = out_cff->local_subrs_per_font.back();
+          local_subrs_index = this->local_subrs_per_font.back();
         } else { // type == DICT_DATA_TOPLEVEL
-          if (out_cff->local_subrs) {
+          if (this->local_subrs) {
             return OTS_FAILURE();  // two or more local_subrs?
           }
           local_subrs_index = new ots::CFFIndex;
-          out_cff->local_subrs = local_subrs_index;
+          this->local_subrs = local_subrs_index;
         }
-        if (!ParseIndex(table, *local_subrs_index, cff2)) {
+        if (!ParseIndex(table, *local_subrs_index)) {
           return OTS_FAILURE();
         }
         break;
@@ -527,7 +512,7 @@ bool ParsePrivateDictData(
           return OTS_FAILURE();
         }
         vsindex = operands.back().first;
-        if (vsindex >= out_cff->region_index_count.size()) {
+        if (vsindex >= this->region_index_count.size()) {
           return OTS_FAILURE();
         }
         break;
@@ -540,10 +525,10 @@ bool ParsePrivateDictData(
         if (operands.size() < 1) {
           return OTS_FAILURE();
         }
-        if (vsindex >= out_cff->region_index_count.size()) {
+        if (vsindex >= this->region_index_count.size()) {
           return OTS_FAILURE();
         }
-        uint16_t k = out_cff->region_index_count.at(vsindex);
+        uint16_t k = this->region_index_count.at(vsindex);
         uint16_t n = operands.back().first;
         if (operands.size() < n * (k + 1) + 1) {
           return OTS_FAILURE();
@@ -571,7 +556,7 @@ bool ParsePrivateDictData(
   return true;
 }
 
-bool ParseVariationStore(ots::OpenTypeCFF& out_cff, ots::Buffer& table) {
+bool OpenTypeCFF::ParseVariationStore(Buffer& table) {
   uint16_t length;
 
   if (!table.ReadU16(&length)) {
@@ -587,37 +572,32 @@ bool ParseVariationStore(ots::OpenTypeCFF& out_cff, ots::Buffer& table) {
     return OTS_FAILURE();
   }
 
-  if (!ParseItemVariationStore(out_cff.GetFont(),
+  if (!ParseItemVariationStore(GetFont(),
                                table.buffer() + table.offset(), length,
-                               &(out_cff.region_index_count))) {
+                               &(this->region_index_count))) {
     return OTS_FAILURE();
   }
 
   return true;
 }
 
-bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
-                   uint16_t glyphs, size_t sid_max, DICT_DATA_TYPE type,
-                   ots::OpenTypeCFF *out_cff);
-
-bool ParseDictData(ots::Buffer& table, const ots::CFFIndex &index,
-                   uint16_t glyphs, size_t sid_max, DICT_DATA_TYPE type,
-                   ots::OpenTypeCFF *out_cff) {
+bool OpenTypeCFF::ParseDictData(Buffer& table, const CFFIndex &index,
+                                uint16_t glyphs, size_t sid_max,
+                                DICT_DATA_TYPE type) {
   for (unsigned i = 1; i < index.offsets.size(); ++i) {
     size_t dict_length = index.offsets[i] - index.offsets[i - 1];
     ots::Buffer dict(table.buffer() + index.offsets[i - 1], dict_length);
 
-    if (!ParseDictData(table, dict, glyphs, sid_max, type, out_cff)) {
+    if (!ParseDictData(table, dict, glyphs, sid_max, type)) {
       return OTS_FAILURE();
     }
   }
   return true;
 }
 
-bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
-                   uint16_t glyphs, size_t sid_max, DICT_DATA_TYPE type,
-                   ots::OpenTypeCFF *out_cff) {
-  bool cff2 = (out_cff->major == 2);
+bool OpenTypeCFF::ParseDictData(Buffer& table, Buffer& dict, uint16_t glyphs,
+                                size_t sid_max, DICT_DATA_TYPE type) {
+  bool cff2 = (this->major == 2);
   std::vector<Operand> operands;
 
   FONT_FORMAT font_format = FORMAT_UNKNOWN;
@@ -631,7 +611,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
     // (e.g. FDArray) that might be parsed after it.
     size_t dict_offset = dict.offset();
     while (dict.offset() < dict.length()) {
-      if (!ParseDictDataReadOperands(dict, operands, cff2)) {
+      if (!ParseDictDataReadOperands(dict, operands)) {
         return OTS_FAILURE();
       }
       if (operands.back().second != DICT_OPERATOR) continue;
@@ -652,7 +632,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
         }
         // parse "VariationStore Data Contents"
         table.set_offset(operands.back().first);
-        if (!ParseVariationStore(*out_cff, table)) {
+        if (!ParseVariationStore(table)) {
           return OTS_FAILURE();
         }
         break;
@@ -664,7 +644,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
   }
 
   while (dict.offset() < dict.length()) {
-    if (!ParseDictDataReadOperands(dict, operands, cff2)) {
+    if (!ParseDictDataReadOperands(dict, operands)) {
       return OTS_FAILURE();
     }
     if (operands.back().second != DICT_OPERATOR) continue;
@@ -811,8 +791,8 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
         }
         // parse "14. CharStrings INDEX"
         table.set_offset(operands.back().first);
-        ots::CFFIndex *charstring_index = out_cff->charstrings_index;
-        if (!ParseIndex(table, *charstring_index, cff2)) {
+        ots::CFFIndex *charstring_index = this->charstrings_index;
+        if (!ParseIndex(table, *charstring_index)) {
           return OTS_FAILURE();
         }
         if (charstring_index->count < 2) {
@@ -854,18 +834,17 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
         // parse Font DICT INDEX.
         table.set_offset(operands.back().first);
         ots::CFFIndex sub_dict_index;
-        if (!ParseIndex(table, sub_dict_index, cff2)) {
+        if (!ParseIndex(table, sub_dict_index)) {
           return OTS_FAILURE();
         }
         if (!ParseDictData(table, sub_dict_index,
-                           glyphs, sid_max, DICT_DATA_FDARRAY,
-                           out_cff)) {
+                           glyphs, sid_max, DICT_DATA_FDARRAY)) {
           return OTS_FAILURE();
         }
-        if (out_cff->font_dict_length != 0) {
+        if (this->font_dict_length != 0) {
           return OTS_FAILURE();  // two or more FDArray found.
         }
-        out_cff->font_dict_length = sub_dict_index.count;
+        this->font_dict_length = sub_dict_index.count;
         break;
       }
 
@@ -892,7 +871,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
             if (!table.ReadU8(&fd_index)) {
               return OTS_FAILURE();
             }
-            (out_cff->fd_select)[j] = fd_index;
+            (this->fd_select)[j] = fd_index;
           }
         } else if (format == 3) {
           uint16_t n_ranges = 0;
@@ -922,10 +901,10 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
               return OTS_FAILURE();  // invalid gid.
             }
 
-            // Copy the mapping to |out_cff->fd_select|.
+            // Copy the mapping to |fd_select|.
             if (j != 0) {
               for (auto k = last_gid; k < first; ++k) {
-                if (!out_cff->fd_select.insert(
+                if (!this->fd_select.insert(
                         std::make_pair(k, fd_index)).second) {
                   return OTS_FAILURE();
                 }
@@ -948,7 +927,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
             return OTS_FAILURE();  // invalid gid.
           }
           for (auto k = last_gid; k < sentinel; ++k) {
-            if (!out_cff->fd_select.insert(
+            if (!this->fd_select.insert(
                     std::make_pair(k, fd_index)).second) {
               return OTS_FAILURE();
             }
@@ -981,10 +960,10 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
               return OTS_FAILURE();  // invalid gid.
             }
 
-            // Copy the mapping to |out_cff->fd_select|.
+            // Copy the mapping to |fd_select|.
             if (j != 0) {
               for (auto k = last_gid; k < first; ++k) {
-                if (!out_cff->fd_select.insert(
+                if (!this->fd_select.insert(
                         std::make_pair(k, fd_index)).second) {
                   return OTS_FAILURE();
                 }
@@ -1007,7 +986,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
             return OTS_FAILURE();  // invalid gid.
           }
           for (auto k = last_gid; k < sentinel; ++k) {
-            if (!out_cff->fd_select.insert(
+            if (!this->fd_select.insert(
                     std::make_pair(k, fd_index)).second) {
               return OTS_FAILURE();
             }
@@ -1044,7 +1023,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
         }
         // parse "15. Private DICT data"
         if (!ParsePrivateDictData(table, private_offset, private_length,
-                                  type, out_cff)) {
+                                  type)) {
           return OTS_FAILURE();
         }
         break;
@@ -1142,10 +1121,6 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
   return true;
 }
 
-}  // namespace
-
-namespace ots {
-
 bool OpenTypeCFF::ValidateFDSelect(uint16_t num_glyphs) {
   for (const auto& fd_select : this->fd_select) {
     if (fd_select.first >= num_glyphs) {
@@ -1242,7 +1217,7 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
   this->charstrings_index = new ots::CFFIndex;
   if (!ParseDictData(table, top_dict_index,
                      num_glyphs, sid_max,
-                     DICT_DATA_TOPLEVEL, this)) {
+                     DICT_DATA_TOPLEVEL)) {
     return Error("Failed to parse Top DICT Data");
   }
 
@@ -1329,14 +1304,14 @@ bool OpenTypeCFF2::Parse(const uint8_t *data, size_t length) {
   this->charstrings_index = new ots::CFFIndex;
   if (!ParseDictData(table, top_dict,
                      num_glyphs, sid_max,
-                     DICT_DATA_TOPLEVEL, this)) {
+                     DICT_DATA_TOPLEVEL)) {
     return Error("Failed to parse Top DICT Data");
   }
 
   // parse "9. Global Subrs INDEX"
   table.set_offset(hdr_size + top_dict_size);
   CFFIndex global_subrs_index;
-  if (!ParseIndex(table, global_subrs_index, true)) {
+  if (!ParseIndex(table, global_subrs_index)) {
     return Error("Failed to parse Global Subrs INDEX");
   }
 
