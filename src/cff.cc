@@ -544,7 +544,7 @@ bool ParsePrivateDictData(
           return OTS_FAILURE();
         }
         uint16_t k = out_cff->region_index_count.at(vsindex);
-        int32_t n = operands.back().first;
+        uint16_t n = operands.back().first;
         if (operands.size() < n * (k + 1) + 1) {
           return OTS_FAILURE();
         }
