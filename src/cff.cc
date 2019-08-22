@@ -918,6 +918,9 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
             if ((j != 0) && (last_gid >= first)) {
               return OTS_FAILURE();  // not increasing order.
             }
+            if (first >= glyphs) {
+              return OTS_FAILURE();  // invalid gid.
+            }
 
             // Copy the mapping to |out_cff->fd_select|.
             if (j != 0) {
@@ -970,6 +973,9 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
             }
             if ((j != 0) && (last_gid >= first)) {
               return OTS_FAILURE();  // not increasing order.
+            }
+            if (first >= glyphs) {
+              return OTS_FAILURE();  // invalid gid.
             }
 
             // Copy the mapping to |out_cff->fd_select|.
