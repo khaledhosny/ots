@@ -80,8 +80,6 @@ class OpenTypeCFF2 : public OpenTypeCFF {
         m_length(0) {
   }
 
-  ~OpenTypeCFF2() {}
-
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);
 
