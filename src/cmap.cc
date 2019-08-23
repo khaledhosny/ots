@@ -459,6 +459,7 @@ bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length,
     }
   }
 
+  size_t offset = subtable.offset();
   for (unsigned i = 0; i < num_records; ++i) {
     // Checks default UVS table
     if (records[i].default_offset) {
@@ -492,6 +493,8 @@ bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length,
         }
         last_unicode_value = check_value;
       }
+
+      offset = std::max(offset, subtable.offset());
     }
 
     // Checks non default UVS table
@@ -524,9 +527,12 @@ bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length,
         }
         last_unicode_value = mappings[j].unicode_value;
       }
+
+      offset = std::max(offset, subtable.offset());
     }
   }
 
+  subtable.set_offset(offset);
   if (subtable.offset() != length) {
     return Error("Bad subtable offset (%ld != %ld)", subtable.offset(), length);
   }
