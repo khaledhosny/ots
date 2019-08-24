@@ -176,14 +176,8 @@ bool OpenTypeSILF::SILSub::ParsePart(Buffer& table) {
     if (!table.ReadU8(&this->attrMirroring)) {
       return parent->Error("SILSub: Failed to read attrMirroring");
     }
-    if (parent->version >> 16 < 4 && this->attrMirroring != 0) {
-      parent->Warning("SILSub: Nonzero attrMirroring (reserved before v4)");
-    }
     if (!table.ReadU8(&this->attrSkipPasses)) {
       return parent->Error("SILSub: Failed to read attrSkipPasses");
-    }
-    if (parent->version >> 16 < 4 && this->attrSkipPasses != 0) {
-      parent->Warning("SILSub: Nonzero attrSkipPasses (reserved2 before v4)");
     }
 
     if (!table.ReadU8(&this->numJLevels)) {
@@ -653,9 +647,6 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
     if (!table.ReadU16(&this->fsmOffset)) {
       return parent->Error("SILPass: Failed to read fsmOffset");
     }
-    if (parent->version >> 16 == 2 && this->fsmOffset != 0) {
-      parent->Warning("SILPass: Nonzero fsmOffset (reserved in SILSub v2)");
-    }
     if (!table.ReadU32(&this->pcCode) ||
         (parent->version >= 3 && this->pcCode < this->fsmOffset)) {
       return parent->Error("SILPass: Failed to read pcCode");
@@ -780,10 +771,6 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
   if (parent->version >> 16 >= 2) {
     if (!table.ReadU8(&this->collisionThreshold)) {
       return parent->Error("SILPass: Failed to read collisionThreshold");
-    }
-    if (parent->version >> 16 < 5 && this->collisionThreshold != 0) {
-      parent->Warning("SILPass: Nonzero collisionThreshold"
-                      " (reserved before v5)");
     }
     if (!table.ReadU16(&this->pConstraint)) {
       return parent->Error("SILPass: Failed to read pConstraint");
