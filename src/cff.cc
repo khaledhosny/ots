@@ -944,6 +944,9 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
           if (last_gid >= sentinel) {
             return OTS_FAILURE();
           }
+          if (sentinel > glyphs) {
+            return OTS_FAILURE();  // invalid gid.
+          }
           for (auto k = last_gid; k < sentinel; ++k) {
             if (!out_cff->fd_select.insert(
                     std::make_pair(k, fd_index)).second) {
@@ -999,6 +1002,9 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
           }
           if (last_gid >= sentinel) {
             return OTS_FAILURE();
+          }
+          if (sentinel > glyphs) {
+            return OTS_FAILURE();  // invalid gid.
           }
           for (auto k = last_gid; k < sentinel; ++k) {
             if (!out_cff->fd_select.insert(
