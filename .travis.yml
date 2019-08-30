@@ -5,9 +5,6 @@ dist: xenial
 matrix:
   include:
     - os: linux
-      compiler: gcc
-
-    - os: linux
       compiler: clang
       env: DEPLOY=true
       before_script:
@@ -19,19 +16,22 @@ matrix:
 
     - os: osx
       compiler: clang
-      before_install:
-        - true
-      before_script:
-        - meson -Db_sanitize=address,undefined build
-
-    - os: osx
-      compiler: clang
       env: DEPLOY=true
       before_script:
         - meson --unity=on --buildtype=release --strip -Ddebug=true --prefix=$PWD --bindir=$OTS-$TRAVIS_OS_NAME build
       before_deploy:
         - ninja -C build install
         - zip -r $OTS-$TRAVIS_OS_NAME.zip $OTS-$TRAVIS_OS_NAME
+
+    - os: linux
+      compiler: gcc
+
+    - os: osx
+      compiler: clang
+      before_install:
+        - true
+      before_script:
+        - meson -Db_sanitize=address,undefined build
 
 addons:
   apt:
