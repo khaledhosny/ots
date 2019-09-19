@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/khaledhosny/ots.svg?branch=master)](https://travis-ci.org/khaledhosny/ots)
 [![Build status](https://ci.appveyor.com/api/projects/status/0l9ms6g47corescm/branch/master?svg=true)](https://ci.appveyor.com/project/khaledhosny/ots/branch/master)
-[![OSS-Fuzz Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/ots.svg)](https://oss-fuzz.com/testcases?project=ots&open=yes)
+[![Fuzzing Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/ots.svg)](https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&can=1&q=proj:ots)
 
 OpenType Sanitizer
 ==================
