@@ -45,7 +45,7 @@ addons:
 install:
   - export OTS=ots-$(grep -m1 version meson.build | cut -d"'" -f2)
   - pip3 install setuptools
-  - pip3 install meson ninja
+  - pip3 install meson==0.52.0 ninja
 
 before_script:
   - meson build
