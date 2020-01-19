@@ -290,7 +290,7 @@ if cxx.has_header('sys/time.h')
 endif
 
 
-gtest = dependency('gtest', fallback: ['gtest', 'gtest_main_dep'])
+gtest = subproject('gtest').get_variable('gtest_main_dep')
 
 cff_charstring = executable('cff_charstring',
   'tests/cff_charstring_test.cc',

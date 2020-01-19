@@ -31,7 +31,7 @@ matrix:
       before_install:
         - true
       before_script:
-        - meson -Db_sanitize=address,undefined build
+        - meson -Db_sanitize=address,undefined -Db_lundef=false build
 
 addons:
   apt:
