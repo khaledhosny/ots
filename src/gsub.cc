@@ -147,7 +147,7 @@ bool ParseSequenceTable(const ots::Font *font,
   for (unsigned i = 0; i < glyph_count; ++i) {
     uint16_t substitute = 0;
     if (!subtable.ReadU16(&substitute)) {
-      return OTS_FAILURE_MSG("Failedt o read substitution %d in sequence table", i);
+      return OTS_FAILURE_MSG("Failed to read substitution %d in sequence table", i);
     }
     if (substitute >= num_glyphs) {
       return OTS_FAILURE_MSG("Bad subsitution (%d) %d > %d", i, substitute, num_glyphs);
@@ -186,7 +186,7 @@ bool ParseMutipleSubstitution(const ots::Font *font,
   const unsigned sequence_end = static_cast<unsigned>(6) +
       sequence_count * 2;
   if (sequence_end > std::numeric_limits<uint16_t>::max()) {
-    return OTS_FAILURE_MSG("Bad segence end %d, in multiple subst", sequence_end);
+    return OTS_FAILURE_MSG("Bad sequence end %d, in multiple subst", sequence_end);
   }
   for (unsigned i = 0; i < sequence_count; ++i) {
     uint16_t offset_sequence = 0;
@@ -305,14 +305,14 @@ bool ParseLigatureTable(const ots::Font *font,
 
   if (!subtable.ReadU16(&lig_glyph) ||
       !subtable.ReadU16(&comp_count)) {
-    return OTS_FAILURE_MSG("Failed to read ligatuer table header");
+    return OTS_FAILURE_MSG("Failed to read ligature table header");
   }
 
   if (lig_glyph >= num_glyphs) {
     return OTS_FAILURE_MSG("too large lig_glyph: %u", lig_glyph);
   }
-  if (comp_count == 0 || comp_count > num_glyphs) {
-    return OTS_FAILURE_MSG("Bad component count of %d", comp_count);
+  if (comp_count == 0) {
+    return OTS_FAILURE_MSG("Component count cannot be 0");
   }
   for (unsigned i = 0; i < comp_count - static_cast<unsigned>(1); ++i) {
     uint16_t component = 0;
