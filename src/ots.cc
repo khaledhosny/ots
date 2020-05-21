@@ -873,6 +873,27 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
     return true;
   }
 
+  if (dropped_variations && IsVariationTable(tag)) {
+    // If bad variation data was enountered and all variation tables
+    // are being dropped, then skip parsing the variation table.
+    file->context->Message(0,
+                           "Skipping parsing of variation table: %c%c%c%c.",
+                           OTS_UNTAG(tag));
+    return true;
+  }
+
+  if (dropped_variations && tag == OTS_TAG_CFF2) {
+    // The CFF2 table contains variation data whose parsing depends on successfull
+    // parsing of other variation tables such as FVAR. So if variation tables are
+    // being dropped then we cannot parse CFF2. There is currently no support
+    // for dropping the variation data from the CFF2 table so we must fail validation.
+    //
+    // See: https://github.com/khaledhosny/ots/issues/205
+    file->context->Message(0,
+                           "Cannot parse CFF2 due to variation data being dropped.");
+    return false;
+  }
+
   Table *table = NULL;
   bool ret = false;
 
@@ -980,17 +1001,21 @@ void Font::DropGraphite() {
   dropped_graphite = true;
 }
 
+bool Font::IsVariationTable(uint32_t tag) const {
+  return tag == OTS_TAG_AVAR ||
+      tag == OTS_TAG_CVAR ||
+      tag == OTS_TAG_FVAR ||
+      tag == OTS_TAG_GVAR ||
+      tag == OTS_TAG_HVAR ||
+      tag == OTS_TAG_MVAR ||
+      tag == OTS_TAG_STAT ||
+      tag == OTS_TAG_VVAR;
+}
+
 void Font::DropVariations() {
   file->context->Message(0, "Dropping all Variation tables");
   for (const std::pair<uint32_t, Table*> entry : m_tables) {
-    if (entry.first == OTS_TAG_AVAR ||
-        entry.first == OTS_TAG_CVAR ||
-        entry.first == OTS_TAG_FVAR ||
-        entry.first == OTS_TAG_GVAR ||
-        entry.first == OTS_TAG_HVAR ||
-        entry.first == OTS_TAG_MVAR ||
-        entry.first == OTS_TAG_STAT ||
-        entry.first == OTS_TAG_VVAR) {
+    if (IsVariationTable(entry.first)) {
       entry.second->Drop("Discarding Variations table");
     }
   }
