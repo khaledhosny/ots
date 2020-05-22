@@ -222,7 +222,8 @@ bool ProcessTTF(ots::FontFile *header,
 
   // entry_selector is Log2(maximum power of 2 <= numTables)
   if (font->entry_selector != max_pow2) {
-    return OTS_FAILURE_MSG_HDR("incorrect entrySelector for table directory");
+    OTS_WARNING_MSG_HDR("incorrect entrySelector for table directory");
+    font->entry_selector = max_pow2;  // Fix the value.
   }
 
   // range_shift is NumTables x 16-searchRange. We know that 16*num_tables
