@@ -330,6 +330,8 @@ struct Font {
   bool dropped_variations;
 
  private:
+  bool IsVariationTable(uint32_t tag) const;
+
   std::map<uint32_t, Table*> m_tables;
 };
 
