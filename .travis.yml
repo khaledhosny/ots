@@ -1,7 +1,5 @@
 language: cpp
 
-dist: focal
-
 jobs:
   include:
     - os: linux
@@ -25,6 +23,7 @@ jobs:
       compiler: clang
 
     - os: osx
+      osx_image: xcode11.4
       before_script:
         - meson -Db_sanitize=address,undefined -Db_lundef=false build
 
