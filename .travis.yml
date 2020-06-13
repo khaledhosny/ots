@@ -5,7 +5,6 @@ dist: focal
 matrix:
   include:
     - os: linux
-      compiler: clang
       env: DEPLOY=true
       before_script:
         - meson --unity=on --buildtype=release --strip -Ddebug=true --prefix=$PWD --bindir=$OTS-$TRAVIS_OS_NAME build
@@ -15,7 +14,6 @@ matrix:
         - zip -r $OTS-$TRAVIS_OS_NAME.zip $OTS-$TRAVIS_OS_NAME
 
     - os: osx
-      compiler: clang
       env: DEPLOY=true
       before_script:
         - meson --unity=on --buildtype=release --strip -Ddebug=true --prefix=$PWD --bindir=$OTS-$TRAVIS_OS_NAME build
@@ -24,10 +22,9 @@ matrix:
         - zip -r $OTS-$TRAVIS_OS_NAME.zip $OTS-$TRAVIS_OS_NAME
 
     - os: linux
-      compiler: gcc
+      compiler: clang
 
     - os: linux
-      compiler: clang
       before_script:
         - meson -Db_sanitize=address,undefined build
 
@@ -50,11 +47,11 @@ before_script:
 
 script:
   - ninja -C build
-  - ninja -C build test
+  - ninja -C build test || (cat build/meson-logs/testlog.txt && false)
 
 deploy:
   provider: releases
-  api_key:
+  token:
     - secure: "TLW/tIpobbvcJvEyZNJcdUL1c1Xt91vaxMegUGKvXnyT56Rxn6joLYUVhfFmz6cOKtDG4F409aAXJr60BL8iQ/xra9a8uD4Y+WKgPinQo9O8CViv1bsQpGV2rfBpNQ5UUYU/t09ReicPQNHGb0ONFRnLxmcQLo8eJzlKE1MdOoA="
   file:
     - "${OTS}-${TRAVIS_OS_NAME}.zip"
