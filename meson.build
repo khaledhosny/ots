@@ -38,6 +38,12 @@ configure_file(output: 'config.h',
                configuration: conf)
 
 
+brotli_c_args = []
+if 'undefined' in get_option('b_sanitize').split(',')
+  # brotli depends on undefined behavior otherwise.
+  brotli_c_args += '-DBROTLI_BUILD_PORTABLE'
+endif
+
 brotli_includes = ['third_party/brotli/c/include']
 libbrotli = library('brotli',
   'third_party/brotli/c/common/constants.h',
@@ -58,8 +64,16 @@ libbrotli = library('brotli',
   'third_party/brotli/c/include/brotli/port.h',
   'third_party/brotli/c/include/brotli/types.h',
   include_directories: include_directories(brotli_includes),
+  c_args: brotli_c_args,
 )
 
+
+woff2_cpp_args = []
+if 'undefined' in get_option('b_sanitize').split(',')
+  # XXX Horrible hack XXX
+  # woff2 depends on undefined behavior otherwise.
+  woff2_cpp_args += '-U__BYTE_ORDER__'
+endif
 
 woff2_includes = ['third_party/brotli/c/include', 'third_party/woff2/include']
 libwoff2 = library('woff2',
@@ -78,6 +92,7 @@ libwoff2 = library('woff2',
   'third_party/woff2/src/woff2_dec.cc',
   'third_party/woff2/src/woff2_out.cc',
   include_directories: include_directories(woff2_includes),
+  cpp_args: woff2_cpp_args,
 )
 
 
