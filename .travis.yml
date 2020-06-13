@@ -2,7 +2,7 @@ language: cpp
 
 dist: focal
 
-matrix:
+jobs:
   include:
     - os: linux
       env: DEPLOY=true
