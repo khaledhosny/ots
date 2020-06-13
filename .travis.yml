@@ -24,9 +24,9 @@ jobs:
     - os: linux
       compiler: clang
 
-    - os: linux
+    - os: osx
       before_script:
-        - meson -Db_sanitize=address,undefined build
+        - meson -Db_sanitize=address,undefined -Db_lundef=false build
 
 addons:
   apt:
