@@ -27,21 +27,24 @@ if [ $# -eq 0 ] ; then
   # No font file is specified. Apply this script to all TT/OT files we can find
   # on the system.
 
-  if [ ! -d $BASE_DIR ] ; then
+  if [ ! -d "$BASE_DIR" ] ; then
     echo "$BASE_DIR does not exist."
     exit 1
   fi
 
-  if $(command fc-list &>/dev/null);
+  if [ x"$FONTS" = x ];
   then
+    # Mac OS X
+    FONTS=$"$FONTS"$'\n'"$(find /System/Library/Fonts/ -type f -name '*tf' -o -name '*tc')"
+  fi
+
+
+  if [ x"$FONTS" = x ] && $(command fc-list &>/dev/null);
+  then
+  echo $FONTS
     CFF=$(fc-list --format="%{file}\n" :fontformat=CFF | sort -u)
     TTF=$(fc-list --format="%{file}\n" :fontformat=TrueType | sort -u)
-    FONTS="$CFF"$'\n'"$TTF"
-  else
-    # Mac OS X
-    # TODO: Support Cygwin.
-    OSX_BASE_DIR="/Library/Fonts/ /System/Library/Fonts/"
-    FONTS=$(find $OSX_BASE_DIR -type f -name '*tf' -o -name '*tc')
+    FONTS="$FONTS"$'\n'"$CFF"$'\n'"$TTF"
   fi
 
   FONTS="$FONTS"$'\n'"$(find $BASE_DIR -type f)"
