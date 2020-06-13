@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/khaledhosny/ots.svg?branch=master)](https://travis-ci.org/khaledhosny/ots)
+[![Build Status](https://travis-ci.com/khaledhosny/ots.svg?branch=master)](https://travis-ci.com/khaledhosny/ots)
 [![Build status](https://ci.appveyor.com/api/projects/status/0l9ms6g47corescm/branch/master?svg=true)](https://ci.appveyor.com/project/khaledhosny/ots/branch/master)
 [![Fuzzing Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/ots.svg)](https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&can=1&q=proj:ots)
 
