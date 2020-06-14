@@ -10,11 +10,11 @@ test "x$top_builddir" = x && top_builddir=.
 # Usage: ./test_good_fonts.sh [ttf_or_otf_file_name]
 
 BASE_DIR=$top_srcdir/tests/fonts/good/
-BLACKLIST=$top_srcdir/tests/BLACKLIST.txt
+BLOCKLIST=$top_srcdir/tests/BLOCKLIST.txt
 CHECKER=$top_builddir/ots-idempotent$EXEEXT
 
-if [ ! -r "$BLACKLIST" ] ; then
-  echo "$BLACKLIST is not found."
+if [ ! -r "$BLOCKLIST" ] ; then
+  echo "$BLOCKLIST is not found."
   exit 1
 fi
 
@@ -74,7 +74,7 @@ fi
 
 # Check the font file using idempotent if the font is not blacklisted.
 BASE=`basename "$1"`
-SKIP=`egrep -i -e "^$BASE" "$BLACKLIST"`
+SKIP=`egrep -i -e "^$BASE" "$BLOCKLIST"`
 
 if [ "x$SKIP" = "x" ]; then
   $CHECKER "$1"
