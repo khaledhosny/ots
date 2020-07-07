@@ -231,7 +231,7 @@ executable('ots-sanitize',
 fuzzer_ldflags = []
 fuzzer_defines = []
 if get_option('fuzzer_ldflags') != ''
-  fuzzer_ldflags += [get_option('fuzzer_ldflags')]
+  fuzzer_ldflags += get_option('fuzzer_ldflags').split()
   fuzzer_defines += ['-DOTS_FUZZER_NO_MAIN']
 endif
 
