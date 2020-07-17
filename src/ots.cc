@@ -1015,10 +1015,15 @@ bool Font::IsVariationTable(uint32_t tag) const {
 
 void Font::DropVariations() {
   file->context->Message(0, "Dropping all Variation tables");
-  for (const std::pair<uint32_t, Table*> entry : m_tables) {
-    if (IsVariationTable(entry.first)) {
-      entry.second->Drop("Discarding Variations table");
+  std::map<uint32_t, Table*>::iterator it = m_tables.begin();
+  while (it != m_tables.end()) {
+    if (!IsVariationTable(it->first)) {
+      it++;
+      continue;
     }
+
+    it->second->Drop("Discarding Variations table");
+    it = m_tables.erase(it);
   }
   dropped_variations = true;
 }
