@@ -300,8 +300,7 @@ struct Font {
         search_range(0),
         entry_selector(0),
         range_shift(0),
-        dropped_graphite(false),
-        dropped_variations(false) {
+        dropped_graphite(false) {
   }
 
   bool ParseTable(const TableEntry& tableinfo, const uint8_t* data,
@@ -327,11 +326,8 @@ struct Font {
   uint16_t entry_selector;
   uint16_t range_shift;
   bool dropped_graphite;
-  bool dropped_variations;
 
  private:
-  bool IsVariationTable(uint32_t tag) const;
-
   std::map<uint32_t, Table*> m_tables;
 };
 
