@@ -31,9 +31,7 @@ bool OpenTypeVHEA::Serialize(OTSStream *out) {
 }
 
 bool OpenTypeVHEA::ShouldSerialize() {
-  return OpenTypeMetricsHeader::ShouldSerialize() &&
-         // vhea shouldn't serialise when vmtx doesn't exist.
-         GetFont()->GetTable(OTS_TAG_VMTX) != NULL;
+  return OpenTypeMetricsHeader::ShouldSerialize();
 }
 
 }  // namespace ots
