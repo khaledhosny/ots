@@ -38,7 +38,35 @@ configure_file(output: 'config.h',
                configuration: conf)
 
 
-brotli = dependency('libbrotlidec', fallback : ['google-brotli', 'brotli_decoder_dep'])
+brotli_c_args = []
+if 'undefined' in get_option('b_sanitize').split(',')
+  # brotli depends on undefined behavior otherwise.
+  brotli_c_args += '-DBROTLI_BUILD_PORTABLE'
+endif
+
+brotli_includes = ['third_party/brotli/c/include']
+libbrotli = library('brotli',
+  'third_party/brotli/c/common/constants.h',
+  'third_party/brotli/c/common/dictionary.c',
+  'third_party/brotli/c/common/dictionary.h',
+  'third_party/brotli/c/common/transform.c',
+  'third_party/brotli/c/common/transform.h',
+  'third_party/brotli/c/common/version.h',
+  'third_party/brotli/c/dec/bit_reader.c',
+  'third_party/brotli/c/dec/bit_reader.h',
+  'third_party/brotli/c/dec/decode.c',
+  'third_party/brotli/c/dec/huffman.c',
+  'third_party/brotli/c/dec/huffman.h',
+  'third_party/brotli/c/dec/prefix.h',
+  'third_party/brotli/c/dec/state.c',
+  'third_party/brotli/c/dec/state.h',
+  'third_party/brotli/c/include/brotli/decode.h',
+  'third_party/brotli/c/include/brotli/port.h',
+  'third_party/brotli/c/include/brotli/types.h',
+  include_directories: include_directories(brotli_includes),
+  c_args: brotli_c_args,
+)
+
 
 woff2_cpp_args = []
 if 'undefined' in get_option('b_sanitize').split(',')
@@ -47,7 +75,7 @@ if 'undefined' in get_option('b_sanitize').split(',')
   woff2_cpp_args += '-U__BYTE_ORDER__'
 endif
 
-woff2_includes = ['third_party/woff2/include']
+woff2_includes = ['third_party/brotli/c/include', 'third_party/woff2/include']
 libwoff2 = library('woff2',
   'third_party/woff2/include/woff2/decode.h',
   'third_party/woff2/include/woff2/output.h',
@@ -65,7 +93,6 @@ libwoff2 = library('woff2',
   'third_party/woff2/src/woff2_out.cc',
   include_directories: include_directories(woff2_includes),
   cpp_args: woff2_cpp_args,
-  dependencies: brotli,
 )
 
 
@@ -155,20 +182,40 @@ ots_sources = [
   'src/vvar.h',
 ]
 
-zlib = dependency('zlib', fallback : ['zlib', 'zlib_dep'])
-ots_dependencies = [zlib]
+ots_libs = [libbrotli, libwoff2]
 
 if get_option('graphite')
-  lz4 = dependency('liblz4', fallback : ['lz4', 'lz4_dep'])
-  ots_dependencies += [lz4]
+  ots_includes += ['third_party/lz4/lib']
+  ots_sources += [
+    'src/feat.cc',
+    'src/feat.h',
+    'src/glat.cc',
+    'src/glat.h',
+    'src/gloc.cc',
+    'src/gloc.h',
+    'src/graphite.h',
+    'src/sile.h',
+    'src/sile.cc',
+    'src/silf.h',
+    'src/silf.cc',
+    'src/sill.h',
+    'src/sill.cc',
+  ]
+  liblz4 = library('lz4',
+    'third_party/lz4/lib/lz4.c',
+    'third_party/lz4/lib/lz4.h',
+  )
+  ots_libs += [liblz4]
 endif
+
+zlib = dependency('zlib', fallback : ['zlib', 'zlib_dep'])
 
 libots = library('ots',
   ots_sources,
   include_directories: include_directories(ots_includes),
-  link_with: libwoff2,
+  link_with: ots_libs,
   cpp_args : '-DHAVE_CONFIG_H',
-  dependencies: ots_dependencies,
+  dependencies: zlib,
 )
 
 
