@@ -988,7 +988,6 @@ void Font::DropGraphite() {
       entry.second->Drop("Discarding Graphite table");
     }
   }
-  dropped_graphite = true;
 }
 
 void Font::DropVariations() {

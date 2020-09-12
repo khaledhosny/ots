@@ -12,9 +12,6 @@ namespace ots {
 
 bool OpenTypeSILF::Parse(const uint8_t* data, size_t length,
                          bool prevent_decompression) {
-  if (GetFont()->dropped_graphite) {
-    return Drop("Skipping Graphite table");
-  }
   Buffer table(data, length);
 
   if (!table.ReadU32(&this->version)) {
