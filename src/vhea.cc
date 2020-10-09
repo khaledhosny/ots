@@ -26,12 +26,4 @@ bool OpenTypeVHEA::Parse(const uint8_t *data, size_t length) {
   return OpenTypeMetricsHeader::Parse(data, length);
 }
 
-bool OpenTypeVHEA::Serialize(OTSStream *out) {
-  return OpenTypeMetricsHeader::Serialize(out);
-}
-
-bool OpenTypeVHEA::ShouldSerialize() {
-  return OpenTypeMetricsHeader::ShouldSerialize();
-}
-
 }  // namespace ots
