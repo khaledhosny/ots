@@ -8,6 +8,7 @@ jobs:
         - meson --unity=on --buildtype=release --strip -Ddebug=true --prefix=$PWD --bindir=$OTS-$TRAVIS_OS_NAME build
       before_deploy:
         - ninja -C build install
+        - ninja -C build dist
         - zip -r $OTS-$TRAVIS_OS_NAME.zip $OTS-$TRAVIS_OS_NAME
 
     - os: osx
@@ -52,6 +53,7 @@ deploy:
     - secure: d0bAKmghWHEAdKjZbHrqeLJNg5jilfvl1r6pMUraA35ohgnHhvrcVyqjRyOtUDr08B6PUNyCQkhZNrmJ1YkDZaiMInoJSS5wY1PBRjLY97rJgUZgpsbiVEE2FAUmBjSaPJ1PQd0dLejs59r+CESYNpvV06xrD8AzxVYJ28JkvNA=
   file:
     - "${OTS}-${TRAVIS_OS_NAME}.zip"
+    - "build/meson-dist/${OTS}.tar.xz"
   cleanup: false
   draft: true
   overwrite: true
