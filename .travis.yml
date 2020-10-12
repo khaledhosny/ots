@@ -54,7 +54,7 @@ deploy:
   file:
     - "${OTS}-${TRAVIS_OS_NAME}.zip"
     - "build/meson-dist/${OTS}.tar.xz"
-  cleanup: false
+  skip_cleanup: true
   draft: true
   overwrite: true
   tag_name: $TRAVIS_TAG
