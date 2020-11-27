@@ -37,69 +37,96 @@ endif
 configure_file(output: 'config.h',
                configuration: conf)
 
-
-brotli_c_args = []
-if 'undefined' in get_option('b_sanitize').split(',')
-  # brotli depends on undefined behavior otherwise.
-  brotli_c_args += '-DBROTLI_BUILD_PORTABLE'
-endif
-
-brotli_includes = ['third_party/brotli/c/include']
-libbrotli = library('brotli',
-  'third_party/brotli/c/common/constants.h',
-  'third_party/brotli/c/common/dictionary.c',
-  'third_party/brotli/c/common/dictionary.h',
-  'third_party/brotli/c/common/transform.c',
-  'third_party/brotli/c/common/transform.h',
-  'third_party/brotli/c/common/version.h',
-  'third_party/brotli/c/dec/bit_reader.c',
-  'third_party/brotli/c/dec/bit_reader.h',
-  'third_party/brotli/c/dec/decode.c',
-  'third_party/brotli/c/dec/huffman.c',
-  'third_party/brotli/c/dec/huffman.h',
-  'third_party/brotli/c/dec/prefix.h',
-  'third_party/brotli/c/dec/state.c',
-  'third_party/brotli/c/dec/state.h',
-  'third_party/brotli/c/include/brotli/decode.h',
-  'third_party/brotli/c/include/brotli/port.h',
-  'third_party/brotli/c/include/brotli/types.h',
-  include_directories: include_directories(brotli_includes),
-  c_args: brotli_c_args,
-)
-
-
-woff2_cpp_args = []
-if 'undefined' in get_option('b_sanitize').split(',')
-  # XXX Horrible hack XXX
-  # woff2 depends on undefined behavior otherwise.
-  woff2_cpp_args += '-U__BYTE_ORDER__'
-endif
-
-woff2_includes = ['third_party/brotli/c/include', 'third_party/woff2/include']
-libwoff2 = library('woff2',
-  'third_party/woff2/include/woff2/decode.h',
-  'third_party/woff2/include/woff2/output.h',
-  'third_party/woff2/src/buffer.h',
-  'third_party/woff2/src/port.h',
-  'third_party/woff2/src/round.h',
-  'third_party/woff2/src/store_bytes.h',
-  'third_party/woff2/src/table_tags.cc',
-  'third_party/woff2/src/table_tags.h',
-  'third_party/woff2/src/variable_length.cc',
-  'third_party/woff2/src/variable_length.h',
-  'third_party/woff2/src/woff2_common.cc',
-  'third_party/woff2/src/woff2_common.h',
-  'third_party/woff2/src/woff2_dec.cc',
-  'third_party/woff2/src/woff2_out.cc',
-  include_directories: include_directories(woff2_includes),
-  cpp_args: woff2_cpp_args,
-)
-
-
+ots_libs = []
+ots_deps = []
 ots_includes = [
   'include',
-  'third_party/woff2/include',
 ]
+
+libbrotli_common = dependency('libbrotlicommon', required : false)
+libbrotli_enc = dependency('libbrotlienc', required : false)
+libbrotli_dec = dependency('libbrotlidec', required : false)
+
+if libbrotli_common.found() and libbrotli_enc.found() and libbrotli_dec.found()
+  libbrotli = [
+    libbrotli_common,
+    libbrotli_enc,
+    libbrotli_dec,
+  ]
+  ots_deps += libbrotli
+else
+  brotli_c_args = []
+  if 'undefined' in get_option('b_sanitize').split(',')
+    # brotli depends on undefined behavior otherwise.
+    brotli_c_args += '-DBROTLI_BUILD_PORTABLE'
+  endif
+  brotli_includes = ['third_party/brotli/c/include']
+  libbrotli = library('brotli',
+    'third_party/brotli/c/common/constants.h',
+    'third_party/brotli/c/common/dictionary.c',
+    'third_party/brotli/c/common/dictionary.h',
+    'third_party/brotli/c/common/transform.c',
+    'third_party/brotli/c/common/transform.h',
+    'third_party/brotli/c/common/version.h',
+    'third_party/brotli/c/dec/bit_reader.c',
+    'third_party/brotli/c/dec/bit_reader.h',
+    'third_party/brotli/c/dec/decode.c',
+    'third_party/brotli/c/dec/huffman.c',
+    'third_party/brotli/c/dec/huffman.h',
+    'third_party/brotli/c/dec/prefix.h',
+    'third_party/brotli/c/dec/state.c',
+    'third_party/brotli/c/dec/state.h',
+    'third_party/brotli/c/include/brotli/decode.h',
+    'third_party/brotli/c/include/brotli/port.h',
+    'third_party/brotli/c/include/brotli/types.h',
+    include_directories: include_directories(brotli_includes),
+    c_args: brotli_c_args,
+  )
+  ots_libs += libbrotli
+endif
+
+libwoff2_common = dependency('libwoff2common', required : false)
+libwoff2_enc = dependency('libwoff2enc', required : false)
+libwoff2_dec = dependency('libwoff2dec', required : false)
+
+if libwoff2_common.found() and libwoff2_enc.found() and libwoff2_dec.found()
+  libwoff2 = [
+    libwoff2_common,
+    libwoff2_enc,
+    libwoff2_dec,
+  ]
+  ots_deps += libwoff2
+else
+  woff2_cpp_args = []
+  if 'undefined' in get_option('b_sanitize').split(',')
+    # XXX Horrible hack XXX
+    # woff2 depends on undefined behavior otherwise.
+    woff2_cpp_args += '-U__BYTE_ORDER__'
+  endif
+
+  woff2_includes = ['third_party/brotli/c/include', 'third_party/woff2/include']
+  libwoff2 = library('woff2',
+    'third_party/woff2/include/woff2/decode.h',
+    'third_party/woff2/include/woff2/output.h',
+    'third_party/woff2/src/buffer.h',
+    'third_party/woff2/src/port.h',
+    'third_party/woff2/src/round.h',
+    'third_party/woff2/src/store_bytes.h',
+    'third_party/woff2/src/table_tags.cc',
+    'third_party/woff2/src/table_tags.h',
+    'third_party/woff2/src/variable_length.cc',
+    'third_party/woff2/src/variable_length.h',
+    'third_party/woff2/src/woff2_common.cc',
+    'third_party/woff2/src/woff2_common.h',
+    'third_party/woff2/src/woff2_dec.cc',
+    'third_party/woff2/src/woff2_out.cc',
+    include_directories: include_directories(woff2_includes),
+    cpp_args: woff2_cpp_args,
+  )
+
+  ots_libs += libwoff2
+  ots_includes += 'third_party/woff2/include'
+endif
 
 ots_sources = [
   'src/avar.cc',
@@ -180,7 +207,6 @@ ots_sources = [
   'src/vvar.h',
 ]
 
-ots_libs = [libbrotli, libwoff2]
 
 if get_option('graphite')
   ots_includes += ['third_party/lz4/lib']
@@ -207,13 +233,14 @@ if get_option('graphite')
 endif
 
 zlib = dependency('zlib', fallback : ['zlib', 'zlib_dep'])
+ots_deps += zlib
 
 libots = library('ots',
   ots_sources,
   include_directories: include_directories(ots_includes),
   link_with: ots_libs,
   cpp_args : '-DHAVE_CONFIG_H',
-  dependencies: zlib,
+  dependencies: ots_deps,
 )
 
 
