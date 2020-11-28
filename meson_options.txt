@@ -1,2 +1,5 @@
 option('graphite', type : 'boolean', value : true, description : 'Sanitize Graphite tables')
 option('fuzzer_ldflags', type: 'string', description : 'Extra LDFLAGS used during linking of fuzzing binaries')
+option('external_woff2', type: 'boolean', value : false, description : 'Use external/system libwoff2dec (and libbrotlidec)')
+option('external_lz4', type: 'boolean', value : false, description : 'Use external/system liblz4')
+option('external_gtest', type: 'boolean', value : false, description : 'Use external/system gtest')
