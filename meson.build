@@ -303,6 +303,8 @@ if cxx.has_header('sys/time.h')
 endif
 
 
+install_man('docs/ots-sanitize.1')
+
 gtest = subproject('gtest').get_variable('gtest_main_dep')
 
 cff_charstring = executable('cff_charstring',
