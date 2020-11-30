@@ -23,12 +23,31 @@ class OpenTypeGLYF : public Table {
   bool Serialize(OTSStream *out);
 
  private:
+  struct GidAtLevel {
+    uint16_t gid;
+    uint32_t level;
+  };
+
+  struct ComponentPointCount {
+    uint32_t accumulated_component_points;
+    std::vector<GidAtLevel> gid_stack;
+  };
+
   bool ParseFlagsForSimpleGlyph(Buffer &glyph,
                                 uint32_t num_flags,
                                 uint32_t *flag_index,
                                 uint32_t *coordinates_length);
   bool ParseSimpleGlyph(Buffer &glyph, int16_t num_contours);
-  bool ParseCompositeGlyph(Buffer &glyph);
+  bool ParseCompositeGlyph(
+      Buffer &glyph,
+      ComponentPointCount* component_point_count);
+
+
+  bool TraverseComponentsCountingPoints(
+      Buffer& glyph,
+      uint16_t base_glyph_id,
+      uint32_t level,
+      ComponentPointCount* component_point_count);
 
   OpenTypeMAXP* maxp;
 

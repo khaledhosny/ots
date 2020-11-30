@@ -99,6 +99,11 @@ bool OpenTypeGLYF::ParseSimpleGlyph(Buffer &glyph,
     num_flags = tmp_index + 1;
   }
 
+  if (num_flags > this->maxp->max_points) {
+    Warning("Number of contour points exceeds maxp maxPoints, adjusting limit.");
+    this->maxp->max_points = num_flags;
+  }
+
   uint16_t bytecode_length = 0;
   if (!glyph.ReadU16(&bytecode_length)) {
     return Error("Can't read bytecode length");
@@ -144,7 +149,9 @@ bool OpenTypeGLYF::ParseSimpleGlyph(Buffer &glyph,
 #define WE_HAVE_A_TWO_BY_TWO     (1u << 7)
 #define WE_HAVE_INSTRUCTIONS     (1u << 8)
 
-bool OpenTypeGLYF::ParseCompositeGlyph(Buffer &glyph) {
+bool OpenTypeGLYF::ParseCompositeGlyph(
+    Buffer &glyph,
+    ComponentPointCount* component_point_count) {
   uint16_t flags = 0;
   uint16_t gid = 0;
   do {
@@ -193,6 +200,10 @@ bool OpenTypeGLYF::ParseCompositeGlyph(Buffer &glyph) {
         return Error("Can't read transform");
       }
     }
+
+    // Push inital components on stack at level 1
+    // to traverse them in parent function.
+    component_point_count->gid_stack.push_back({gid, 1});
   } while (flags & MORE_COMPONENTS);
 
   if (flags & WE_HAVE_INSTRUCTIONS) {
@@ -302,8 +313,67 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
         return Error("Failed to parse glyph %d", i);
       }
     } else {
-      if (!ParseCompositeGlyph(glyph)) {
+
+      ComponentPointCount component_point_count;
+      component_point_count.accumulated_component_points = 0;
+      component_point_count.gid_stack.clear();
+
+      if (!ParseCompositeGlyph(glyph, &component_point_count)) {
         return Error("Failed to parse glyph %d", i);
+      }
+
+      // Check maxComponentDepth and validate
+      // maxComponentPoints. ParseCompositeGlyph placed the first set of
+      // component glyphs on the component_point_count.gid_stack, which we start
+      // to process below. If a nested glyph is in turn a component glyph,
+      // additional glyphs are placed on the stack.
+      while (component_point_count.gid_stack.size()) {
+        GidAtLevel stack_top_gid = component_point_count.gid_stack.back();
+        component_point_count.gid_stack.pop_back();
+
+        const unsigned gly_offset = offsets[stack_top_gid.gid];
+        const unsigned gly_length = offsets[stack_top_gid.gid + 1] -
+                                    offsets[stack_top_gid.gid];
+        if (!gly_length) {
+          continue;
+        }
+
+        if (gly_offset >= length) {
+          return Error("Glyph %d offset %d too high %ld",
+                       i,
+                       gly_offset,
+                       length);
+        }
+        if (gly_offset + gly_length < gly_offset) {
+          return Error("Glyph %d length (%d < 0)!", i, gly_length);
+        }
+        if (gly_offset + gly_length > length) {
+          return Error("Glyph %d length %d too high", i, gly_length);
+        }
+
+        Buffer points_count_glyph(data + gly_offset, gly_length);
+        if (!TraverseComponentsCountingPoints(points_count_glyph,
+                                              i,
+                                              stack_top_gid.level,
+                                              &component_point_count)) {
+          return Error("Error validating component points and depth.");
+        }
+
+        if (component_point_count.accumulated_component_points >
+            std::numeric_limits<uint16_t>::max()) {
+          return Error("Illegal composite points value "
+                       "exceeding 0xFFFF for base glyph %d.", i);
+        } else if (component_point_count.accumulated_component_points >
+                   this->maxp->max_c_points) {
+          Warning("Number of composite points in glyph %d exceeds "
+                  "maxp maxCompositePoints: %d vs %d, adjusting limit.",
+                  i,
+                  component_point_count.accumulated_component_points,
+                  this->maxp->max_c_points
+                  );
+          this->maxp->max_c_points =
+              component_point_count.accumulated_component_points;
+        }
       }
     }
 
@@ -342,6 +412,88 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
   }
 
   return true;
+}
+
+bool OpenTypeGLYF::TraverseComponentsCountingPoints(
+    Buffer &glyph,
+    uint16_t base_glyph_id,
+    uint32_t level,
+    ComponentPointCount* component_point_count) {
+
+  int16_t num_contours;
+  if (!glyph.ReadS16(&num_contours) ||
+      !glyph.Skip(8)) {
+    return Error("Can't read glyph header.");
+  }
+
+  if (num_contours <= -2) {
+    return Error("Bad number of contours %d in glyph.", num_contours);
+  }
+
+  if (num_contours == 0)
+    return true;
+
+  // FontTools counts a component level for each traversed recursion. We start
+  // counting at level 0. If we reach a level that's deeper than
+  // maxComponentDepth, we expand maxComponentDepth unless it's larger than
+  // the maximum possible depth.
+  if (level > std::numeric_limits<uint16_t>::max()) {
+    return Error("Illegal component depth exceeding 0xFFFF in base glyph id %d.",
+                 base_glyph_id);
+  } else if (level > this->maxp->max_c_depth) {
+    this->maxp->max_c_depth = level;
+    Warning("Component depth exceeds maxp maxComponentDepth "
+            "in glyph %d, adjust limit to %d.",
+            base_glyph_id, level);
+  }
+
+  if (num_contours > 0) {
+    uint16_t num_points = 0;
+    for (int i = 0; i < num_contours; ++i) {
+      // Simple glyph, add contour points.
+      uint16_t tmp_index = 0;
+      if (!glyph.ReadU16(&tmp_index)) {
+        return Error("Can't read contour index %d", i);
+      }
+      num_points = tmp_index + 1;
+    }
+
+    component_point_count->accumulated_component_points += num_points;
+    return true;
+  } else  {
+    assert(num_contours == -1);
+
+    // Composite glyph, add gid's to stack.
+    uint16_t flags = 0;
+    uint16_t gid = 0;
+    do {
+      if (!glyph.ReadU16(&flags) || !glyph.ReadU16(&gid)) {
+        return Error("Can't read composite glyph flags or glyphIndex");
+      }
+
+      size_t skip_bytes = 0;
+      skip_bytes += flags & ARG_1_AND_2_ARE_WORDS ? 4 : 2;
+
+      if (flags & WE_HAVE_A_SCALE) {
+        skip_bytes += 2;
+      } else if (flags & WE_HAVE_AN_X_AND_Y_SCALE) {
+        skip_bytes += 4;
+      } else if (flags & WE_HAVE_A_TWO_BY_TWO) {
+        skip_bytes += 8;
+      }
+
+      if (!glyph.Skip(skip_bytes)) {
+        return Error("Failed to parse component glyph.");
+      }
+
+      if (gid >= this->maxp->num_glyphs) {
+        return Error("Invalid glyph id used in composite glyph: %d", gid);
+      }
+
+      component_point_count->gid_stack.push_back({gid, level + 1u});
+    } while (flags & MORE_COMPONENTS);
+    return true;
+  }
 }
 
 bool OpenTypeGLYF::Serialize(OTSStream *out) {
