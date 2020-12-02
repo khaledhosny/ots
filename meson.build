@@ -180,10 +180,12 @@ ots_sources = [
   'src/vvar.h',
 ]
 
+zlib = dependency('zlib', fallback : ['zlib', 'zlib_dep'])
+
+ots_deps = [zlib]
 ots_libs = [libbrotli, libwoff2]
 
 if get_option('graphite')
-  ots_includes += ['third_party/lz4/lib']
   ots_sources += [
     'src/feat.cc',
     'src/feat.h',
@@ -199,21 +201,16 @@ if get_option('graphite')
     'src/sill.h',
     'src/sill.cc',
   ]
-  liblz4 = library('lz4',
-    'third_party/lz4/lib/lz4.c',
-    'third_party/lz4/lib/lz4.h',
-  )
-  ots_libs += [liblz4]
+  liblz4 = dependency('liblz4', fallback: ['lz4', 'liblz4_dep'])
+  ots_deps += [liblz4]
 endif
-
-zlib = dependency('zlib', fallback : ['zlib', 'zlib_dep'])
 
 libots = library('ots',
   ots_sources,
   include_directories: include_directories(ots_includes),
   link_with: ots_libs,
   cpp_args : '-DHAVE_CONFIG_H',
-  dependencies: zlib,
+  dependencies: ots_deps,
 )
 
 
