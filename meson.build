@@ -305,7 +305,8 @@ endif
 
 install_man('docs/ots-sanitize.1')
 
-gtest = subproject('gtest').get_variable('gtest_main_dep')
+# https://mesonbuild.com/Dependencies.html#gtest-and-gmock
+gtest = dependency('gtest', main : true, fallback : ['gtest', 'gtest_main_dep'])
 
 cff_charstring = executable('cff_charstring',
   'tests/cff_charstring_test.cc',
