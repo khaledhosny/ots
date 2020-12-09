@@ -254,28 +254,15 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
   uint32_t current_offset = 0;
 
   for (unsigned i = 0; i < num_glyphs; ++i) {
-    const unsigned gly_offset = offsets[i];
-    // The LOCA parser checks that these values are monotonic
-    const unsigned gly_length = offsets[i + 1] - offsets[i];
-    if (!gly_length) {
-      // this glyph has no outline (e.g. the space charactor)
+
+    Buffer glyph(GetGlyphBufferSection(data, length, offsets, i));
+    if (!glyph.buffer())
+      return false;
+
+    if (!glyph.length()) {
       resulting_offsets[i] = current_offset;
       continue;
     }
-
-    if (gly_offset >= length) {
-      return Error("Glyph %d offset %d too high %ld", i, gly_offset, length);
-    }
-    // Since these are unsigned types, the compiler is not allowed to assume
-    // that they never overflow.
-    if (gly_offset + gly_length < gly_offset) {
-      return Error("Glyph %d length (%d < 0)!", i, gly_length);
-    }
-    if (gly_offset + gly_length > length) {
-      return Error("Glyph %d length %d too high", i, gly_length);
-    }
-
-    Buffer glyph(data + gly_offset, gly_length);
 
     int16_t num_contours, xmin, ymin, xmax, ymax;
     if (!glyph.ReadS16(&num_contours) ||
@@ -331,27 +318,18 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
         GidAtLevel stack_top_gid = component_point_count.gid_stack.back();
         component_point_count.gid_stack.pop_back();
 
-        const unsigned gly_offset = offsets[stack_top_gid.gid];
-        const unsigned gly_length = offsets[stack_top_gid.gid + 1] -
-                                    offsets[stack_top_gid.gid];
-        if (!gly_length) {
+        Buffer points_count_glyph(GetGlyphBufferSection(
+            data,
+            length,
+            offsets,
+            stack_top_gid.gid));
+
+        if (!points_count_glyph.buffer())
+          return false;
+
+        if (!points_count_glyph.length())
           continue;
-        }
 
-        if (gly_offset >= length) {
-          return Error("Glyph %d offset %d too high %ld",
-                       i,
-                       gly_offset,
-                       length);
-        }
-        if (gly_offset + gly_length < gly_offset) {
-          return Error("Glyph %d length (%d < 0)!", i, gly_length);
-        }
-        if (gly_offset + gly_length > length) {
-          return Error("Glyph %d length %d too high", i, gly_length);
-        }
-
-        Buffer points_count_glyph(data + gly_offset, gly_length);
         if (!TraverseComponentsCountingPoints(points_count_glyph,
                                               i,
                                               stack_top_gid.level,
@@ -494,6 +472,40 @@ bool OpenTypeGLYF::TraverseComponentsCountingPoints(
     } while (flags & MORE_COMPONENTS);
     return true;
   }
+}
+
+Buffer OpenTypeGLYF::GetGlyphBufferSection(
+    const uint8_t *data,
+    size_t length,
+    const std::vector<uint32_t>& loca_offsets,
+    unsigned glyph_id) {
+
+  Buffer null_buffer(nullptr, 0);
+
+  const unsigned gly_offset = loca_offsets[glyph_id];
+  // The LOCA parser checks that these values are monotonic
+  const unsigned gly_length = loca_offsets[glyph_id + 1] - loca_offsets[glyph_id];
+  if (!gly_length) {
+    // this glyph has no outline (e.g. the space character)
+    return Buffer(data + gly_offset, 0);
+  }
+
+  if (gly_offset >= length) {
+    Error("Glyph %d offset %d too high %ld", glyph_id, gly_offset, length);
+    return null_buffer;
+  }
+  // Since these are unsigned types, the compiler is not allowed to assume
+  // that they never overflow.
+  if (gly_offset + gly_length < gly_offset) {
+    Error("Glyph %d length (%d < 0)!", glyph_id, gly_length);
+    return null_buffer;
+  }
+  if (gly_offset + gly_length > length) {
+    Error("Glyph %d length %d too high", glyph_id, gly_length);
+    return null_buffer;
+  }
+
+  return Buffer(data + gly_offset, gly_length);
 }
 
 bool OpenTypeGLYF::Serialize(OTSStream *out) {

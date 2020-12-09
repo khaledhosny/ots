@@ -49,6 +49,12 @@ class OpenTypeGLYF : public Table {
       uint32_t level,
       ComponentPointCount* component_point_count);
 
+  Buffer GetGlyphBufferSection(
+      const uint8_t *data,
+      size_t length,
+      const std::vector<uint32_t>& loca_offsets,
+      unsigned glyph_id);
+
   OpenTypeMAXP* maxp;
 
   std::vector<std::pair<const uint8_t*, size_t> > iov;
