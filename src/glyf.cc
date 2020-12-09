@@ -302,18 +302,15 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
     } else {
 
       ComponentPointCount component_point_count;
-      component_point_count.accumulated_component_points = 0;
-      component_point_count.gid_stack.clear();
-
       if (!ParseCompositeGlyph(glyph, &component_point_count)) {
         return Error("Failed to parse glyph %d", i);
       }
 
-      // Check maxComponentDepth and validate
-      // maxComponentPoints. ParseCompositeGlyph placed the first set of
-      // component glyphs on the component_point_count.gid_stack, which we start
-      // to process below. If a nested glyph is in turn a component glyph,
-      // additional glyphs are placed on the stack.
+      // Check maxComponentDepth and validate maxComponentPoints.
+      // ParseCompositeGlyph placed the first set of component glyphs on the
+      // component_point_count.gid_stack, which we start to process below. If a
+      // nested glyph is in turn a component glyph, additional glyphs are placed
+      // on the stack.
       while (component_point_count.gid_stack.size()) {
         GidAtLevel stack_top_gid = component_point_count.gid_stack.back();
         component_point_count.gid_stack.pop_back();

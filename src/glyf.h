@@ -29,6 +29,7 @@ class OpenTypeGLYF : public Table {
   };
 
   struct ComponentPointCount {
+    ComponentPointCount() : accumulated_component_points(0) {};
     uint32_t accumulated_component_points;
     std::vector<GidAtLevel> gid_stack;
   };
