@@ -17,24 +17,24 @@ class OpenTypeMAXP : public Table {
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);
 
-  uint16_t num_glyphs;
-  bool version_1;
+  uint16_t num_glyphs = 0;
+  bool version_1 = 0;
 
-  uint16_t max_points;
-  uint16_t max_contours;
-  uint16_t max_c_points;
-  uint16_t max_c_contours;
+  uint16_t max_points = 0;
+  uint16_t max_contours = 0;
+  uint16_t max_c_points = 0;
+  uint16_t max_c_contours = 0;
 
-  uint16_t max_zones;
-  uint16_t max_t_points;
-  uint16_t max_storage;
-  uint16_t max_fdefs;
-  uint16_t max_idefs;
-  uint16_t max_stack;
-  uint16_t max_size_glyf_instructions;
+  uint16_t max_zones = 0;
+  uint16_t max_t_points = 0;
+  uint16_t max_storage = 0;
+  uint16_t max_fdefs = 0;
+  uint16_t max_idefs = 0;
+  uint16_t max_stack = 0;
+  uint16_t max_size_glyf_instructions = 0;
 
-  uint16_t max_c_components;
-  uint16_t max_c_depth;
+  uint16_t max_c_components = 0;
+  uint16_t max_c_depth = 0;
 };
 
 }  // namespace ots
