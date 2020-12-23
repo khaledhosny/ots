@@ -5,7 +5,7 @@ jobs:
     - os: linux
       env: DEPLOY=true
       before_script:
-        - meson --unity=on --buildtype=release --strip -Ddebug=true --prefix=$PWD --bindir=$OTS-$TRAVIS_OS_NAME build
+        - meson --buildtype=release --strip -Ddebug=true --prefix=$PWD --bindir=$OTS-$TRAVIS_OS_NAME build
       before_deploy:
         - ninja -C build install
         - ninja -C build dist
@@ -14,7 +14,7 @@ jobs:
     - os: osx
       env: DEPLOY=true
       before_script:
-        - meson --unity=on --buildtype=release --strip -Ddebug=true --prefix=$PWD --bindir=$OTS-$TRAVIS_OS_NAME build
+        - meson --buildtype=release --strip -Ddebug=true --prefix=$PWD --bindir=$OTS-$TRAVIS_OS_NAME build
       before_deploy:
         - ninja -C build install
         - zip -r $OTS-$TRAVIS_OS_NAME.zip $OTS-$TRAVIS_OS_NAME
