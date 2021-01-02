@@ -1,6 +1,7 @@
 project('ots', 'c', 'cpp',
   version: '8.1.2',
   default_options : ['cpp_std=c++11', 'default_library=static'],
+  meson_version : '>= 0.55.2',
 )
 
 cxx = meson.get_compiler('cpp')
@@ -70,7 +71,7 @@ libwoff2 = library('woff2',
   include_directories: include_directories(woff2_includes),
   cpp_args: woff2_cpp_args,
   dependencies: [dependency('libbrotlidec',
-			    fallback: ['google-brotli', 'brotli_decoder_dep'])]
+                            fallback: ['google-brotli', 'brotli_decoder_dep'])]
 )
 
 
