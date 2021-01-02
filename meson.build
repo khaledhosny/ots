@@ -38,12 +38,6 @@ endif
 configure_file(output: 'config.h',
                configuration: conf)
 
-if 'undefined' in get_option('b_sanitize').split(',')
-  # XXX Horrible hack XXX
-  # brotli depends on undefined behavior otherwise.
-  add_global_arguments('-DBROTLI_BUILD_PORTABLE')
-endif
-
 
 woff2_cpp_args = []
 if 'undefined' in get_option('b_sanitize').split(',')

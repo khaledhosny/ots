@@ -26,6 +26,9 @@
 # translation units, so it does not support unity builds. Since we only need
 # the decoder, we have simply removed the brotli_encoder_dep dependency in
 # order to depend on brotli without breaking unity builds.
+#
+# We also define BROTLI_BUILD_PORTABLE whenever b_sanitize is set, even when
+# default_library is static.
 
 project(
   'google-brotli',
@@ -59,6 +62,10 @@ if get_option('default_library') == 'shared'
   install = true
 elif get_option('default_library') == 'both'
   error('both not yet supported.')
+elif 'undefined' in get_option('b_sanitize').split(',')
+  # XXX Horrible hack XXX
+  # brotli depends on undefined behavior otherwise.
+  add_project_arguments('-DBROTLI_BUILD_PORTABLE')
 endif
 
 libbrotli_common = library(
