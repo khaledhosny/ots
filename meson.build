@@ -1,6 +1,7 @@
 project('ots', 'c', 'cpp',
   version: '8.1.2',
   default_options : ['cpp_std=c++11', 'default_library=static'],
+  meson_version : '>= 0.55.2',
 )
 
 cxx = meson.get_compiler('cpp')
@@ -38,67 +39,8 @@ configure_file(output: 'config.h',
                configuration: conf)
 
 
-brotli_c_args = []
-if 'undefined' in get_option('b_sanitize').split(',')
-  # brotli depends on undefined behavior otherwise.
-  brotli_c_args += '-DBROTLI_BUILD_PORTABLE'
-endif
-
-brotli_includes = ['third_party/brotli/c/include']
-libbrotli = library('brotli',
-  'third_party/brotli/c/common/constants.h',
-  'third_party/brotli/c/common/dictionary.c',
-  'third_party/brotli/c/common/dictionary.h',
-  'third_party/brotli/c/common/transform.c',
-  'third_party/brotli/c/common/transform.h',
-  'third_party/brotli/c/common/version.h',
-  'third_party/brotli/c/dec/bit_reader.c',
-  'third_party/brotli/c/dec/bit_reader.h',
-  'third_party/brotli/c/dec/decode.c',
-  'third_party/brotli/c/dec/huffman.c',
-  'third_party/brotli/c/dec/huffman.h',
-  'third_party/brotli/c/dec/prefix.h',
-  'third_party/brotli/c/dec/state.c',
-  'third_party/brotli/c/dec/state.h',
-  'third_party/brotli/c/include/brotli/decode.h',
-  'third_party/brotli/c/include/brotli/port.h',
-  'third_party/brotli/c/include/brotli/types.h',
-  include_directories: include_directories(brotli_includes),
-  c_args: brotli_c_args,
-)
-
-
-woff2_cpp_args = []
-if 'undefined' in get_option('b_sanitize').split(',')
-  # XXX Horrible hack XXX
-  # woff2 depends on undefined behavior otherwise.
-  woff2_cpp_args += '-U__BYTE_ORDER__'
-endif
-
-woff2_includes = ['third_party/brotli/c/include', 'third_party/woff2/include']
-libwoff2 = library('woff2',
-  'third_party/woff2/include/woff2/decode.h',
-  'third_party/woff2/include/woff2/output.h',
-  'third_party/woff2/src/buffer.h',
-  'third_party/woff2/src/port.h',
-  'third_party/woff2/src/round.h',
-  'third_party/woff2/src/store_bytes.h',
-  'third_party/woff2/src/table_tags.cc',
-  'third_party/woff2/src/table_tags.h',
-  'third_party/woff2/src/variable_length.cc',
-  'third_party/woff2/src/variable_length.h',
-  'third_party/woff2/src/woff2_common.cc',
-  'third_party/woff2/src/woff2_common.h',
-  'third_party/woff2/src/woff2_dec.cc',
-  'third_party/woff2/src/woff2_out.cc',
-  include_directories: include_directories(woff2_includes),
-  cpp_args: woff2_cpp_args,
-)
-
-
 ots_includes = [
   'include',
-  'third_party/woff2/include',
 ]
 
 ots_sources = [
@@ -180,10 +122,14 @@ ots_sources = [
   'src/vvar.h',
 ]
 
-ots_libs = [libbrotli, libwoff2]
+zlib = dependency('zlib', fallback : ['zlib', 'zlib_dep'])
+
+libwoff2dec = dependency('libwoff2dec',
+                         fallback: ['google-woff2', 'woff2_decoder_dep'])
+
+ots_deps = [zlib, libwoff2dec]
 
 if get_option('graphite')
-  ots_includes += ['third_party/lz4/lib']
   ots_sources += [
     'src/feat.cc',
     'src/feat.h',
@@ -199,21 +145,15 @@ if get_option('graphite')
     'src/sill.h',
     'src/sill.cc',
   ]
-  liblz4 = library('lz4',
-    'third_party/lz4/lib/lz4.c',
-    'third_party/lz4/lib/lz4.h',
-  )
-  ots_libs += [liblz4]
+  liblz4 = dependency('liblz4', fallback: ['lz4', 'liblz4_dep'])
+  ots_deps += [liblz4]
 endif
-
-zlib = dependency('zlib', fallback : ['zlib', 'zlib_dep'])
 
 libots = library('ots',
   ots_sources,
   include_directories: include_directories(ots_includes),
-  link_with: ots_libs,
   cpp_args : '-DHAVE_CONFIG_H',
-  dependencies: zlib,
+  dependencies: ots_deps,
 )
 
 
@@ -305,7 +245,8 @@ endif
 
 install_man('docs/ots-sanitize.1')
 
-gtest = subproject('gtest').get_variable('gtest_main_dep')
+# https://mesonbuild.com/Dependencies.html#gtest-and-gmock
+gtest = dependency('gtest', main : true, fallback : ['gtest', 'gtest_main_dep'])
 
 cff_charstring = executable('cff_charstring',
   'tests/cff_charstring_test.cc',
