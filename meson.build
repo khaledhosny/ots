@@ -39,10 +39,6 @@ configure_file(output: 'config.h',
                configuration: conf)
 
 
-ots_includes = [
-  'include',
-]
-
 ots_sources = [
   'src/avar.cc',
   'src/avar.h',
@@ -151,7 +147,7 @@ endif
 
 libots = library('ots',
   ots_sources,
-  include_directories: include_directories(ots_includes),
+  include_directories: include_directories('include'),
   cpp_args : '-DHAVE_CONFIG_H',
   dependencies: ots_deps,
 )
