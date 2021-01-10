@@ -1,9 +1,9 @@
 [wrap-file]
-directory = woff2-1.0.2
+directory = woff2-a0d0ed7da27b708c0a4e96ad7a998bddc933c06e
 
-source_url = https://github.com/google/woff2/archive/v1.0.2.tar.gz
-source_filename = v1.0.2.tar.gz
-source_hash = add272bb09e6384a4833ffca4896350fdb16e0ca22df68c0384773c67a175594
+source_url = https://github.com/google/woff2/archive/a0d0ed7da27b708c0a4e96ad7a998bddc933c06e.tar.gz
+source_filename = a0d0ed7da27b708c0a4e96ad7a998bddc933c06e.tar.gz
+source_hash = 0be399be51907a9deb40b0b5b680df8151e99ee3aa9eb7d2505896ead13675d9
 
 patch_directory = woff2
 
