@@ -19,7 +19,7 @@ namespace {
 class Context: public ots::OTSContext {
  public:
   Context() {}
-  void Message(int level, const char *format, ...) {}
+  void Message(int, const char*, ...) {}
 };
 
 }
