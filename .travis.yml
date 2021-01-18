@@ -60,5 +60,5 @@ deploy:
   tag_name: $TRAVIS_TAG
   on:
     tags: true
-    branch: master
+    branch: main
     condition: $DEPLOY = true
