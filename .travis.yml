@@ -3,6 +3,7 @@ language: cpp
 jobs:
   include:
     - os: linux
+      dist: focal
       env: DEPLOY=true
       before_script:
         - meson --unity=on --buildtype=release --strip -Ddebug=true --prefix=$PWD --bindir=$OTS-$TRAVIS_OS_NAME build
@@ -20,9 +21,11 @@ jobs:
         - zip -r $OTS-$TRAVIS_OS_NAME.zip $OTS-$TRAVIS_OS_NAME
 
     - os: linux
+      dist: focal
       compiler: clang
 
 #   - os: linux
+#     dist: focal
 #     before_script:
 #       - meson -Db_sanitize=address,undefined -Db_lundef=false build
 
