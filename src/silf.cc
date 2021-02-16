@@ -49,7 +49,7 @@ bool OpenTypeSILF::Parse(const uint8_t* data, size_t length,
                               OTS_MAX_DECOMPRESSED_TABLE_SIZE / (1024.0 * 1024.0),
                               decompressed_size / (1024.0 * 1024.0));
         }
-        std::unique_ptr<uint8_t> decompressed(new uint8_t[decompressed_size]);
+        std::unique_ptr<uint8_t> decompressed(new uint8_t[decompressed_size]());
         int ret = LZ4_decompress_safe_partial(
             reinterpret_cast<const char*>(data + table.offset()),
             reinterpret_cast<char*>(decompressed.get()),
