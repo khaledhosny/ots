@@ -160,6 +160,7 @@ executable('ots-sanitize',
   link_with: libots,
   install: true,
 )
+install_man('docs/ots-sanitize.1')
 
 
 fuzzer_ldflags = []
@@ -191,6 +192,7 @@ if freetype.found() or coretext.found() or gdi32.found()
     dependencies: deps,
     install: true,
   )
+  install_man('docs/ots-idempotent.1')
   test_good_fonts = find_program('tests/test_good_fonts.sh')
   test('test_good_fonts',
     test_good_fonts,
@@ -215,6 +217,7 @@ if freetype.found() or coretext.found()
     dependencies: deps,
     install: true,
   )
+  install_man('docs/ots-validator-checker.1')
 endif
 
 
@@ -226,6 +229,7 @@ if freetype.found()
     dependencies: freetype,
     install: true,
   )
+  install_man('docs/ots-side-by-side.1')
 endif
 
 
@@ -236,16 +240,9 @@ if cxx.has_header('sys/time.h')
     link_with: libots,
     install: true,
   )
+  install_man('docs/ots-perf.1')
 endif
 
-
-install_man([
-  'docs/ots-idempotent.1',
-  'docs/ots-perf.1',
-  'docs/ots-sanitize.1',
-  'docs/ots-side-by-side.1',
-  'docs/ots-validator-checker.1',
-])
 
 # https://mesonbuild.com/Dependencies.html#gtest-and-gmock
 gtest = dependency('gtest', main : true, fallback : ['gtest', 'gtest_main_dep'])
