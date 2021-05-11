@@ -239,7 +239,13 @@ if cxx.has_header('sys/time.h')
 endif
 
 
-install_man('docs/ots-sanitize.1')
+install_man([
+  'docs/ots-idempotent.1',
+  'docs/ots-perf.1',
+  'docs/ots-sanitize.1',
+  'docs/ots-side-by-side.1',
+  'docs/ots-validator-checker.1',
+])
 
 # https://mesonbuild.com/Dependencies.html#gtest-and-gmock
 gtest = dependency('gtest', main : true, fallback : ['gtest', 'gtest_main_dep'])
