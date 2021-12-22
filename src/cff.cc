@@ -568,6 +568,8 @@ bool ParsePrivateDictData(
     }
   }
 
+  out_cff->vsindex_per_font.push_back(vsindex);
+
   return true;
 }
 
