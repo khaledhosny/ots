@@ -45,7 +45,7 @@ if [ $# -gt 1 ] ; then
 fi
 
 # Check the font file using ots-fuzzer.
-$CHECKER "$1"
+$CHECKER "$1" 2>&1
 RET=$?
 if [ $RET != 0 ]; then
   echo "FAILED: $1"

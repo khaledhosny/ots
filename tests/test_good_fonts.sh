@@ -77,7 +77,7 @@ BASE=`basename "$1"`
 SKIP=`egrep -i -e "^$BASE" "$BLOCKLIST"`
 
 if [ "x$SKIP" = "x" ]; then
-  $CHECKER "$1"
+  $CHECKER "$1" 2>&1
   RET=$?
   if [ $RET != 0 ]; then
     echo "FAILED: $1"
