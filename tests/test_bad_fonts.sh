@@ -49,7 +49,7 @@ if [ $# -gt 1 ] ; then
 fi
 
 # Confirm that the bad font file is rejected by OTS.
-$CHECKER "$1"
+$CHECKER "$1" 2>&1
 RET=$?
 if [ $RET != 0 ]; then
   echo "PASSED: $1"
