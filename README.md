@@ -1,5 +1,4 @@
-[![Build Status](https://travis-ci.com/khaledhosny/ots.svg?branch=main)](https://travis-ci.com/khaledhosny/ots)
-[![Build status](https://ci.appveyor.com/api/projects/status/0l9ms6g47corescm/branch/main?svg=true)](https://ci.appveyor.com/project/khaledhosny/ots/branch/main)
+[![Build](https://github.com/khaledhosny/ots/actions/workflows/ci.yml/badge.svg)](https://github.com/khaledhosny/ots/actions/workflows/ci.yml)
 [![Fuzzing Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/ots.svg)](https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&can=1&q=proj:ots)
 
 OpenType Sanitizer
