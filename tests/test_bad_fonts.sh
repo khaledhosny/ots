@@ -20,7 +20,7 @@ fi
 if [ $# -eq 0 ] ; then
   # No font file is specified. Apply this script to all TT/OT files under the
   # BASE_DIR.
-  if [ ! -d $BASE_DIR ] ; then
+  if [ ! -d "$BASE_DIR" ] ; then
     echo "$BASE_DIR does not exist."
     exit 1
   fi
@@ -50,11 +50,10 @@ fi
 
 # Confirm that the bad font file is rejected by OTS.
 $CHECKER "$1" 2>&1
-RET=$?
-if [ $RET != 0 ]; then
-  echo "PASSED: $1"
-  exit 0
-else
+if [ $? = 0 ]; then
   echo "FAILED: $1"
   exit 1
+else
+  echo "PASSED: $1"
+  exit 0
 fi
