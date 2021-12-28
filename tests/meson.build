@@ -2,6 +2,7 @@ good_fonts = [
   'fonts/good/00ae3c2b1b7718361fc76ee31da97253057b15b7.ttf',
   'fonts/good/01ae09f3a2ca8f33035e6261d09e9fe06b919174.ttf',
   'fonts/good/029c6e2623f5b255ba10e2e3b0f17711ad8aa966.ttf',
+  'fonts/good/02d99e81593bcabce56b6a589254e8bc77e00208.otf',
   'fonts/good/0c4afb23b983bbab65c39869b81ca1dfb90c0258.ttf',
   'fonts/good/0e16ec5ab94d3992bba42a9177b159113ede1485.ttf',
   'fonts/good/0fc088827bbe36bfb3fb6c3d8b59f66cb234dfb3.ttf',
