@@ -23,10 +23,6 @@ jobs:
     - name: Install Python Dependencies
       run: pip install --upgrade meson==0.60.2 ninja
 
-    - name: Windows Setup
-      if: matrix.os == 'windows-latest'
-      run: rm.exe "c:/windows/system32/bash.exe"
-
     - name: MSVC Setup
       if: matrix.os == 'windows-latest'
       uses: ilammy/msvc-dev-cmd@v1

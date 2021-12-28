@@ -4,6 +4,8 @@ project('ots', 'c', 'cpp',
   meson_version : '>= 0.55.2',
 )
 
+subdir('tests')
+
 cxx = meson.get_compiler('cpp')
 
 conf = configuration_data()
@@ -193,13 +195,12 @@ if freetype.found() or coretext.found() or gdi32.found()
     install: true,
   )
   install_man('docs/ots-idempotent.1')
-  test('test_good_fonts',
-    find_program('tests/test_good_fonts.sh'),
-    args: [
-      ots_idempotent,
-      meson.current_source_dir() / 'tests' / 'fonts' / 'good',
-    ],
-  )
+  foreach file_name : good_fonts
+    test(file_name, ots_idempotent,
+      args: meson.current_source_dir() / 'tests' / file_name,
+      suite: 'good',
+    )
+  endforeach
 endif
 
 
@@ -262,23 +263,23 @@ layout_common_table = executable('layout_common_table',
   dependencies: gtest,
 )
 
-test('layout_common_table', layout_common_table)
-
-
-test('test_bad_fonts',
-  find_program('tests/test_bad_fonts.sh'),
-  args: [
-    ots_sanitize,
-    meson.current_source_dir() / 'tests' / 'fonts' / 'bad',
-  ],
+test('layout_common_table', layout_common_table,
+  protocol: 'gtest',
 )
 
 
-test('test_fuzzed_fonts',
-  find_program('tests/test_fuzzed_fonts.sh'),
-  timeout: 120,
-  args: [
-    ots_fuzzer,
-    meson.current_source_dir() / 'tests' / 'fonts',
-  ],
-)
+foreach file_name : bad_fonts
+  test(file_name, ots_sanitize,
+    args: meson.current_source_dir() / 'tests' / file_name,
+    suite: 'bad',
+    should_fail: true,
+  )
+endforeach
+
+
+foreach file_name : fuzzing_fonts
+  test(file_name, ots_fuzzer,
+    args: meson.current_source_dir() / 'tests' / file_name,
+    suite: 'fuzzing',
+  )
+endforeach
