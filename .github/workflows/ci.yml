@@ -90,8 +90,8 @@ jobs:
         # GH checkout action doesn't preserve tag annotations, we must fetch them
         # https://github.com/actions/checkout/issues/290
         git fetch --tags --force
-        echo "$(git tag -l --format='%(contents:subject)' ${{ github.ref_name }})" > "${{ runner.temp }}/release_body.md"
-        echo "release_body=$(git tag -l --format='%(contents:body)' ${{ github.ref_name }})" >> $GITHUB_ENV
+        echo "$(git tag -l --format='%(contents:body)' ${{ github.ref_name }})" > "${{ runner.temp }}/release_body.md"
+        echo "release_name=$(git tag -l --format='%(contents:subject)' ${{ github.ref_name }})" >> $GITHUB_ENV
 
     - name: Publish
       uses: softprops/action-gh-release@v1
