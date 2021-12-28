@@ -193,10 +193,8 @@ if freetype.found() or coretext.found() or gdi32.found()
     install: true,
   )
   install_man('docs/ots-idempotent.1')
-  test_good_fonts = find_program('tests/test_good_fonts.sh')
   test('test_good_fonts',
-    test_good_fonts,
-    timeout: 9999,
+    find_program('tests/test_good_fonts.sh'),
     env: [
       'top_srcdir=@0@'.format(meson.current_source_dir()),
       'top_builddir=@0@'.format(meson.current_build_dir()),
@@ -278,7 +276,7 @@ test('test_bad_fonts',
 
 test('test_fuzzed_fonts',
   find_program('tests/test_fuzzed_fonts.sh'),
-  timeout: 9999,
+  timeout: 120,
   env: [
     'top_srcdir=@0@'.format(meson.current_source_dir()),
     'top_builddir=@0@'.format(meson.current_build_dir()),
