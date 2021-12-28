@@ -153,7 +153,7 @@ libots = library('ots',
 )
 
 
-executable('ots-sanitize',
+ots_sanitize = executable('ots-sanitize',
   'util/ots-sanitize.cc',
   'util/test-context.h',
   include_directories: include_directories('include'),
@@ -170,7 +170,7 @@ if get_option('fuzzer_ldflags') != ''
   fuzzer_defines += ['-DOTS_FUZZER_NO_MAIN']
 endif
 
-executable('ots-fuzzer',
+ots_fuzzer = executable('ots-fuzzer',
   'util/ots-fuzzer.cc',
   include_directories: include_directories(['include', 'src']),
   cpp_args: fuzzer_defines,
@@ -184,7 +184,7 @@ if freetype.found() or coretext.found() or gdi32.found()
   if coretext.found()
     deps += [coretext]
   endif
-  executable('ots-idempotent',
+  ots_idempotent = executable('ots-idempotent',
     'util/ots-idempotent.cc',
     'util/test-context.h',
     include_directories: include_directories('include'),
@@ -195,10 +195,10 @@ if freetype.found() or coretext.found() or gdi32.found()
   install_man('docs/ots-idempotent.1')
   test('test_good_fonts',
     find_program('tests/test_good_fonts.sh'),
-    env: [
-      'top_srcdir=@0@'.format(meson.current_source_dir()),
-      'top_builddir=@0@'.format(meson.current_build_dir()),
-    ]
+    args: [
+      ots_idempotent,
+      meson.current_source_dir() / 'tests' / 'fonts' / 'good',
+    ],
   )
 endif
 
@@ -267,18 +267,18 @@ test('layout_common_table', layout_common_table)
 
 test('test_bad_fonts',
   find_program('tests/test_bad_fonts.sh'),
-  env: [
-    'top_srcdir=@0@'.format(meson.current_source_dir()),
-    'top_builddir=@0@'.format(meson.current_build_dir()),
-  ]
+  args: [
+    ots_sanitize,
+    meson.current_source_dir() / 'tests' / 'fonts' / 'bad',
+  ],
 )
 
 
 test('test_fuzzed_fonts',
   find_program('tests/test_fuzzed_fonts.sh'),
   timeout: 120,
-  env: [
-    'top_srcdir=@0@'.format(meson.current_source_dir()),
-    'top_builddir=@0@'.format(meson.current_build_dir()),
-  ]
+  args: [
+    ots_fuzzer,
+    meson.current_source_dir() / 'tests' / 'fonts',
+  ],
 )
