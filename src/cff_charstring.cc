@@ -989,7 +989,11 @@ bool ValidateCFFCharStrings(
       if (iter != cff.fd_select.end()) {
         fd_index = iter->second;
       }
-      cs_ctx.vsindex = cff.vsindex_per_font.at(fd_index);
+      if (fd_index >= (int32_t)cff.vsindex_per_font.size()) {
+        // shouldn't get this far with a font in this condition, but just in case
+        return OTS_FAILURE();  // fd_index out-of-range
+      }      
+      cs_ctx.vsindex = cff.vsindex_per_font.at(fd_index);      
     }
 
 #ifdef DUMP_T2CHARSTRING
