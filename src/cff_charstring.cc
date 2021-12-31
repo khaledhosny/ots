@@ -361,7 +361,8 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     if (cs_ctx.blend_seen || cs_ctx.vsindex_seen) {
       return OTS_FAILURE();
     }
-    if (argument_stack->top() >= (int32_t)cff.region_index_count.size()) {
+    if (argument_stack->top() < 0 ||
+        argument_stack->top() >= (int32_t)cff.region_index_count.size()) {
       return OTS_FAILURE();
     }
     cs_ctx.vsindex_seen = true;
@@ -992,8 +993,8 @@ bool ValidateCFFCharStrings(
       if (fd_index >= (int32_t)cff.vsindex_per_font.size()) {
         // shouldn't get this far with a font in this condition, but just in case
         return OTS_FAILURE();  // fd_index out-of-range
-      }      
-      cs_ctx.vsindex = cff.vsindex_per_font.at(fd_index);      
+      }
+      cs_ctx.vsindex = cff.vsindex_per_font.at(fd_index);
     }
 
 #ifdef DUMP_T2CHARSTRING

@@ -404,7 +404,7 @@ bool ParsePrivateDictData(
   std::vector<Operand> operands;
   bool cff2 = (out_cff->major == 2);
   bool blend_seen = false;
-  uint32_t vsindex = 0;
+  int32_t vsindex = 0;
 
   // Since a Private DICT for FDArray might not have a Local Subr (e.g. Hiragino
   // Kaku Gothic Std W8), we create an empty Local Subr here to match the size
@@ -413,7 +413,7 @@ bool ParsePrivateDictData(
   if (type == DICT_DATA_FDARRAY) {
     out_cff->local_subrs_per_font.push_back(new ots::CFFIndex);
     if (cff2) {
-      out_cff->vsindex_per_font.push_back(0);
+      out_cff->vsindex_per_font.push_back(vsindex);
     }
   }
 
@@ -531,7 +531,8 @@ bool ParsePrivateDictData(
           return OTS_FAILURE();
         }
         vsindex = operands.back().first;
-        if (vsindex >= out_cff->region_index_count.size()) {
+        if (vsindex < 0 ||
+            vsindex >= (int32_t)out_cff->region_index_count.size()) {
           return OTS_FAILURE();
         }
         out_cff->vsindex_per_font.back() = vsindex;
@@ -545,7 +546,7 @@ bool ParsePrivateDictData(
         if (operands.size() < 1) {
           return OTS_FAILURE();
         }
-        if (vsindex >= out_cff->region_index_count.size()) {
+        if (vsindex >= (int32_t)out_cff->region_index_count.size()) {
           return OTS_FAILURE();
         }
         uint16_t k = out_cff->region_index_count.at(vsindex);

@@ -203,6 +203,7 @@ fuzzing_fonts = good_fonts + bad_fonts + [
   'fonts/fuzzing/011facefb10ee4f813117eae60bb5940a280ae30.woff2',
   'fonts/fuzzing/0509e80afb379d16560e9e47bdd7d888bebdebc6.ttf',
   'fonts/fuzzing/051d92f8bc6ff724511b296c27623f824de256e9.ttf',
+  'fonts/fuzzing/05a7abc8e4c954ef105d056bd6249c6fda96d4a8.otf',
   'fonts/fuzzing/07f054357ff8638bac3711b422a1e31180bba863.ttf',
   'fonts/fuzzing/10531f9105aa03bf6e0f9754ec8af33ed457ad5c.otf',
   'fonts/fuzzing/11340844a1190f140c78a0a964d49b5985253ea0.woff2',
