@@ -40,7 +40,7 @@ class FileStream : public ots::OTSStream {
     }
   }
 
-  size_t SizeLimit() { return std::numeric_limits<off_t>::max(); }
+  virtual size_t SizeLimit() { return std::numeric_limits<off_t>::max(); }
 
   bool WriteRaw(const void *data, size_t length) {
     off_ += length;
