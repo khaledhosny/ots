@@ -18,7 +18,7 @@ class MemoryStream : public OTSStream {
       : ptr_(ptr), length_(length), off_(0) {
   }
 
-  virtual size_t SizeLimit() { return length_; }
+  size_t size() override { return length_; }
 
   virtual bool WriteRaw(const void *data, size_t length) {
     if ((off_ + length > length_) ||
@@ -62,7 +62,7 @@ class ExpandingMemoryStream : public OTSStream {
     return ptr_;
   }
 
-  size_t SizeLimit() { return limit_; }
+  size_t size() override { return limit_; }
 
   bool WriteRaw(const void *data, size_t length) {
     if ((off_ + length > length_) ||

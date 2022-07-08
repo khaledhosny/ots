@@ -58,7 +58,7 @@ class OTSStream {
 
   virtual ~OTSStream() {}
 
-  virtual size_t SizeLimit() = 0;
+  virtual size_t size() = 0;
 
   // This should be implemented to perform the actual write.
   virtual bool WriteRaw(const void *data, size_t length) = 0;
