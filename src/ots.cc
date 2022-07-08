@@ -531,6 +531,10 @@ bool ProcessWOFF2(ots::FontFile *header,
                                OTS_MAX_DECOMPRESSED_FILE_SIZE / (1024.0 * 1024.0));
   }
 
+  if (decompressed_size > output->size()) {
+    return OTS_FAILURE_MSG_HDR("Size of decompressed WOFF 2.0 font exceeds output size (%gMB)", output->size() / (1024.0 * 1024.0));
+  }
+
   std::string buf(decompressed_size, 0);
   woff2::WOFF2StringOut out(&buf);
   if (!woff2::ConvertWOFF2ToTTF(data, length, &out)) {
@@ -670,6 +674,10 @@ bool ProcessGeneric(ots::FontFile *header,
   if (uncompressed_sum > OTS_MAX_DECOMPRESSED_FILE_SIZE) {
     return OTS_FAILURE_MSG_HDR("decompressed sum exceeds %gMB",
                                OTS_MAX_DECOMPRESSED_FILE_SIZE / (1024.0 * 1024.0));        
+  }
+
+  if (uncompressed_sum > output->size()) {
+    return OTS_FAILURE_MSG_HDR("decompressed sum exceeds output size (%gMB)", output->size() / (1024.0 * 1024.0));
   }
 
   // check that the tables are not overlapping.

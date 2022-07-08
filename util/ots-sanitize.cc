@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -38,6 +39,8 @@ class FileStream : public ots::OTSStream {
       file_ = true;
     }
   }
+
+  size_t size() override { return std::numeric_limits<off_t>::max(); }
 
   bool WriteRaw(const void *data, size_t length) {
     off_ += length;
