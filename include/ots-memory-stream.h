@@ -62,7 +62,7 @@ class ExpandingMemoryStream : public OTSStream {
     return ptr_;
   }
 
-  virtual size_t SizeLimit() { return limit_; }
+  size_t SizeLimit() { return limit_; }
 
   bool WriteRaw(const void *data, size_t length) {
     if ((off_ + length > length_) ||
