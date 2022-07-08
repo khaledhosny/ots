@@ -677,7 +677,7 @@ bool ProcessGeneric(ots::FontFile *header,
   }
 
   if (uncompressed_sum > output->SizeLimit()) {
-    return OTS_FAILURE_MSG_HDR("decompressed sum exceeds OTSStream's size limit (%gMB)", output->SizeLimit() / (1024.0 * 1024.0));
+    return OTS_FAILURE_MSG_HDR("decompressed sum exceeds output size (%gMB)", output->SizeLimit() / (1024.0 * 1024.0));
   }
 
   // check that the tables are not overlapping.
