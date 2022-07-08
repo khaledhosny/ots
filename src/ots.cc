@@ -532,7 +532,7 @@ bool ProcessWOFF2(ots::FontFile *header,
   }
 
   if (decompressed_size > output->SizeLimit()) {
-    return OTS_FAILURE_MSG_HDR("Size of decompressed WOFF 2.0 font exceeds OTSStream's size limit (%gMB)", output->SizeLimit() / (1024.0 * 1024.0));
+    return OTS_FAILURE_MSG_HDR("Size of decompressed WOFF 2.0 font exceeds output size (%gMB)", output->SizeLimit() / (1024.0 * 1024.0));
   }
 
   std::string buf(decompressed_size, 0);
