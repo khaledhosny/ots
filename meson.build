@@ -50,6 +50,8 @@ ots_sources = [
   'src/cff_charstring.h',
   'src/cmap.cc',
   'src/cmap.h',
+  'src/colr.cc',
+  'src/colr.h',
   'src/cpal.cc',
   'src/cpal.h',
   'src/cvar.cc',
