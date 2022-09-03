@@ -22,6 +22,7 @@
 #include "avar.h"
 #include "cff.h"
 #include "cmap.h"
+#include "cpal.h"
 #include "cvar.h"
 #include "cvt.h"
 #include "fpgm.h"
@@ -144,6 +145,8 @@ const struct {
   { OTS_TAG_STAT, false },
   { OTS_TAG_VVAR, false },
   { OTS_TAG_CFF2, false },
+  // Color font tables.
+  { OTS_TAG_CPAL, false },
   // We need to parse GDEF table in advance of parsing GSUB/GPOS tables
   // because they could refer GDEF table.
   { OTS_TAG_GDEF, false },
@@ -918,6 +921,7 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       case OTS_TAG_CFF:  table = new OpenTypeCFF(this,  tag); break;
       case OTS_TAG_CFF2: table = new OpenTypeCFF2(this, tag); break;
       case OTS_TAG_CMAP: table = new OpenTypeCMAP(this, tag); break;
+      case OTS_TAG_CPAL: table = new OpenTypeCPAL(this, tag); break;
       case OTS_TAG_CVAR: table = new OpenTypeCVAR(this, tag); break;
       case OTS_TAG_CVT:  table = new OpenTypeCVT(this,  tag); break;
       case OTS_TAG_FPGM: table = new OpenTypeFPGM(this, tag); break;
