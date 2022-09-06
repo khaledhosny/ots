@@ -28,7 +28,7 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1
 
     - name: Meson Setup
-      run: meson --buildtype=release --strip -Ddebug=true --prefix="${{ github.workspace }}/dist" build
+      run: meson --wrap-mode=forcefallback --buildtype=release --strip -Ddebug=true --prefix="${{ github.workspace }}/dist" build
 
     - name: Build
       run: ninja -C build
