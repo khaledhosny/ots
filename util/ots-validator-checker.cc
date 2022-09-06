@@ -124,6 +124,13 @@ int OpenAndLoadChars(
 #else
 // Windows
 // TODO(yusukes): Support Windows.
+int OpenAndLoadChars(
+    const char *file_name, uint8_t *trans_font, size_t trans_len) {
+  (void) file_name;
+  (void) trans_font;
+  (void) trans_len;
+  return 0;
+}
 #endif  // _MSC_VER
 
 }  // namespace
