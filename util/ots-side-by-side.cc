@@ -6,9 +6,10 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+
+#include <fstream>
+#include <iostream>
+#include <vector>
 
 #include <cstdio>
 #include <cstdlib>
@@ -229,22 +230,14 @@ int main(int argc, char **argv) {
   }
 
   // load the font to memory.
-  const int fd = ::open(argv[1], O_RDONLY);
-  if (fd < 0) {
-    ::perror("open");
-    return 1;
-  }
-
-  struct stat st;
-  ::fstat(fd, &st);
-  const off_t orig_len = st.st_size;
-
-  uint8_t *orig_font = new uint8_t[orig_len];
-  if (::read(fd, orig_font, orig_len) != orig_len) {
+  std::ifstream ifs(argv[1], std::ifstream::binary);
+  if (!ifs.good()) {
     std::fprintf(stderr, "Failed to read file!\n");
     return 1;
   }
-  ::close(fd);
+
+  std::vector<uint8_t> in((std::istreambuf_iterator<char>(ifs)),
+                          (std::istreambuf_iterator<char>()));
 
   // check if FreeType2 can open the original font.
   FT_Library library;
@@ -254,7 +247,7 @@ int main(int argc, char **argv) {
     return 1;
   }
   FT_Face dummy;
-  error = FT_New_Memory_Face(library, orig_font, orig_len, 0, &dummy);
+  error = FT_New_Memory_Face(library, in.data(), in.size(), 0, &dummy);
   if (error) {
     std::fprintf(stderr, "Failed to open the original font with FT2! %s\n",
                  argv[1]);
@@ -262,20 +255,18 @@ int main(int argc, char **argv) {
   }
 
   // transcode the original font.
-  static const size_t kPadLen = 20 * 1024;
-  uint8_t *trans_font = new uint8_t[orig_len + kPadLen];
-  ots::MemoryStream output(trans_font, orig_len + kPadLen);
+  std::vector<uint8_t> result(in.size() * 8);
+  ots::MemoryStream output(result.data(), result.size());
   ots::OTSContext context;
 
-  bool result = context.Process(&output, orig_font, orig_len);
-  if (!result) {
+  if (!context.Process(&output, in.data(), in.size())) {
     std::fprintf(stderr, "Failed to sanitize file! %s\n", argv[1]);
     return 1;
   }
-  const size_t trans_len = output.Tell();
+  const size_t result_len = output.Tell();
 
   // perform side-by-side tests.
   return SideBySide(library, argv[1],
-                    orig_font, orig_len,
-                    trans_font, trans_len);
+                    in.data(), in.size(),
+                    result.data(), result_len);
 }

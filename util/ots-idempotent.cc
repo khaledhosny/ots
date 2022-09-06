@@ -17,7 +17,6 @@
 
 #include <fstream>
 #include <iostream>
-#include <memory>
 #include <vector>
 
 #include "test-context.h"
@@ -127,8 +126,8 @@ int main(int argc, char **argv) {
   //
   // However, a WOFF font gets decompressed and so can be *much* larger than
   // the original.
-  std::unique_ptr<uint8_t[]> result(new uint8_t[in.size() * 8]);
-  ots::MemoryStream output(result.get(), in.size() * 8);
+  std::vector<uint8_t> result(in.size() * 8);
+  ots::MemoryStream output(result.data(), result.size());
 
   ots::TestContext context(0);
 
@@ -138,9 +137,9 @@ int main(int argc, char **argv) {
   }
   const size_t result_len = output.Tell();
 
-  std::unique_ptr<uint8_t[]> result2(new uint8_t[result_len]);
-  ots::MemoryStream output2(result2.get(), result_len);
-  if (!context.Process(&output2, result.get(), result_len)) {
+  std::vector<uint8_t> result2(result_len);
+  ots::MemoryStream output2(result2.data(), result2.size());
+  if (!context.Process(&output2, result.data(), result_len)) {
     std::fprintf(stderr, "Failed to sanitize previous output!\n");
     return 1;
   }
@@ -150,14 +149,14 @@ int main(int argc, char **argv) {
   if (result2_len != result_len) {
     std::fprintf(stderr, "Outputs differ in length\n");
     dump_results = true;
-  } else if (std::memcmp(result2.get(), result.get(), result_len)) {
+  } else if (std::memcmp(result.data(), result.data(), result_len)) {
     std::fprintf(stderr, "Outputs differ in content\n");
     dump_results = true;
   }
 
   if (dump_results) {
     std::fprintf(stderr, "Dumping results to out1.tff and out2.tff\n");
-    if (!DumpResults(result.get(), result_len, result2.get(), result2_len)) {
+    if (!DumpResults(result.data(), result_len, result.data(), result2_len)) {
       std::fprintf(stderr, "Failed to dump output files.\n");
       return 1;
     }
@@ -172,7 +171,7 @@ int main(int argc, char **argv) {
 
   // Verify that the transcoded font can be opened by the font renderer for
   // Linux (FreeType2), Mac OS X, or Windows.
-  if (!VerifyTranscodedFont(result.get(), result_len)) {
+  if (!VerifyTranscodedFont(result.data(), result_len)) {
     std::fprintf(stderr, "Failed to verify the transcoded font\n");
     return 1;
   }

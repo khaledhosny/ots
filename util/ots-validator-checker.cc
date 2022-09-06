@@ -17,10 +17,9 @@
 // TODO(yusukes): Support Windows.
 #endif  // _MSC_VER
 
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include <fstream>
+#include <iostream>
+#include <vector>
 
 #include <cstdio>
 #include <cstdlib>
@@ -136,35 +135,25 @@ int main(int argc, char **argv) {
   }
 
   // load the font to memory.
-  const int fd = ::open(argv[1], O_RDONLY);
-  if (fd < 0) {
-    ::perror("open");
-    return 1;
-  }
-
-  struct stat st;
-  ::fstat(fd, &st);
-  const off_t orig_len = st.st_size;
-
-  uint8_t *orig_font = new uint8_t[orig_len];
-  if (::read(fd, orig_font, orig_len) != orig_len) {
+  std::ifstream ifs(argv[1], std::ifstream::binary);
+  if (!ifs.good()) {
     std::fprintf(stderr, "Failed to read file!\n");
     return 1;
   }
-  ::close(fd);
+
+  std::vector<uint8_t> in((std::istreambuf_iterator<char>(ifs)),
+                          (std::istreambuf_iterator<char>()));
 
   // transcode the malicious font.
-  static const size_t kBigPadLen = 1024 * 1024;  // 1MB
-  uint8_t *trans_font = new uint8_t[orig_len + kBigPadLen];
-  ots::MemoryStream output(trans_font, orig_len + kBigPadLen);
+  std::vector<uint8_t> result(in.size() * 8);
+  ots::MemoryStream output(result.data(), result.size());
   ots::OTSContext context;
 
-  bool result = context.Process(&output, orig_font, orig_len);
-  if (!result) {
+  if (!context.Process(&output, in.data(), in.size())) {
     std::fprintf(stderr, "OK: the malicious font was filtered: %s\n", argv[1]);
     return 0;
   }
-  const size_t trans_len = output.Tell();
+  const size_t result_len = output.Tell();
 
-  return OpenAndLoadChars(argv[1], trans_font, trans_len);
+  return OpenAndLoadChars(argv[1], result.data(), result_len);
 }
