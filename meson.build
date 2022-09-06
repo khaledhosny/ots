@@ -1,5 +1,5 @@
 project('ots', 'c', 'cpp',
-  version: '8.2.1',
+  version: '8.2.2',
   default_options : ['cpp_std=c++11', 'default_library=static', 'warning_level=2'],
   meson_version : '>= 0.55.2',
 )
