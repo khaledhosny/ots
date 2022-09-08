@@ -8,7 +8,9 @@
 #include "maxp.h"
 #include "variations.h"
 
+#include <map>
 #include <set>
+#include <vector>
 
 // COLR - Color Table
 // http://www.microsoft.com/typography/otspec/colr.htm
@@ -30,18 +32,26 @@ struct colrState
 {
   // We track addresses of structs that we have already seen and checked,
   // because fonts may share these among multiple glyph descriptions.
+  // (We only do this for color lines, which may be large, depending on the
+  // number of color stops, and for paints, which may refer to an extensive
+  // sub-graph; for small records like ClipBox and Affine2x3, we just read
+  // them directly whenever encountered.)
   std::set<const uint8_t*> colorLines;
   std::set<const uint8_t*> varColorLines;
-  std::set<const uint8_t*> affines;
-  std::set<const uint8_t*> varAffines;
   std::set<const uint8_t*> paints;
-  std::set<const uint8_t*> clipBoxes;
 
-  std::set<uint16_t> baseGlyphIDs;
+  std::map<uint16_t, std::pair<const uint8_t*, size_t>> baseGlyphMap;
+  std::vector<std::pair<const uint8_t*, size_t>> layerList;
+
+  // Set of visited records, for cycle detection.
+  // We don't actually need to track every paint table here, as most of the
+  // paint-offsets that create the graph can only point forwards;
+  // only PaintColrLayers and PaintColrGlyph can cause a backward jump
+  // and hence a potential cycle.
+  std::set<const uint8_t*> visited;
 
   uint16_t numGlyphs;  // from maxp
   uint16_t numPaletteEntries;  // from CPAL
-  uint32_t numLayers;
 };
 
 // std::set<T>::contains isn't available until C++20, so we use this instead
@@ -151,14 +161,8 @@ enum CompositeMode : uint8_t
 
 bool ParseAffine(const ots::Font* font,
                  const uint8_t* data, size_t length,
-                 colrState& state, bool var)
+                 bool var)
 {
-  auto& set = var ? state.varAffines : state.affines;
-  if (setContains(set, data)) {
-    return true;
-  }
-  set.insert(data);
-
   ots::Buffer subtable(data, length);
 
   Fixed xx, yx, xy, yy, dx, dy;
@@ -188,6 +192,11 @@ bool ParsePaintColrLayers(const ots::Font* font,
                           const uint8_t* data, size_t length,
                           colrState& state)
 {
+  if (setContains(state.visited, data)) {
+    return OTS_FAILURE_MSG("Cycle detected in PaintColrLayers");
+  }
+  state.visited.insert(data);
+
   ots::Buffer subtable(data, length);
 
   uint8_t numLayers;
@@ -199,9 +208,18 @@ bool ParsePaintColrLayers(const ots::Font* font,
     return OTS_FAILURE_MSG("Failed to read PaintColrLayers record");
   }
 
-  if (uint64_t(firstLayerIndex) + numLayers > state.numLayers) {
+  if (uint64_t(firstLayerIndex) + numLayers > state.layerList.size()) {
     return OTS_FAILURE_MSG("PaintColrLayers exceeds bounds of layer list");
   }
+
+  for (auto i = firstLayerIndex; i < firstLayerIndex + numLayers; ++i) {
+    auto layer = state.layerList[i];
+    if (!ParsePaint(font, layer.first, layer.second, state)) {
+      return OTS_FAILURE_MSG("Failed to parse layer");
+    }
+  }
+
+  state.visited.erase(data);
 
   return true;
 }
@@ -355,8 +373,8 @@ bool ParsePaintGlyph(const ots::Font* font,
     return OTS_FAILURE_MSG("Failed to read PaintGlyph");
   }
 
-  if (paintOffset >= length) {
-    return OTS_FAILURE_MSG("PaintGlyph paint offset out of bounds");
+  if (!paintOffset || paintOffset >= length) {
+    return OTS_FAILURE_MSG("Invalid paint offset in PaintGlyph");
   }
 
   if (glyphID >= state.numGlyphs) {
@@ -374,6 +392,11 @@ bool ParsePaintColrGlyph(const ots::Font* font,
                          const uint8_t* data, size_t length,
                          colrState& state)
 {
+  if (setContains(state.visited, data)) {
+    return OTS_FAILURE_MSG("Cycle detected in PaintColrGlyph");
+  }
+  state.visited.insert(data);
+
   ots::Buffer subtable(data, length);
 
   uint16_t glyphID;
@@ -383,9 +406,16 @@ bool ParsePaintColrGlyph(const ots::Font* font,
     return OTS_FAILURE_MSG("Failed to read PaintColrGlyph");
   }
 
-  if (!setContains(state.baseGlyphIDs, glyphID)) {
+  auto baseGlyph = state.baseGlyphMap.find(glyphID);
+  if (baseGlyph == state.baseGlyphMap.end()) {
     return OTS_FAILURE_MSG("Glyph ID %u not found in BaseGlyphList", glyphID);
   }
+
+  if (!ParsePaint(font, baseGlyph->second.first, baseGlyph->second.second, state)) {
+    return OTS_FAILURE_MSG("Failed to parse referenced color glyph %u", glyphID);
+  }
+
+  state.visited.erase(data);
 
   return true;
 }
@@ -405,15 +435,18 @@ bool ParsePaintTransform(const ots::Font* font,
     return OTS_FAILURE_MSG("Failed to read Paint[Var]Transform");
   }
 
-  if (paintOffset >= length || transformOffset >= length) {
-    return OTS_FAILURE_MSG("Paint or transform offset out of bounds");
+  if (!paintOffset || paintOffset >= length) {
+    return OTS_FAILURE_MSG("Invalid paint offset in Paint[Var]Transform");
+  }
+  if (transformOffset >= length) {
+    return OTS_FAILURE_MSG("Transform offset out of bounds");
   }
 
   if (!ParsePaint(font, data + paintOffset, length - paintOffset, state)) {
     return OTS_FAILURE_MSG("Failed to parse paint for Paint[Var]Transform");
   }
 
-  if (!ParseAffine(font, data + transformOffset, length - transformOffset, state, var)) {
+  if (!ParseAffine(font, data + transformOffset, length - transformOffset, var)) {
     return OTS_FAILURE_MSG("Failed to parse affine transform");
   }
 
@@ -438,8 +471,8 @@ bool ParsePaintTranslate(const ots::Font* font,
     return OTS_FAILURE_MSG("Failed to read Paint[Var]Translate");
   }
 
-  if (paintOffset >= length) {
-    return OTS_FAILURE_MSG("Paint offset out of bounds");
+  if (!paintOffset || paintOffset >= length) {
+    return OTS_FAILURE_MSG("Invalid paint offset in Paint[Var]Translate");
   }
 
   if (!ParsePaint(font, data + paintOffset, length - paintOffset, state)) {
@@ -471,8 +504,8 @@ bool ParsePaintScale(const ots::Font* font,
     return OTS_FAILURE_MSG("Failed to read Paint[Var]Scale[...]");
   }
 
-  if (paintOffset >= length) {
-    return OTS_FAILURE_MSG("Paint[Var]Scale[...] paint offset out of bounds");
+  if (!paintOffset || paintOffset >= length) {
+    return OTS_FAILURE_MSG("Invalid paint offset in Paint[Var]Scale[...]");
   }
 
   if (!ParsePaint(font, data + paintOffset, length - paintOffset, state)) {
@@ -503,8 +536,8 @@ bool ParsePaintRotate(const ots::Font* font,
     return OTS_FAILURE_MSG("Failed to read Paint[Var]Rotate[...]");
   }
 
-  if (paintOffset >= length) {
-    return OTS_FAILURE_MSG("Paint[Var]Rotate[...] paint offset out of bounds");
+  if (!paintOffset || paintOffset >= length) {
+    return OTS_FAILURE_MSG("Invalid paint offset in Paint[Var]Rotate[...]");
   }
 
   if (!ParsePaint(font, data + paintOffset, length - paintOffset, state)) {
@@ -536,8 +569,8 @@ bool ParsePaintSkew(const ots::Font* font,
     return OTS_FAILURE_MSG("Failed to read Paint[Var]Skew[...]");
   }
 
-  if (paintOffset >= length) {
-    return OTS_FAILURE_MSG("Paint[Var]Skew[...] paint offset out of bounds");
+  if (!paintOffset || paintOffset >= length) {
+    return OTS_FAILURE_MSG("Invalid paint offset in Paint[Var]Skew[...]");
   }
 
   if (!ParsePaint(font, data + paintOffset, length - paintOffset, state)) {
@@ -567,15 +600,15 @@ bool ParsePaintComposite(const ots::Font* font,
     OTS_WARNING("Unknown composite mode %u\n", compositeMode);
   }
 
-  if (sourcePaint >= length) {
-    return OTS_FAILURE_MSG("Source offset %u out of bounds", sourcePaint);
+  if (!sourcePaint || sourcePaint >= length) {
+    return OTS_FAILURE_MSG("Invalid source paint offset");
   }
   if (!ParsePaint(font, data + sourcePaint, length - sourcePaint, state)) {
     return OTS_FAILURE_MSG("Failed to parse source paint");
   }
 
-  if (backdropPaint >= length) {
-    return OTS_FAILURE_MSG("Backdrop offset %u out of bounds", backdropPaint);
+  if (!backdropPaint || backdropPaint >= length) {
+    return OTS_FAILURE_MSG("Invalid backdrop paint offset");
   }
   if (!ParsePaint(font, data + backdropPaint, length - backdropPaint, state)) {
     return OTS_FAILURE_MSG("Failed to parse backdrop paint");
@@ -591,7 +624,6 @@ bool ParsePaint(const ots::Font* font,
   if (setContains(state.paints, data)) {
     return true;
   }
-  state.paints.insert(data);
 
   ots::Buffer subtable(data, length);
 
@@ -601,46 +633,49 @@ bool ParsePaint(const ots::Font* font,
     return OTS_FAILURE_MSG("Failed to read paint record format");
   }
 
+  bool ok = true;
   switch (format) {
-    case 1: return ParsePaintColrLayers(font, data, length, state);
-    case 2: return ParsePaintSolid(font, data, length, state, false);
-    case 3: return ParsePaintSolid(font, data, length, state, true);
-    case 4: return ParsePaintLinearGradient(font, data, length, state, false);
-    case 5: return ParsePaintLinearGradient(font, data, length, state, true);
-    case 6: return ParsePaintRadialGradient(font, data, length, state, false);
-    case 7: return ParsePaintRadialGradient(font, data, length, state, true);
-    case 8: return ParsePaintSweepGradient(font, data, length, state, false);
-    case 9: return ParsePaintSweepGradient(font, data, length, state, true);
-    case 10: return ParsePaintGlyph(font, data, length, state);
-    case 11: return ParsePaintColrGlyph(font, data, length, state);
-    case 12: return ParsePaintTransform(font, data, length, state, false);
-    case 13: return ParsePaintTransform(font, data, length, state, true);
-    case 14: return ParsePaintTranslate(font, data, length, state, false);
-    case 15: return ParsePaintTranslate(font, data, length, state, true);
-    case 16: return ParsePaintScale(font, data, length, state, false, false, false); // Scale
-    case 17: return ParsePaintScale(font, data, length, state, true, false, false); // VarScale
-    case 18: return ParsePaintScale(font, data, length, state, false, true, false); // ScaleAroundCenter
-    case 19: return ParsePaintScale(font, data, length, state, true, true, false); // VarScaleAroundCenter
-    case 20: return ParsePaintScale(font, data, length, state, false, false, true); // ScaleUniform
-    case 21: return ParsePaintScale(font, data, length, state, true, false, true); // VarScaleUniform
-    case 22: return ParsePaintScale(font, data, length, state, false, true, true); // ScaleUniformAroundCenter
-    case 23: return ParsePaintScale(font, data, length, state, true, true, true); // VarScaleUniformAroundCenter
-    case 24: return ParsePaintRotate(font, data, length, state, false, false); // Rotate
-    case 25: return ParsePaintRotate(font, data, length, state, true, false); // VarRotate
-    case 26: return ParsePaintRotate(font, data, length, state, false, true); // RotateAroundCenter
-    case 27: return ParsePaintRotate(font, data, length, state, true, true); // VarRotateAroundCenter
-    case 28: return ParsePaintSkew(font, data, length, state, false, false); // Skew
-    case 29: return ParsePaintSkew(font, data, length, state, true, false); // VarSkew
-    case 30: return ParsePaintSkew(font, data, length, state, false, true); // SkewAroundCenter
-    case 31: return ParsePaintSkew(font, data, length, state, true, true); // VarSkewAroundCenter
-    case 32: return ParsePaintComposite(font, data, length, state);
+    case 1: ok = ParsePaintColrLayers(font, data, length, state); break;
+    case 2: ok = ParsePaintSolid(font, data, length, state, false); break;
+    case 3: ok = ParsePaintSolid(font, data, length, state, true); break;
+    case 4: ok = ParsePaintLinearGradient(font, data, length, state, false); break;
+    case 5: ok = ParsePaintLinearGradient(font, data, length, state, true); break;
+    case 6: ok = ParsePaintRadialGradient(font, data, length, state, false); break;
+    case 7: ok = ParsePaintRadialGradient(font, data, length, state, true); break;
+    case 8: ok = ParsePaintSweepGradient(font, data, length, state, false); break;
+    case 9: ok = ParsePaintSweepGradient(font, data, length, state, true); break;
+    case 10: ok = ParsePaintGlyph(font, data, length, state); break;
+    case 11: ok = ParsePaintColrGlyph(font, data, length, state); break;
+    case 12: ok = ParsePaintTransform(font, data, length, state, false); break;
+    case 13: ok = ParsePaintTransform(font, data, length, state, true); break;
+    case 14: ok = ParsePaintTranslate(font, data, length, state, false); break;
+    case 15: ok = ParsePaintTranslate(font, data, length, state, true); break;
+    case 16: ok = ParsePaintScale(font, data, length, state, false, false, false); break; // Scale
+    case 17: ok = ParsePaintScale(font, data, length, state, true, false, false); break; // VarScale
+    case 18: ok = ParsePaintScale(font, data, length, state, false, true, false); break; // ScaleAroundCenter
+    case 19: ok = ParsePaintScale(font, data, length, state, true, true, false); break; // VarScaleAroundCenter
+    case 20: ok = ParsePaintScale(font, data, length, state, false, false, true); break; // ScaleUniform
+    case 21: ok = ParsePaintScale(font, data, length, state, true, false, true); break; // VarScaleUniform
+    case 22: ok = ParsePaintScale(font, data, length, state, false, true, true); break; // ScaleUniformAroundCenter
+    case 23: ok = ParsePaintScale(font, data, length, state, true, true, true); break; // VarScaleUniformAroundCenter
+    case 24: ok = ParsePaintRotate(font, data, length, state, false, false); break; // Rotate
+    case 25: ok = ParsePaintRotate(font, data, length, state, true, false); break; // VarRotate
+    case 26: ok = ParsePaintRotate(font, data, length, state, false, true); break; // RotateAroundCenter
+    case 27: ok = ParsePaintRotate(font, data, length, state, true, true); break; // VarRotateAroundCenter
+    case 28: ok = ParsePaintSkew(font, data, length, state, false, false); break; // Skew
+    case 29: ok = ParsePaintSkew(font, data, length, state, true, false); break; // VarSkew
+    case 30: ok = ParsePaintSkew(font, data, length, state, false, true); break; // SkewAroundCenter
+    case 31: ok = ParsePaintSkew(font, data, length, state, true, true); break; // VarSkewAroundCenter
+    case 32: ok = ParsePaintComposite(font, data, length, state); break;
     default:
       // Clients are supposed to ignore unknown paint types.
       OTS_WARNING("Unknown paint type %u", format);
       break;
   }
 
-  return true;
+  state.paints.insert(data);
+
+  return ok;
 }
 
 #pragma pack(1)
@@ -764,7 +799,9 @@ bool ParseBaseGlyphList(const ots::Font* font,
       return OTS_FAILURE_MSG("Invalid paint offset for base glyph ID %u", glyphID);
     }
 
-    state.baseGlyphIDs.insert(glyphID);
+    // Record the base glyph list records so that we can follow them when processing
+    // PaintColrGlyph records.
+    state.baseGlyphMap[glyphID] = std::pair<const uint8_t*, size_t>(data + paintOffset, length - paintOffset);
     prevGlyphID = glyphID;
   }
 
@@ -781,6 +818,10 @@ bool ParseBaseGlyphList(const ots::Font* font,
     if (!ParsePaint(font, data + paintOffset, length - paintOffset, state)) {
       return OTS_FAILURE_MSG("Failed to parse paint for base glyph ID %u", glyphID);
     }
+
+    // After each base glyph record is fully processed, the visited set should be clear;
+    // otherwise, we have a bug in the cycle-detection logic.
+    assert(state.visited.empty());
   }
 
   return true;
@@ -790,43 +831,35 @@ bool ParseBaseGlyphList(const ots::Font* font,
 // and then with parsePaints = true to actually descend the paint graphs.
 bool ParseLayerList(const ots::Font* font,
                     const uint8_t* data, size_t length,
-                    colrState& state, bool parsePaints)
+                    colrState& state)
 {
   ots::Buffer subtable(data, length);
 
-  if (!subtable.ReadU32(&state.numLayers)) {
+  uint32_t numLayers;
+  if (!subtable.ReadU32(&numLayers)) {
     return OTS_FAILURE_MSG("Failed to read layer list");
   }
 
-  if (parsePaints) {
-    for (auto i = 0u; i < state.numLayers; ++i) {
-      uint32_t paintOffset;
+  for (auto i = 0u; i < numLayers; ++i) {
+    uint32_t paintOffset;
 
-      if (!subtable.ReadU32(&paintOffset)) {
-        return OTS_FAILURE_MSG("Failed to read layer list");
-      }
-
-      if (!paintOffset || paintOffset >= length) {
-        return OTS_FAILURE_MSG("Invalid paint offset in layer list");
-      }
-
-      if (!ParsePaint(font, data + paintOffset, length - paintOffset, state)) {
-        return OTS_FAILURE_MSG("Failed to parse paint for layer record");
-      }
+    if (!subtable.ReadU32(&paintOffset)) {
+      return OTS_FAILURE_MSG("Failed to read layer list");
     }
+
+    if (!paintOffset || paintOffset >= length) {
+      return OTS_FAILURE_MSG("Invalid paint offset in layer list");
+    }
+
+    state.layerList.push_back(std::pair<const uint8_t*, size_t>(data + paintOffset, length - paintOffset));
   }
 
   return true;
 }
 
 bool ParseClipBox(const ots::Font* font,
-                  const uint8_t* data, size_t length,
-                  colrState& state)
+                  const uint8_t* data, size_t length)
 {
-  if (setContains(state.clipBoxes, data)) {
-    return true;
-  }
-
   ots::Buffer subtable(data, length);
 
   uint8_t format;
@@ -857,8 +890,6 @@ bool ParseClipBox(const ots::Font* font,
   if (xMin > xMax || yMin > yMax) {
     return OTS_FAILURE_MSG("Invalid clip box bounds");
   }
-
-  state.clipBoxes.insert(data);
 
   return true;
 }
@@ -903,7 +934,7 @@ bool ParseClipList(const ots::Font* font,
       return OTS_FAILURE_MSG("Clip box offset out of bounds for glyphs %u-%u", startGlyphID, endGlyphID);
     }
 
-    if (!ParseClipBox(font, data + clipBoxOffset, length - clipBoxOffset, state)) {
+    if (!ParseClipBox(font, data + clipBoxOffset, length - clipBoxOffset)) {
       return OTS_FAILURE_MSG("Failed to parse clip box for glyphs %u-%u", startGlyphID, endGlyphID);
     }
 
@@ -994,33 +1025,25 @@ bool OpenTypeCOLR::Parse(const uint8_t *data, size_t length) {
     }
   }
 
-  // ParseBaseGlyphList will need the state.numLayers field, so set it now.
   if (offsetLayerList) {
     if (offsetLayerList < headerSize || offsetLayerList >= length) {
       return Error("Bad layer list offset in table header");
     }
-    if (!ParseLayerList(font, data + offsetLayerList, length - offsetLayerList,
-                        state, false)) {
+    // This reads the layer list into our state.layerList vector, but does not parse the
+    // paint graphs within it; these will be checked when visited via PaintColrLayers.
+    if (!ParseLayerList(font, data + offsetLayerList, length - offsetLayerList, state)) {
       return Error("Failed to parse layer list");
     }
-  } else {
-    state.numLayers = 0;
   }
 
   if (offsetBaseGlyphList) {
     if (offsetBaseGlyphList < headerSize || offsetBaseGlyphList >= length) {
       return Error("Bad base glyph list offset in table header");
     }
+    // Here, we recursively check the paint graph starting at each base glyph record.
     if (!ParseBaseGlyphList(font, data + offsetBaseGlyphList, length - offsetBaseGlyphList,
                             state)) {
       return Error("Failed to parse base glyph list");
-    }
-  }
-
-  if (offsetLayerList) {
-    if (!ParseLayerList(font, data + offsetLayerList, length - offsetLayerList,
-                        state, true)) {
-      return Error("Failed to parse layer list");
     }
   }
 
