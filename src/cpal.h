@@ -7,24 +7,32 @@
 
 #include "ots.h"
 
+#include <vector>
+
 namespace ots {
 
 class OpenTypeCPAL : public Table {
  public:
   explicit OpenTypeCPAL(Font *font, uint32_t tag)
-      : Table(font, tag, tag),
-        m_data(NULL),
-        m_length(0) {
+      : Table(font, tag, tag) {
   }
 
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);
 
+  // This is public so that COLR can access it.
   uint16_t num_palette_entries;
 
  private:
-  const uint8_t *m_data;
-  size_t m_length;
+  uint16_t version;
+
+  std::vector<uint16_t> colorRecordIndices;
+  std::vector<uint32_t> colorRecords;
+
+  // Arrays present only if version == 1.
+  std::vector<uint32_t> paletteTypes;
+  std::vector<uint16_t> paletteLabels;
+  std::vector<uint16_t> paletteEntryLabels;
 };
 
 }  // namespace ots
