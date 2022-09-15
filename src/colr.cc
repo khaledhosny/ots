@@ -263,12 +263,12 @@ bool ParsePaintLinearGradient(const ots::Font* font,
 {
   ots::Buffer subtable(data, length);
 
-  uint32_t colorLine;
+  uint32_t colorLineOffset;
   FWORD x0, y0, x1, y1, x2, y2;
   VarIdxBase varIndexBase;
 
   if (!subtable.Skip(1) ||
-      !subtable.ReadU24(&colorLine) ||
+      !subtable.ReadU24(&colorLineOffset) ||
       !subtable.ReadS16(&x0) ||
       !subtable.ReadS16(&y0) ||
       !subtable.ReadS16(&x1) ||
@@ -279,11 +279,11 @@ bool ParsePaintLinearGradient(const ots::Font* font,
     return OTS_FAILURE_MSG("Failed to read Paint[Var]LinearGradient");
   }
 
-  if (colorLine >= length) {
+  if (colorLineOffset >= length) {
     return OTS_FAILURE_MSG("ColorLine is out of bounds");
   }
 
-  if (!ParseColorLine(font, data + colorLine, length - colorLine, state, var)) {
+  if (!ParseColorLine(font, data + colorLineOffset, length - colorLineOffset, state, var)) {
     return OTS_FAILURE_MSG("Failed to parse [Var]ColorLine");
   }
 
@@ -296,7 +296,7 @@ bool ParsePaintRadialGradient(const ots::Font* font,
 {
   ots::Buffer subtable(data, length);
 
-  uint32_t colorLine;
+  uint32_t colorLineOffset;
   FWORD x0, y0;
   UFWORD radius0;
   FWORD x1, y1;
@@ -304,7 +304,7 @@ bool ParsePaintRadialGradient(const ots::Font* font,
   VarIdxBase varIndexBase;
 
   if (!subtable.Skip(1) ||
-      !subtable.ReadU24(&colorLine) ||
+      !subtable.ReadU24(&colorLineOffset) ||
       !subtable.ReadS16(&x0) ||
       !subtable.ReadS16(&y0) ||
       !subtable.ReadU16(&radius0) ||
@@ -315,11 +315,11 @@ bool ParsePaintRadialGradient(const ots::Font* font,
     return OTS_FAILURE_MSG("Failed to read Paint[Var]RadialGradient");
   }
 
-  if (colorLine >= length) {
+  if (colorLineOffset >= length) {
     return OTS_FAILURE_MSG("ColorLine is out of bounds");
   }
 
-  if (!ParseColorLine(font, data + colorLine, length - colorLine, state, var)) {
+  if (!ParseColorLine(font, data + colorLineOffset, length - colorLineOffset, state, var)) {
     return OTS_FAILURE_MSG("Failed to parse [Var]ColorLine");
   }
 
@@ -332,13 +332,13 @@ bool ParsePaintSweepGradient(const ots::Font* font,
 {
   ots::Buffer subtable(data, length);
 
-  uint32_t colorLine;
+  uint32_t colorLineOffset;
   FWORD centerX, centerY;
   F2DOT14 startAngle, endAngle;
   VarIdxBase varIndexBase;
 
   if (!subtable.Skip(1) ||
-      !subtable.ReadU24(&colorLine) ||
+      !subtable.ReadU24(&colorLineOffset) ||
       !subtable.ReadS16(&centerX) ||
       !subtable.ReadS16(&centerY) ||
       !subtable.ReadS16(&startAngle) ||
@@ -347,11 +347,11 @@ bool ParsePaintSweepGradient(const ots::Font* font,
     return OTS_FAILURE_MSG("Failed to read Paint[Var]SweepGradient");
   }
 
-  if (colorLine >= length) {
+  if (colorLineOffset >= length) {
     return OTS_FAILURE_MSG("ColorLine is out of bounds");
   }
 
-  if (!ParseColorLine(font, data + colorLine, length - colorLine, state, var)) {
+  if (!ParseColorLine(font, data + colorLineOffset, length - colorLineOffset, state, var)) {
     return OTS_FAILURE_MSG("Failed to parse [Var]ColorLine");
   }
 
@@ -586,31 +586,31 @@ bool ParsePaintComposite(const ots::Font* font,
 {
   ots::Buffer subtable(data, length);
 
-  uint32_t sourcePaint;
+  uint32_t sourcePaintOffset;
   uint8_t compositeMode;
-  uint32_t backdropPaint;
+  uint32_t backdropPaintOffset;
 
   if (!subtable.Skip(1) ||
-      !subtable.ReadU24(&sourcePaint) ||
+      !subtable.ReadU24(&sourcePaintOffset) ||
       !subtable.ReadU8(&compositeMode) ||
-      !subtable.ReadU24(&backdropPaint)) {
+      !subtable.ReadU24(&backdropPaintOffset)) {
     return OTS_FAILURE_MSG("Failed to read PaintComposite");
   }
   if (compositeMode > COMPOSITE_HSL_LUMINOSITY) {
     OTS_WARNING("Unknown composite mode %u\n", compositeMode);
   }
 
-  if (!sourcePaint || sourcePaint >= length) {
+  if (!sourcePaintOffset || sourcePaintOffset >= length) {
     return OTS_FAILURE_MSG("Invalid source paint offset");
   }
-  if (!ParsePaint(font, data + sourcePaint, length - sourcePaint, state)) {
+  if (!ParsePaint(font, data + sourcePaintOffset, length - sourcePaintOffset, state)) {
     return OTS_FAILURE_MSG("Failed to parse source paint");
   }
 
-  if (!backdropPaint || backdropPaint >= length) {
+  if (!backdropPaintOffset || backdropPaintOffset >= length) {
     return OTS_FAILURE_MSG("Invalid backdrop paint offset");
   }
-  if (!ParsePaint(font, data + backdropPaint, length - backdropPaint, state)) {
+  if (!ParsePaint(font, data + backdropPaintOffset, length - backdropPaintOffset, state)) {
     return OTS_FAILURE_MSG("Failed to parse backdrop paint");
   }
 
@@ -970,7 +970,7 @@ bool OpenTypeCOLR::Parse(const uint8_t *data, size_t length) {
   }
 
   if (version > 1) {
-    return Error("Bad version");
+    return Error("Unknown COLR table version %u", version);
   }
 
   // Additional header fields for Version 1.
