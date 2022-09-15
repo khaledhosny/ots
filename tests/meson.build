@@ -84,6 +84,29 @@ good_fonts = [
   'fonts/good/fc6af2540969ab193e421276a18ad3cca6c68501.ttf',
   'fonts/good/fd2f7ce86f14f554ebd65bd9ba04f2d8f13943ec.ttf',
   'fonts/good/fd62f786684b29020b46c40ae4cacfbd044fc7ab.ttf',
+  'fonts/good/068aaf44acba22aa769fc7023b9b575fdf72c530.otf',
+  'fonts/good/14b84df95987d7ba699d058686e9163eb4ca5e75.ttf',
+  'fonts/good/1554deaab977f26747d651fa983988429bc0ebc5.ttf',
+  'fonts/good/27312d3d8d62bf7f3d2dec4afd90ac5549c05958.otf',
+  'fonts/good/39b02c925a67188e7dd1fb9e78e7799976d8b6f6.otf',
+  'fonts/good/4e5ac04a7e4638302443a8d9e3258772ccb60744.ttf',
+  'fonts/good/4e7747c985aa4f1b89f5f6c09f4ec4094bf1b20b.otf',
+  'fonts/good/54819458b3920c39db79d6e4cc8594e47654ca5f.otf',
+  'fonts/good/5b376d5ec538bc3c86749e13a815661c7f5d9528.ttf',
+  'fonts/good/611dc1a20537abb29791dfdbf12ecb48afd94f53.otf',
+  'fonts/good/6d7ceee66a8d288d96ea235b1d642b75d96cafd5.otf',
+  'fonts/good/7ef289b55de3392d9fca03735ea0a1c8498fdf0a.ttf',
+  'fonts/good/88ffc07c893a8e7d1f9622eaebd572d588fee7ea.otf',
+  'fonts/good/960799635ff99168566f5475bb9d37facf8629fd.ttf',
+  'fonts/good/983fcc3c7f3bc7bf2063104d72d1b5d7589378d2.otf',
+  'fonts/good/9ed41be8b32ab179d63c91df0585e8cc070e21ec.ttf',
+  'fonts/good/b2fc7c776ddbc942ae72bf4060a8c1412b715cf3.otf',
+  'fonts/good/bb4d6e4c25c01847c88db33066bf85e97ea27cd0.otf',
+  'fonts/good/c58d4e63655652bc74153333cd91f190a6e6671e.ttf',
+  'fonts/good/c7c0abafe42cda85913730dd6813223cbb5d57ae.otf',
+  'fonts/good/ce6ada335d2950f6893926d3fbec2b648a4014cb.ttf',
+  'fonts/good/e9b02051de5a2b3a3ae1e044e2c459421511a77f.otf',
+  'fonts/good/f681955b5a5f59517c3b66a9efa202ced7f99ae1.otf',
 ]
 
 bad_fonts = [
@@ -197,6 +220,7 @@ bad_fonts = [
   'fonts/bad/ed550c912a8c5febfdad9ca2500b3284ecfac0d7.ttf',
   'fonts/bad/edaf09c932e0582b1473384f66d5571da752a4d2.otf',
   'fonts/bad/f1dba4340ce94f5359fa4434debc7efcfd1b521f.ttf',
+  'fonts/bad/257a9ccbda162eec44796987d8e20fca32288029.otf',
 ]
 
 fuzzing_fonts = good_fonts + bad_fonts + [
