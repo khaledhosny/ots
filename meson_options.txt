@@ -1,2 +1,3 @@
 option('graphite', type : 'boolean', value : true, description : 'Sanitize Graphite tables')
+option('synthesize-gvar', type : 'boolean', value : true, description : 'Synthesize an empty gvar if fvar is present')
 option('fuzzer_ldflags', type: 'string', description : 'Extra LDFLAGS used during linking of fuzzing binaries')
