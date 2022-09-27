@@ -20,6 +20,10 @@ if get_option('graphite')
   conf.set('OTS_GRAPHITE', 1)
 endif
 
+if get_option('synthesize-gvar')
+  conf.set('OTS_SYNTHESIZE_MISSING_GVAR', 1)
+endif
+
 freetype = dependency('freetype2', required: false)
 if freetype.found()
   conf.set('HAVE_FREETYPE', 1)
