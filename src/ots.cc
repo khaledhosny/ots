@@ -745,6 +745,8 @@ bool ProcessGeneric(ots::FontFile *header,
     if (gvar->InitEmpty()) {
       table_map[OTS_TAG_GVAR] = { OTS_TAG_GVAR, 0, 0, 0, 0 };
       font->AddTable(gvar);
+    } else {
+      delete gvar;
     }
   }
 #endif
