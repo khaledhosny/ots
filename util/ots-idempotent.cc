@@ -6,13 +6,13 @@
 
 #if defined(HAVE_CORETEXT)
 #include <ApplicationServices/ApplicationServices.h>
+#elif defined(HAVE_WIN32)
+#define NOMINMAX
+#include <Windows.h>
 #elif defined(HAVE_FREETYPE)
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
-#elif defined(HAVE_WIN32)
-#define NOMINMAX
-#include <Windows.h>
 #endif
 
 #include <fstream>
@@ -70,6 +70,18 @@ bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
   return true;
 }
 
+#elif defined(HAVE_WIN32)
+// Windows
+bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
+  DWORD num_fonts = 0;
+  HANDLE handle = AddFontMemResourceEx(result, len, 0, &num_fonts);
+  if (!handle) {
+    return false;
+  }
+  RemoveFontMemResourceEx(handle);
+  return true;
+}
+
 #elif defined(HAVE_FREETYPE)
 bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
   FT_Library library;
@@ -84,18 +96,6 @@ bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
   }
   ::FT_Done_Face(dummy);
   ::FT_Done_FreeType(library);
-  return true;
-}
-
-#elif defined(HAVE_WIN32)
-// Windows
-bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
-  DWORD num_fonts = 0;
-  HANDLE handle = AddFontMemResourceEx(result, len, 0, &num_fonts);
-  if (!handle) {
-    return false;
-  }
-  RemoveFontMemResourceEx(handle);
   return true;
 }
 
