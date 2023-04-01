@@ -446,7 +446,7 @@ bool ParseRuleSubtable(const ots::Font *font,
     return OTS_FAILURE_MSG("Failed to read rule subtable header");
   }
 
-  if (glyph_count == 0 || glyph_count >= num_glyphs) {
+  if (glyph_count == 0) {
     return OTS_FAILURE_MSG("Bad glyph count %d in rule subtable", glyph_count);
   }
   for (unsigned i = 0; i < glyph_count - static_cast<unsigned>(1); ++i) {
@@ -725,9 +725,6 @@ bool ParseChainRuleSubtable(const ots::Font *font,
   if (!subtable.ReadU16(&backtrack_count)) {
     return OTS_FAILURE_MSG("Failed to read backtrack count in chain rule subtable");
   }
-  if (backtrack_count >= num_glyphs) {
-    return OTS_FAILURE_MSG("Bad backtrack count %d in chain rule subtable", backtrack_count);
-  }
   for (unsigned i = 0; i < backtrack_count; ++i) {
     uint16_t glyph_id = 0;
     if (!subtable.ReadU16(&glyph_id)) {
@@ -742,7 +739,7 @@ bool ParseChainRuleSubtable(const ots::Font *font,
   if (!subtable.ReadU16(&input_count)) {
     return OTS_FAILURE_MSG("Failed to read input count in chain rule subtable");
   }
-  if (input_count == 0 || input_count >= num_glyphs) {
+  if (input_count == 0) {
     return OTS_FAILURE_MSG("Bad input count %d in chain rule subtable", input_count);
   }
   for (unsigned i = 0; i < input_count - static_cast<unsigned>(1); ++i) {
@@ -758,9 +755,6 @@ bool ParseChainRuleSubtable(const ots::Font *font,
   uint16_t lookahead_count = 0;
   if (!subtable.ReadU16(&lookahead_count)) {
     return OTS_FAILURE_MSG("Failed to read lookahead count in chain rule subtable");
-  }
-  if (lookahead_count >= num_glyphs) {
-    return OTS_FAILURE_MSG("Bad lookahead count %d in chain rule subtable", lookahead_count);
   }
   for (unsigned i = 0; i < lookahead_count; ++i) {
     uint16_t glyph_id = 0;
@@ -878,9 +872,6 @@ bool ParseChainClassRuleSubtable(const ots::Font *font,
   if (!subtable.ReadU16(&backtrack_count)) {
     return OTS_FAILURE_MSG("Failed to read backtrack count in chain class rule subtable");
   }
-  if (backtrack_count >= num_glyphs) {
-    return OTS_FAILURE_MSG("Bad backtrack count %d in chain class rule subtable", backtrack_count);
-  }
   if (!subtable.Skip(2 * backtrack_count)) {
     return OTS_FAILURE_MSG("Failed to skip backtrack offsets in chain class rule subtable");
   }
@@ -889,7 +880,7 @@ bool ParseChainClassRuleSubtable(const ots::Font *font,
   if (!subtable.ReadU16(&input_count)) {
     return OTS_FAILURE_MSG("Failed to read input count in chain class rule subtable");
   }
-  if (input_count == 0 || input_count >= num_glyphs) {
+  if (input_count == 0) {
     return OTS_FAILURE_MSG("Bad input count %d in chain class rule subtable", input_count);
   }
   if (!subtable.Skip(2 * (input_count - 1))) {
@@ -899,9 +890,6 @@ bool ParseChainClassRuleSubtable(const ots::Font *font,
   uint16_t lookahead_count = 0;
   if (!subtable.ReadU16(&lookahead_count)) {
     return OTS_FAILURE_MSG("Failed to read lookahead count in chain class rule subtable");
-  }
-  if (lookahead_count >= num_glyphs) {
-    return OTS_FAILURE_MSG("Bad lookahead count %d in chain class rule subtable", lookahead_count);
   }
   if (!subtable.Skip(2 * lookahead_count)) {
     return OTS_FAILURE_MSG("Failed to skip lookahead offsets in chain class rule subtable");
@@ -1058,9 +1046,6 @@ bool ParseChainContextFormat3(const ots::Font *font,
     return OTS_FAILURE_MSG("Failed to read backtrack count in chain context format 3");
   }
 
-  if (backtrack_count >= num_glyphs) {
-    return OTS_FAILURE_MSG("Bad backtrack count %d in chain context format 3", backtrack_count);
-  }
   std::vector<uint16_t> offsets_backtrack;
   offsets_backtrack.reserve(backtrack_count);
   for (unsigned i = 0; i < backtrack_count; ++i) {
@@ -1078,9 +1063,6 @@ bool ParseChainContextFormat3(const ots::Font *font,
   if (!subtable.ReadU16(&input_count)) {
     return OTS_FAILURE_MSG("Failed to read input count in chain context format 3");
   }
-  if (input_count >= num_glyphs) {
-    return OTS_FAILURE_MSG("Bad input count %d in chain context format 3", input_count);
-  }
   std::vector<uint16_t> offsets_input;
   offsets_input.reserve(input_count);
   for (unsigned i = 0; i < input_count; ++i) {
@@ -1097,9 +1079,6 @@ bool ParseChainContextFormat3(const ots::Font *font,
   uint16_t lookahead_count = 0;
   if (!subtable.ReadU16(&lookahead_count)) {
     return OTS_FAILURE_MSG("Failed ot read lookahead count in chain context format 3");
-  }
-  if (lookahead_count >= num_glyphs) {
-    return OTS_FAILURE_MSG("Bad lookahead count %d in chain context format 3", lookahead_count);
   }
   std::vector<uint16_t> offsets_lookahead;
   offsets_lookahead.reserve(lookahead_count);
