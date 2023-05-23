@@ -744,7 +744,7 @@ bool ProcessGeneric(ots::FontFile *header,
     ots::OpenTypeGVAR *gvar = new ots::OpenTypeGVAR(font, OTS_TAG_GVAR);
     if (gvar->InitEmpty()) {
       table_map[OTS_TAG_GVAR] = { OTS_TAG_GVAR, 0, 0, 0, 0 };
-      font->AddTable(gvar);
+      font->AddTable(table_map[OTS_TAG_GVAR], gvar);
     } else {
       delete gvar;
     }
@@ -1022,11 +1022,12 @@ Table* Font::GetTypedTable(uint32_t tag) const {
   return NULL;
 }
 
-void Font::AddTable(Table* table) {
+void Font::AddTable(TableEntry entry, Table* table) {
   // Attempting to add a duplicate table would be an error; this should only
   // be used to add a table that does not already exist.
   assert(m_tables.find(table->Tag()) == m_tables.end());
   m_tables[table->Tag()] = table;
+  file->tables[entry] = table;
 }
 
 void Font::DropGraphite() {
