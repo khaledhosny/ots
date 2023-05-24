@@ -29,20 +29,6 @@ struct LookupSubtableParser {
              const size_t length, const uint16_t lookup_type) const;
 };
 
-bool ParseScriptListTable(const ots::Font *font,
-                          const uint8_t *data, const size_t length,
-                          const uint16_t num_features);
-
-bool ParseFeatureListTable(const ots::Font *font,
-                           const uint8_t *data, const size_t length,
-                           const uint16_t num_lookups,
-                           uint16_t *num_features);
-
-bool ParseLookupListTable(Font *font, const uint8_t *data,
-                          const size_t length,
-                          const LookupSubtableParser* parser,
-                          uint16_t* num_lookups);
-
 bool ParseClassDefTable(const ots::Font *font,
                         const uint8_t *data, size_t length,
                         const uint16_t num_glyphs,
@@ -72,22 +58,32 @@ bool ParseExtensionSubtable(const Font *font,
                             const uint8_t *data, const size_t length,
                             const LookupSubtableParser* parser);
 
-// For feature variations table (in GSUB/GPOS v1.1)
-bool ParseConditionTable(const Font *font,
-                         const uint8_t *data, const size_t length,
-                         const uint16_t axis_count);
 
-bool ParseConditionSetTable(const Font *font,
-                            const uint8_t *data, const size_t length,
-                            const uint16_t axis_count);
+class OpenTypeLayoutTable : public Table {
+  public:
+    explicit OpenTypeLayoutTable(Font *font, uint32_t tag, uint32_t type)
+      : Table(font, tag, type) { }
 
-bool ParseFeatureTableSubstitutionTable(const Font *font,
-                                        const uint8_t *data, const size_t length,
-                                        const uint16_t num_lookups);
+    bool Serialize(OTSStream *out);
 
-bool ParseFeatureVariationsTable(const Font *font,
-                                 const uint8_t *data, const size_t length,
-                                 const uint16_t num_lookups);
+//private:
+    uint16_t num_lookups = 0;
+
+  protected:
+    const LookupSubtableParser* m_subtable_parser = nullptr;
+
+  private:
+    const uint8_t *m_data = nullptr;
+    size_t m_length = 0;
+    uint16_t m_num_features = 0;
+
+  protected:
+    bool Parse(const uint8_t *data, size_t length);
+    bool ParseScriptListTable(const uint8_t *data, const size_t length);
+    bool ParseFeatureListTable(const uint8_t *data, const size_t length);
+    bool ParseLookupListTable(const uint8_t *data, const size_t length);
+    bool ParseFeatureVariationsTable(const uint8_t *data, const size_t length);
+};
 
 }  // namespace ots
 
