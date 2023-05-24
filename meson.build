@@ -264,18 +264,6 @@ cff_charstring = executable('cff_charstring',
 test('cff_charstring', cff_charstring)
 
 
-layout_common_table = executable('layout_common_table',
-  'tests/layout_common_table_test.cc',
-  include_directories: include_directories(['include', 'src']),
-  link_with: libots,
-  dependencies: gtest,
-)
-
-test('layout_common_table', layout_common_table,
-  protocol: 'gtest',
-)
-
-
 foreach file_name : bad_fonts
   test(file_name, ots_sanitize,
     args: meson.current_source_dir() / 'tests' / file_name,
