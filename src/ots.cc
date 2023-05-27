@@ -741,12 +741,19 @@ bool ProcessGeneric(ots::FontFile *header,
   // If there was an fvar table but no gvar, synthesize an empty gvar to avoid
   // issues with rasterizers (e.g. Core Text) that assume it must be present.
   if (font->GetTable(OTS_TAG_FVAR) && !font->GetTable(OTS_TAG_GVAR)) {
-    ots::OpenTypeGVAR *gvar = new ots::OpenTypeGVAR(font, OTS_TAG_GVAR);
-    if (gvar->InitEmpty()) {
-      table_map[OTS_TAG_GVAR] = { OTS_TAG_GVAR, 0, 0, 0, 0 };
-      font->AddTable(table_map[OTS_TAG_GVAR], gvar);
+    ots::TableEntry table_entry{ OTS_TAG_GVAR, 0, 0, 0, 0 };
+    const auto &it = font->file->tables.find(table_entry);
+    if (it != font->file->tables.end()) {
+      table_map[OTS_TAG_GVAR] = table_entry;
+      font->AddTable(table_entry, it->second);
     } else {
-      delete gvar;
+      ots::OpenTypeGVAR *gvar = new ots::OpenTypeGVAR(font, OTS_TAG_GVAR);
+      if (gvar->InitEmpty()) {
+        table_map[OTS_TAG_GVAR] = table_entry;
+        font->AddTable(table_entry, gvar);
+      } else {
+        delete gvar;
+      }
     }
   }
 #endif
