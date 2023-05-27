@@ -174,75 +174,6 @@ bool ParseFeatureTable(const ots::Font *font,
   return true;
 }
 
-bool ParseLookupTable(ots::Font *font, const uint8_t *data,
-                      const size_t length,
-                      const ots::LookupSubtableParser* parser) {
-  ots::Buffer subtable(data, length);
-
-  uint16_t lookup_type = 0;
-  uint16_t lookup_flag = 0;
-  uint16_t subtable_count = 0;
-  if (!subtable.ReadU16(&lookup_type) ||
-      !subtable.ReadU16(&lookup_flag) ||
-      !subtable.ReadU16(&subtable_count)) {
-    return OTS_FAILURE_MSG("Failed to read lookup table header");
-  }
-
-  if (lookup_type == 0 || lookup_type > parser->num_types) {
-    return OTS_FAILURE_MSG("Bad lookup type %d", lookup_type);
-  }
-
-  bool use_mark_filtering_set = lookup_flag & kUseMarkFilteringSetBit;
-
-  std::vector<uint16_t> subtables;
-  subtables.reserve(subtable_count);
-  // If the |kUseMarkFilteringSetBit| of |lookup_flag| is set,
-  // extra 2 bytes will follow after subtable offset array.
-  const unsigned lookup_table_end = 2 * static_cast<unsigned>(subtable_count) +
-      (use_mark_filtering_set ? 8 : 6);
-  if (lookup_table_end > std::numeric_limits<uint16_t>::max()) {
-    return OTS_FAILURE_MSG("Bad end of lookup %d", lookup_table_end);
-  }
-  for (unsigned i = 0; i < subtable_count; ++i) {
-    uint16_t offset_subtable = 0;
-    if (!subtable.ReadU16(&offset_subtable)) {
-      return OTS_FAILURE_MSG("Failed to read subtable offset %d", i);
-    }
-    if (offset_subtable < lookup_table_end ||
-        offset_subtable >= length) {
-      return OTS_FAILURE_MSG("Bad subtable offset %d for subtable %d", offset_subtable, i);
-    }
-    subtables.push_back(offset_subtable);
-  }
-  if (subtables.size() != subtable_count) {
-    return OTS_FAILURE_MSG("Bad subtable size %ld", subtables.size());
-  }
-
-  if (use_mark_filtering_set) {
-    uint16_t mark_filtering_set = 0;
-    if (!subtable.ReadU16(&mark_filtering_set)) {
-      return OTS_FAILURE_MSG("Failed to read mark filtering set");
-    }
-
-    ots::OpenTypeGDEF *gdef = static_cast<ots::OpenTypeGDEF*>(
-        font->GetTypedTable(OTS_TAG_GDEF));
-
-    if (gdef && (gdef->num_mark_glyph_sets == 0 ||
-        mark_filtering_set >= gdef->num_mark_glyph_sets)) {
-      return OTS_FAILURE_MSG("Bad mark filtering set %d", mark_filtering_set);
-    }
-  }
-
-  // Parse lookup subtables for this lookup type.
-  for (unsigned i = 0; i < subtable_count; ++i) {
-    if (!parser->Parse(font, data + subtables[i], length - subtables[i],
-                       lookup_type)) {
-      return OTS_FAILURE_MSG("Failed to parse subtable %d", i);
-    }
-  }
-  return true;
-}
-
 bool ParseClassDefFormat1(const ots::Font *font,
                           const uint8_t *data, size_t length,
                           const uint16_t num_glyphs,
@@ -1144,23 +1075,115 @@ bool ParseChainContextFormat3(const ots::Font *font,
   return true;
 }
 
+bool ParseFeatureTableSubstitutionTable(const ots::Font *font,
+                                        const uint8_t *data, const size_t length,
+                                        const uint16_t num_lookups) {
+  ots::Buffer subtable(data, length);
+
+  uint16_t version_major = 0;
+  uint16_t version_minor = 0;
+  uint16_t substitution_count = 0;
+  const size_t kFeatureTableSubstitutionHeaderSize = 3 * sizeof(uint16_t);
+
+  if (!subtable.ReadU16(&version_major) ||
+      !subtable.ReadU16(&version_minor) ||
+      !subtable.ReadU16(&substitution_count)) {
+    return OTS_FAILURE_MSG("Failed to read feature table substitution table header");
+  }
+
+  for (uint16_t i = 0; i < substitution_count; i++) {
+    uint16_t feature_index = 0;
+    uint32_t alternate_feature_table_offset = 0;
+    const size_t kFeatureTableSubstitutionRecordSize = sizeof(uint16_t) + sizeof(uint32_t);
+
+    if (!subtable.ReadU16(&feature_index) ||
+        !subtable.ReadU32(&alternate_feature_table_offset)) {
+      return OTS_FAILURE_MSG("Failed to read feature table substitution record");
+    }
+
+    if (alternate_feature_table_offset < kFeatureTableSubstitutionHeaderSize +
+                                         kFeatureTableSubstitutionRecordSize * substitution_count ||
+        alternate_feature_table_offset >= length) {
+      return OTS_FAILURE_MSG("Invalid alternate feature table offset");
+    }
+
+    if (!ParseFeatureTable(font, data + alternate_feature_table_offset,
+                           length - alternate_feature_table_offset, num_lookups)) {
+      return OTS_FAILURE_MSG("Failed to parse alternate feature table");
+    }
+  }
+
+  return true;
+}
+
+bool ParseConditionTable(const ots::Font *font,
+                         const uint8_t *data, const size_t length,
+                         const uint16_t axis_count) {
+  ots::Buffer subtable(data, length);
+
+  uint16_t format = 0;
+  if (!subtable.ReadU16(&format)) {
+    return OTS_FAILURE_MSG("Failed to read condition table format");
+  }
+
+  if (format != 1) {
+    // An unknown format is not an error, but should be ignored per spec.
+    return true;
+  }
+
+  uint16_t axis_index = 0;
+  int16_t filter_range_min_value = 0;
+  int16_t filter_range_max_value = 0;
+  if (!subtable.ReadU16(&axis_index) ||
+      !subtable.ReadS16(&filter_range_min_value) ||
+      !subtable.ReadS16(&filter_range_max_value)) {
+    return OTS_FAILURE_MSG("Failed to read condition table (format 1)");
+  }
+
+  if (axis_index >= axis_count) {
+    return OTS_FAILURE_MSG("Axis index out of range in condition");
+  }
+
+  // Check min/max values are within range -1.0 .. 1.0 and properly ordered
+  if (filter_range_min_value < -0x4000 || // -1.0 in F2DOT14 format
+      filter_range_max_value > 0x4000 || // +1.0 in F2DOT14 format
+      filter_range_min_value > filter_range_max_value) {
+    return OTS_FAILURE_MSG("Invalid filter range in condition");
+  }
+
+  return true;
+}
+
+bool ParseConditionSetTable(const ots::Font *font,
+                            const uint8_t *data, const size_t length,
+                            const uint16_t axis_count) {
+  ots::Buffer subtable(data, length);
+
+  uint16_t condition_count = 0;
+  if (!subtable.ReadU16(&condition_count)) {
+    return OTS_FAILURE_MSG("Failed to read condition count");
+  }
+
+  for (uint16_t i = 0; i < condition_count; i++) {
+    uint32_t condition_offset = 0;
+    if (!subtable.ReadU32(&condition_offset)) {
+      return OTS_FAILURE_MSG("Failed to read condition offset");
+    }
+    if (condition_offset < subtable.offset() || condition_offset >= length) {
+      return OTS_FAILURE_MSG("Offset out of range");
+    }
+    if (!ParseConditionTable(font, data + condition_offset, length - condition_offset,
+                             axis_count)) {
+      return OTS_FAILURE_MSG("Failed to parse condition table");
+    }
+  }
+
+  return true;
+}
+
 }  // namespace
 
 namespace ots {
-
-bool LookupSubtableParser::Parse(const Font *font, const uint8_t *data,
-                                 const size_t length,
-                                 const uint16_t lookup_type) const {
-  for (unsigned i = 0; i < num_types; ++i) {
-    if (parsers[i].type == lookup_type && parsers[i].parse) {
-      if (!parsers[i].parse(font, data, length)) {
-        return OTS_FAILURE_MSG("Failed to parse lookup subtable %d", i);
-      }
-      return true;
-    }
-  }
-  return OTS_FAILURE_MSG("No lookup subtables to parse");
-}
 
 // Parsing ScriptListTable requires number of features so we need to
 // parse FeatureListTable before calling this function.
@@ -1170,13 +1193,13 @@ bool OpenTypeLayoutTable::ParseScriptListTable(const uint8_t *data, const size_t
 
   uint16_t script_count = 0;
   if (!subtable.ReadU16(&script_count)) {
-    return OTS_FAILURE_MSG("Failed to read script count in script list table");
+    return Error("Failed to read script count in script list table");
   }
 
   const unsigned script_record_end =
       6 * static_cast<unsigned>(script_count) + 2;
   if (script_record_end > std::numeric_limits<uint16_t>::max()) {
-    return OTS_FAILURE_MSG("Bad end of script record %d in script list table", script_record_end);
+    return Error("Bad end of script record %d in script list table", script_record_end);
   }
   std::vector<ScriptRecord> script_list;
   script_list.reserve(script_count);
@@ -1185,7 +1208,7 @@ bool OpenTypeLayoutTable::ParseScriptListTable(const uint8_t *data, const size_t
     ScriptRecord record;
     if (!subtable.ReadU32(&record.tag) ||
         !subtable.ReadU16(&record.offset)) {
-      return OTS_FAILURE_MSG("Failed to read script record %d in script list table", i);
+      return Error("Failed to read script record %d in script list table", i);
     }
     // Script tags should be arranged alphabetically by tag
     if (last_tag != 0 && last_tag > record.tag) {
@@ -1196,12 +1219,12 @@ bool OpenTypeLayoutTable::ParseScriptListTable(const uint8_t *data, const size_t
     }
     last_tag = record.tag;
     if (record.offset < script_record_end || record.offset >= length) {
-      return OTS_FAILURE_MSG("Bad record offset %d for script %c%c%c%c entry %d in script list table", record.offset, OTS_UNTAG(record.tag), i);
+      return Error("Bad record offset %d for script %c%c%c%c entry %d in script list table", record.offset, OTS_UNTAG(record.tag), i);
     }
     script_list.push_back(record);
   }
   if (script_list.size() != script_count) {
-    return OTS_FAILURE_MSG("Bad script list size %ld in script list table", script_list.size());
+    return Error("Bad script list size %ld in script list table", script_list.size());
   }
 
   // Check script records.
@@ -1209,7 +1232,7 @@ bool OpenTypeLayoutTable::ParseScriptListTable(const uint8_t *data, const size_t
     if (!ParseScriptTable(font, data + script_list[i].offset,
                           length - script_list[i].offset,
                           script_list[i].tag, m_num_features)) {
-      return OTS_FAILURE_MSG("Failed to parse script table %d", i);
+      return Error("Failed to parse script table %d", i);
     }
   }
 
@@ -1224,7 +1247,7 @@ bool OpenTypeLayoutTable::ParseFeatureListTable(const uint8_t *data, const size_
 
   uint16_t feature_count = 0;
   if (!subtable.ReadU16(&feature_count)) {
-    return OTS_FAILURE_MSG("Failed to read feature count");
+    return Error("Failed to read feature count");
   }
 
   std::vector<FeatureRecord> feature_records;
@@ -1232,13 +1255,13 @@ bool OpenTypeLayoutTable::ParseFeatureListTable(const uint8_t *data, const size_
   const unsigned feature_record_end =
       6 * static_cast<unsigned>(feature_count) + 2;
   if (feature_record_end > std::numeric_limits<uint16_t>::max()) {
-    return OTS_FAILURE_MSG("Bad end of feature record %d", feature_record_end);
+    return Error("Bad end of feature record %d", feature_record_end);
   }
   uint32_t last_tag = 0;
   for (unsigned i = 0; i < feature_count; ++i) {
     if (!subtable.ReadU32(&feature_records[i].tag) ||
         !subtable.ReadU16(&feature_records[i].offset)) {
-      return OTS_FAILURE_MSG("Failed to read feature header %d", i);
+      return Error("Failed to read feature header %d", i);
     }
     // Feature record array should be arranged alphabetically by tag
     if (last_tag != 0 && last_tag > feature_records[i].tag) {
@@ -1250,17 +1273,86 @@ bool OpenTypeLayoutTable::ParseFeatureListTable(const uint8_t *data, const size_
     last_tag = feature_records[i].tag;
     if (feature_records[i].offset < feature_record_end ||
         feature_records[i].offset >= length) {
-      return OTS_FAILURE_MSG("Bad feature offset %d for feature %d %c%c%c%c", feature_records[i].offset, i, OTS_UNTAG(feature_records[i].tag));
+      return Error("Bad feature offset %d for feature %d %c%c%c%c", feature_records[i].offset, i, OTS_UNTAG(feature_records[i].tag));
     }
   }
 
   for (unsigned i = 0; i < feature_count; ++i) {
     if (!ParseFeatureTable(font, data + feature_records[i].offset,
-                           length - feature_records[i].offset, num_lookups)) {
-      return OTS_FAILURE_MSG("Failed to parse feature table %d", i);
+                           length - feature_records[i].offset, m_num_lookups)) {
+      return Error("Failed to parse feature table %d", i);
     }
   }
   m_num_features = feature_count;
+  return true;
+}
+
+bool OpenTypeLayoutTable::ParseLookupTable(const uint8_t *data,
+                                           const size_t length) {
+  Font* font = GetFont(); 
+  Buffer subtable(data, length);
+
+  uint16_t lookup_type = 0;
+  uint16_t lookup_flag = 0;
+  uint16_t subtable_count = 0;
+  if (!subtable.ReadU16(&lookup_type) ||
+      !subtable.ReadU16(&lookup_flag) ||
+      !subtable.ReadU16(&subtable_count)) {
+    return Error("Failed to read lookup table header");
+  }
+
+  if (!ValidLookupSubtableType(lookup_type)) {
+    return Error("Bad lookup type %d", lookup_type);
+  }
+
+  bool use_mark_filtering_set = lookup_flag & kUseMarkFilteringSetBit;
+
+  std::vector<uint16_t> subtables;
+  subtables.reserve(subtable_count);
+  // If the |kUseMarkFilteringSetBit| of |lookup_flag| is set,
+  // extra 2 bytes will follow after subtable offset array.
+  const unsigned lookup_table_end = 2 * static_cast<unsigned>(subtable_count) +
+      (use_mark_filtering_set ? 8 : 6);
+  if (lookup_table_end > std::numeric_limits<uint16_t>::max()) {
+    return Error("Bad end of lookup %d", lookup_table_end);
+  }
+  for (unsigned i = 0; i < subtable_count; ++i) {
+    uint16_t offset_subtable = 0;
+    if (!subtable.ReadU16(&offset_subtable)) {
+      return Error("Failed to read subtable offset %d", i);
+    }
+    if (offset_subtable < lookup_table_end ||
+        offset_subtable >= length) {
+      return Error("Bad subtable offset %d for subtable %d", offset_subtable, i);
+    }
+    subtables.push_back(offset_subtable);
+  }
+  if (subtables.size() != subtable_count) {
+    return Error("Bad subtable size %ld", subtables.size());
+  }
+
+  if (use_mark_filtering_set) {
+    uint16_t mark_filtering_set = 0;
+    if (!subtable.ReadU16(&mark_filtering_set)) {
+      return Error("Failed to read mark filtering set");
+    }
+
+    OpenTypeGDEF *gdef = static_cast<OpenTypeGDEF*>(
+        font->GetTypedTable(OTS_TAG_GDEF));
+
+    if (gdef && (gdef->num_mark_glyph_sets == 0 ||
+        mark_filtering_set >= gdef->num_mark_glyph_sets)) {
+      return Error("Bad mark filtering set %d", mark_filtering_set);
+    }
+  }
+
+  // Parse lookup subtables for this lookup type.
+  for (unsigned i = 0; i < subtable_count; ++i) {
+    if (!ParseLookupSubtable(data + subtables[i], length - subtables[i],
+                             lookup_type)) {
+      return Error("Failed to parse subtable %d", i);
+    }
+  }
   return true;
 }
 
@@ -1268,39 +1360,37 @@ bool OpenTypeLayoutTable::ParseFeatureListTable(const uint8_t *data, const size_
 // obtain the number of lookups because parsing FeatureTableList requires
 // the number.
 bool OpenTypeLayoutTable::ParseLookupListTable(const uint8_t *data,
-                          const size_t length) {
-  Font *font = GetFont();
+                                               const size_t length) {
   Buffer subtable(data, length);
 
-  if (!subtable.ReadU16(&num_lookups)) {
-    return OTS_FAILURE_MSG("Failed to read number of lookups");
+  if (!subtable.ReadU16(&m_num_lookups)) {
+    return Error("Failed to read number of lookups");
   }
 
   std::vector<uint16_t> lookups;
-  lookups.reserve(num_lookups);
+  lookups.reserve(m_num_lookups);
   const unsigned lookup_end =
-      2 * static_cast<unsigned>(num_lookups) + 2;
+      2 * static_cast<unsigned>(m_num_lookups) + 2;
   if (lookup_end > std::numeric_limits<uint16_t>::max()) {
-    return OTS_FAILURE_MSG("Bad end of lookups %d", lookup_end);
+    return Error("Bad end of lookups %d", lookup_end);
   }
-  for (unsigned i = 0; i < num_lookups; ++i) {
+  for (unsigned i = 0; i < m_num_lookups; ++i) {
     uint16_t offset = 0;
     if (!subtable.ReadU16(&offset)) {
-      return OTS_FAILURE_MSG("Failed to read lookup offset %d", i);
+      return Error("Failed to read lookup offset %d", i);
     }
     if (offset < lookup_end || offset >= length) {
-      return OTS_FAILURE_MSG("Bad lookup offset %d for lookup %d", offset, i);
+      return Error("Bad lookup offset %d for lookup %d", offset, i);
     }
     lookups.push_back(offset);
   }
-  if (lookups.size() != num_lookups) {
-    return OTS_FAILURE_MSG("Bad lookup offsets list size %ld", lookups.size());
+  if (lookups.size() != m_num_lookups) {
+    return Error("Bad lookup offsets list size %ld", lookups.size());
   }
 
-  for (unsigned i = 0; i < num_lookups; ++i) {
-    if (!ParseLookupTable(font, data + lookups[i], length - lookups[i],
-                          m_subtable_parser)) {
-      return OTS_FAILURE_MSG("Failed to parse lookup %d", i);
+  for (unsigned i = 0; i < m_num_lookups; ++i) {
+    if (!ParseLookupTable(data + lookups[i], length - lookups[i])) {
+      return Error("Failed to parse lookup %d", i);
     }
   }
 
@@ -1443,7 +1533,7 @@ bool ParseChainingContextSubtable(const ots::Font *font,
 
 bool ParseExtensionSubtable(const Font *font,
                             const uint8_t *data, const size_t length,
-                            const LookupSubtableParser* parser) {
+                            OpenTypeLayoutTable* table) {
   Buffer subtable(data, length);
 
   uint16_t format = 0;
@@ -1459,8 +1549,7 @@ bool ParseExtensionSubtable(const Font *font,
     return OTS_FAILURE_MSG("Bad extension table format %d", format);
   }
   // |lookup_type| should be other than |parser->extension_type|.
-  if (lookup_type < 1 || lookup_type > parser->num_types ||
-      lookup_type == parser->extension_type) {
+  if (!table->ValidLookupSubtableType(lookup_type, true)) {
     return OTS_FAILURE_MSG("Bad lookup type %d in extension table", lookup_type);
   }
 
@@ -1471,115 +1560,9 @@ bool ParseExtensionSubtable(const Font *font,
   }
 
   // Parse the extension subtable of |lookup_type|.
-  if (!parser->Parse(font, data + offset_extension, length - offset_extension,
-                     lookup_type)) {
+  if (!table->ParseLookupSubtable(data + offset_extension, length - offset_extension,
+                                  lookup_type)) {
     return OTS_FAILURE_MSG("Failed to parse lookup from extension lookup");
-  }
-
-  return true;
-}
-
-bool ParseConditionTable(const Font *font,
-                         const uint8_t *data, const size_t length,
-                         const uint16_t axis_count) {
-  Buffer subtable(data, length);
-
-  uint16_t format = 0;
-  if (!subtable.ReadU16(&format)) {
-    return OTS_FAILURE_MSG("Failed to read condition table format");
-  }
-
-  if (format != 1) {
-    // An unknown format is not an error, but should be ignored per spec.
-    return true;
-  }
-
-  uint16_t axis_index = 0;
-  int16_t filter_range_min_value = 0;
-  int16_t filter_range_max_value = 0;
-  if (!subtable.ReadU16(&axis_index) ||
-      !subtable.ReadS16(&filter_range_min_value) ||
-      !subtable.ReadS16(&filter_range_max_value)) {
-    return OTS_FAILURE_MSG("Failed to read condition table (format 1)");
-  }
-
-  if (axis_index >= axis_count) {
-    return OTS_FAILURE_MSG("Axis index out of range in condition");
-  }
-
-  // Check min/max values are within range -1.0 .. 1.0 and properly ordered
-  if (filter_range_min_value < -0x4000 || // -1.0 in F2DOT14 format
-      filter_range_max_value > 0x4000 || // +1.0 in F2DOT14 format
-      filter_range_min_value > filter_range_max_value) {
-    return OTS_FAILURE_MSG("Invalid filter range in condition");
-  }
-
-  return true;
-}
-
-bool ParseConditionSetTable(const Font *font,
-                            const uint8_t *data, const size_t length,
-                            const uint16_t axis_count) {
-  Buffer subtable(data, length);
-
-  uint16_t condition_count = 0;
-  if (!subtable.ReadU16(&condition_count)) {
-    return OTS_FAILURE_MSG("Failed to read condition count");
-  }
-
-  for (uint16_t i = 0; i < condition_count; i++) {
-    uint32_t condition_offset = 0;
-    if (!subtable.ReadU32(&condition_offset)) {
-      return OTS_FAILURE_MSG("Failed to read condition offset");
-    }
-    if (condition_offset < subtable.offset() || condition_offset >= length) {
-      return OTS_FAILURE_MSG("Offset out of range");
-    }
-    if (!ParseConditionTable(font, data + condition_offset, length - condition_offset,
-                             axis_count)) {
-      return OTS_FAILURE_MSG("Failed to parse condition table");
-    }
-  }
-
-  return true;
-}
-
-bool ParseFeatureTableSubstitutionTable(const Font *font,
-                                        const uint8_t *data, const size_t length,
-                                        const uint16_t num_lookups) {
-  Buffer subtable(data, length);
-
-  uint16_t version_major = 0;
-  uint16_t version_minor = 0;
-  uint16_t substitution_count = 0;
-  const size_t kFeatureTableSubstitutionHeaderSize = 3 * sizeof(uint16_t);
-
-  if (!subtable.ReadU16(&version_major) ||
-      !subtable.ReadU16(&version_minor) ||
-      !subtable.ReadU16(&substitution_count)) {
-    return OTS_FAILURE_MSG("Failed to read feature table substitution table header");
-  }
-
-  for (uint16_t i = 0; i < substitution_count; i++) {
-    uint16_t feature_index = 0;
-    uint32_t alternate_feature_table_offset = 0;
-    const size_t kFeatureTableSubstitutionRecordSize = sizeof(uint16_t) + sizeof(uint32_t);
-
-    if (!subtable.ReadU16(&feature_index) ||
-        !subtable.ReadU32(&alternate_feature_table_offset)) {
-      return OTS_FAILURE_MSG("Failed to read feature table substitution record");
-    }
-
-    if (alternate_feature_table_offset < kFeatureTableSubstitutionHeaderSize +
-                                         kFeatureTableSubstitutionRecordSize * substitution_count ||
-        alternate_feature_table_offset >= length) {
-      return OTS_FAILURE_MSG("Invalid alternate feature table offset");
-    }
-
-    if (!ParseFeatureTable(font, data + alternate_feature_table_offset,
-                           length - alternate_feature_table_offset, num_lookups)) {
-      return OTS_FAILURE_MSG("Failed to parse alternate feature table");
-    }
   }
 
   return true;
@@ -1597,12 +1580,12 @@ bool OpenTypeLayoutTable::ParseFeatureVariationsTable(const uint8_t *data, const
   if (!subtable.ReadU16(&version_major) ||
       !subtable.ReadU16(&version_minor) ||
       !subtable.ReadU32(&feature_variation_record_count)) {
-    return OTS_FAILURE_MSG("Failed to read feature variations table header");
+    return Error("Failed to read feature variations table header");
   }
 
   OpenTypeFVAR* fvar = static_cast<OpenTypeFVAR*>(font->GetTypedTable(OTS_TAG_FVAR));
   if (!fvar) {
-    return OTS_FAILURE_MSG("Not a variation font");
+    return Error("Not a variation font");
   }
   const uint16_t axis_count = fvar->AxisCount();
 
@@ -1615,30 +1598,30 @@ bool OpenTypeLayoutTable::ParseFeatureVariationsTable(const uint8_t *data, const
     uint32_t feature_table_substitution_offset = 0;
     if (!subtable.ReadU32(&condition_set_offset) ||
         !subtable.ReadU32(&feature_table_substitution_offset)) {
-      return OTS_FAILURE_MSG("Failed to read feature variation record");
+      return Error("Failed to read feature variation record");
     }
 
     if (condition_set_offset) {
       if (condition_set_offset < kEndOfFeatureVariationRecords ||
           condition_set_offset >= length) {
-        return OTS_FAILURE_MSG("Condition set offset out of range");
+        return Error("Condition set offset out of range");
       }
       if (!ParseConditionSetTable(font, data + condition_set_offset,
                                   length - condition_set_offset,
                                   axis_count)) {
-        return OTS_FAILURE_MSG("Failed to parse condition set table");
+        return Error("Failed to parse condition set table");
       }
     }
 
     if (feature_table_substitution_offset) {
       if (feature_table_substitution_offset < kEndOfFeatureVariationRecords ||
           feature_table_substitution_offset >= length) {
-        return OTS_FAILURE_MSG("Feature table substitution offset out of range");
+        return Error("Feature table substitution offset out of range");
       }
       if (!ParseFeatureTableSubstitutionTable(font, data + feature_table_substitution_offset,
                                               length - feature_table_substitution_offset,
-                                              num_lookups)) {
-        return OTS_FAILURE_MSG("Failed to parse feature table substitution table");
+                                              m_num_lookups)) {
+        return Error("Failed to parse feature table substitution table");
       }
     }
   }
@@ -1653,8 +1636,6 @@ const size_t kHeaderSize_1_1 = 4 + 3 * 2 + 4;
 
 bool OpenTypeLayoutTable::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
-
-  assert(m_subtable_parser);
 
   uint16_t version_major = 0, version_minor = 0;
   uint16_t offset_script_list = 0;

@@ -15,18 +15,32 @@ namespace ots {
 // The maximum number of class value.
 const uint16_t kMaxClassDefValue = 0xFFFF;
 
-struct LookupSubtableParser {
-  struct TypeParser {
-    uint16_t type;
-    bool (*parse)(const Font *font, const uint8_t *data,
-                  const size_t length);
-  };
-  size_t num_types;
-  uint16_t extension_type;
-  const TypeParser *parsers;
+class OpenTypeLayoutTable : public Table {
+  public:
+    explicit OpenTypeLayoutTable(Font *font, uint32_t tag, uint32_t type)
+      : Table(font, tag, type) { }
 
-  bool Parse(const Font *font, const uint8_t *data,
-             const size_t length, const uint16_t lookup_type) const;
+    bool Parse(const uint8_t *data, size_t length);
+    bool Serialize(OTSStream *out);
+
+    virtual bool ValidLookupSubtableType(const uint16_t lookup_type,
+                                         bool extension = false) const = 0;
+    virtual bool ParseLookupSubtable(const uint8_t *data, const size_t length,
+                                     const uint16_t lookup_type) = 0;
+
+  protected:
+    uint16_t m_num_lookups = 0;
+
+  private:
+    bool ParseScriptListTable(const uint8_t *data, const size_t length);
+    bool ParseFeatureListTable(const uint8_t *data, const size_t length);
+    bool ParseLookupListTable(const uint8_t *data, const size_t length);
+    bool ParseFeatureVariationsTable(const uint8_t *data, const size_t length);
+    bool ParseLookupTable(const uint8_t *data, const size_t length);
+
+    const uint8_t *m_data = nullptr;
+    size_t m_length = 0;
+    uint16_t m_num_features = 0;
 };
 
 bool ParseClassDefTable(const ots::Font *font,
@@ -56,34 +70,7 @@ bool ParseChainingContextSubtable(const ots::Font *font,
 
 bool ParseExtensionSubtable(const Font *font,
                             const uint8_t *data, const size_t length,
-                            const LookupSubtableParser* parser);
-
-
-class OpenTypeLayoutTable : public Table {
-  public:
-    explicit OpenTypeLayoutTable(Font *font, uint32_t tag, uint32_t type)
-      : Table(font, tag, type) { }
-
-    bool Serialize(OTSStream *out);
-
-//private:
-    uint16_t num_lookups = 0;
-
-  protected:
-    const LookupSubtableParser* m_subtable_parser = nullptr;
-
-  private:
-    const uint8_t *m_data = nullptr;
-    size_t m_length = 0;
-    uint16_t m_num_features = 0;
-
-  protected:
-    bool Parse(const uint8_t *data, size_t length);
-    bool ParseScriptListTable(const uint8_t *data, const size_t length);
-    bool ParseFeatureListTable(const uint8_t *data, const size_t length);
-    bool ParseLookupListTable(const uint8_t *data, const size_t length);
-    bool ParseFeatureVariationsTable(const uint8_t *data, const size_t length);
-};
+                            OpenTypeLayoutTable* table);
 
 }  // namespace ots
 
