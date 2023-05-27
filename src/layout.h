@@ -23,13 +23,10 @@ class OpenTypeLayoutTable : public Table {
     bool Parse(const uint8_t *data, size_t length);
     bool Serialize(OTSStream *out);
 
-    virtual bool ValidLookupSubtableType(const uint16_t lookup_type,
-                                         bool extension = false) const = 0;
-    virtual bool ParseLookupSubtable(const uint8_t *data, const size_t length,
-                                     const uint16_t lookup_type) = 0;
-
   protected:
-    uint16_t m_num_lookups = 0;
+    bool ParseContextSubtable(const uint8_t *data, const size_t length);
+    bool ParseChainingContextSubtable(const uint8_t *data, const size_t length);
+    bool ParseExtensionSubtable(const uint8_t *data, const size_t length);
 
   private:
     bool ParseScriptListTable(const uint8_t *data, const size_t length);
@@ -38,9 +35,15 @@ class OpenTypeLayoutTable : public Table {
     bool ParseFeatureVariationsTable(const uint8_t *data, const size_t length);
     bool ParseLookupTable(const uint8_t *data, const size_t length);
 
+    virtual bool ValidLookupSubtableType(const uint16_t lookup_type,
+                                         bool extension = false) const = 0;
+    virtual bool ParseLookupSubtable(const uint8_t *data, const size_t length,
+                                     const uint16_t lookup_type) = 0;
+
     const uint8_t *m_data = nullptr;
     size_t m_length = 0;
     uint16_t m_num_features = 0;
+    uint16_t m_num_lookups = 0;
 };
 
 bool ParseClassDefTable(const ots::Font *font,
@@ -55,22 +58,6 @@ bool ParseCoverageTable(const ots::Font *font,
 
 bool ParseDeviceTable(const ots::Font *font,
                       const uint8_t *data, size_t length);
-
-// Parser for 'Contextual' subtable shared by GSUB/GPOS tables.
-bool ParseContextSubtable(const ots::Font *font,
-                          const uint8_t *data, const size_t length,
-                          const uint16_t num_glyphs,
-                          const uint16_t num_lookups);
-
-// Parser for 'Chaining Contextual' subtable shared by GSUB/GPOS tables.
-bool ParseChainingContextSubtable(const ots::Font *font,
-                                  const uint8_t *data, const size_t length,
-                                  const uint16_t num_glyphs,
-                                  const uint16_t num_lookups);
-
-bool ParseExtensionSubtable(const Font *font,
-                            const uint8_t *data, const size_t length,
-                            OpenTypeLayoutTable* table);
 
 }  // namespace ots
 

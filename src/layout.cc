@@ -9,6 +9,7 @@
 
 #include "fvar.h"
 #include "gdef.h"
+#include "maxp.h"
 
 // OpenType Layout Common Table Formats
 // http://www.microsoft.com/typography/otspec/chapter2.htm
@@ -1471,69 +1472,78 @@ bool ParseDeviceTable(const ots::Font *font,
   return true;
 }
 
-bool ParseContextSubtable(const ots::Font *font,
-                          const uint8_t *data, const size_t length,
-                          const uint16_t num_glyphs,
-                          const uint16_t num_lookups) {
+bool OpenTypeLayoutTable::ParseContextSubtable(const uint8_t *data,
+                                               const size_t length) {
+  Font *font = GetFont();
   Buffer subtable(data, length);
 
   uint16_t format = 0;
   if (!subtable.ReadU16(&format)) {
-    return OTS_FAILURE_MSG("Failed to read context subtable format");
+    return Error("Failed to read context subtable format");
+  }
+
+  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
+      font->GetTypedTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return Error("Required maxp table missing");
   }
 
   if (format == 1) {
-    if (!ParseContextFormat1(font, data, length, num_glyphs, num_lookups)) {
-      return OTS_FAILURE_MSG("Failed to parse context format 1 subtable");
+    if (!ParseContextFormat1(font, data, length, maxp->num_glyphs, m_num_lookups)) {
+      return Error("Failed to parse context format 1 subtable");
     }
   } else if (format == 2) {
-    if (!ParseContextFormat2(font, data, length, num_glyphs, num_lookups)) {
-      return OTS_FAILURE_MSG("Failed to parse context format 2 subtable");
+    if (!ParseContextFormat2(font, data, length, maxp->num_glyphs, m_num_lookups)) {
+      return Error("Failed to parse context format 2 subtable");
     }
   } else if (format == 3) {
-    if (!ParseContextFormat3(font, data, length, num_glyphs, num_lookups)) {
-      return OTS_FAILURE_MSG("Failed to parse context format 3 subtable");
+    if (!ParseContextFormat3(font, data, length, maxp->num_glyphs, m_num_lookups)) {
+      return Error("Failed to parse context format 3 subtable");
     }
   } else {
-    return OTS_FAILURE_MSG("Bad context subtable format %d", format);
+    return Error("Bad context subtable format %d", format);
   }
 
   return true;
 }
 
-bool ParseChainingContextSubtable(const ots::Font *font,
-                                  const uint8_t *data, const size_t length,
-                                  const uint16_t num_glyphs,
-                                  const uint16_t num_lookups) {
+bool OpenTypeLayoutTable::ParseChainingContextSubtable(const uint8_t *data,
+                                                       const size_t length) {
+  Font *font = GetFont();
   Buffer subtable(data, length);
 
   uint16_t format = 0;
   if (!subtable.ReadU16(&format)) {
-    return OTS_FAILURE_MSG("Failed to read chaining context subtable format");
+    return Error("Failed to read chaining context subtable format");
+  }
+
+  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
+      font->GetTypedTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return Error("Required maxp table missing");
   }
 
   if (format == 1) {
-    if (!ParseChainContextFormat1(font, data, length, num_glyphs, num_lookups)) {
-      return OTS_FAILURE_MSG("Failed to parse chaining context format 1 subtable");
+    if (!ParseChainContextFormat1(font, data, length, maxp->num_glyphs, m_num_lookups)) {
+      return Error("Failed to parse chaining context format 1 subtable");
     }
   } else if (format == 2) {
-    if (!ParseChainContextFormat2(font, data, length, num_glyphs, num_lookups)) {
-      return OTS_FAILURE_MSG("Failed to parse chaining context format 2 subtable");
+    if (!ParseChainContextFormat2(font, data, length, maxp->num_glyphs, m_num_lookups)) {
+      return Error("Failed to parse chaining context format 2 subtable");
     }
   } else if (format == 3) {
-    if (!ParseChainContextFormat3(font, data, length, num_glyphs, num_lookups)) {
-      return OTS_FAILURE_MSG("Failed to parse chaining context format 3 subtable");
+    if (!ParseChainContextFormat3(font, data, length, maxp->num_glyphs, m_num_lookups)) {
+      return Error("Failed to parse chaining context format 3 subtable");
     }
   } else {
-    return OTS_FAILURE_MSG("Bad chaining context subtable format %d", format);
+    return Error("Bad chaining context subtable format %d", format);
   }
 
   return true;
 }
 
-bool ParseExtensionSubtable(const Font *font,
-                            const uint8_t *data, const size_t length,
-                            OpenTypeLayoutTable* table) {
+bool OpenTypeLayoutTable::ParseExtensionSubtable(const uint8_t *data,
+                                                 const size_t length) {
   Buffer subtable(data, length);
 
   uint16_t format = 0;
@@ -1542,27 +1552,27 @@ bool ParseExtensionSubtable(const Font *font,
   if (!subtable.ReadU16(&format) ||
       !subtable.ReadU16(&lookup_type) ||
       !subtable.ReadU32(&offset_extension)) {
-    return OTS_FAILURE_MSG("Failed to read extension table header");
+    return Error("Failed to read extension table header");
   }
 
   if (format != 1) {
-    return OTS_FAILURE_MSG("Bad extension table format %d", format);
+    return Error("Bad extension table format %d", format);
   }
   // |lookup_type| should be other than |parser->extension_type|.
-  if (!table->ValidLookupSubtableType(lookup_type, true)) {
-    return OTS_FAILURE_MSG("Bad lookup type %d in extension table", lookup_type);
+  if (!ValidLookupSubtableType(lookup_type, true)) {
+    return Error("Bad lookup type %d in extension table", lookup_type);
   }
 
   const unsigned format_end = static_cast<unsigned>(8);
   if (offset_extension < format_end ||
       offset_extension >= length) {
-    return OTS_FAILURE_MSG("Bad extension offset %d", offset_extension);
+    return Error("Bad extension offset %d", offset_extension);
   }
 
   // Parse the extension subtable of |lookup_type|.
-  if (!table->ParseLookupSubtable(data + offset_extension, length - offset_extension,
-                                  lookup_type)) {
-    return OTS_FAILURE_MSG("Failed to parse lookup from extension lookup");
+  if (!ParseLookupSubtable(data + offset_extension, length - offset_extension,
+                           lookup_type)) {
+    return Error("Failed to parse lookup from extension lookup");
   }
 
   return true;

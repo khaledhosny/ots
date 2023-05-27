@@ -15,21 +15,18 @@ class OpenTypeGPOS : public OpenTypeLayoutTable {
   explicit OpenTypeGPOS(Font *font, uint32_t tag)
       : OpenTypeLayoutTable(font, tag, tag) { }
 
+ private:
   bool ValidLookupSubtableType(const uint16_t lookup_type,
                                bool extension = false) const;
   bool ParseLookupSubtable(const uint8_t *data, const size_t length,
                            const uint16_t lookup_type);
 
- private:
   bool ParseSingleAdjustment(const uint8_t *data, const size_t length);
   bool ParsePairAdjustment(const uint8_t *data, const size_t length);
   bool ParseCursiveAttachment(const uint8_t *data, const size_t length);
   bool ParseMarkToBaseAttachment(const uint8_t *data, const size_t length);
   bool ParseMarkToLigatureAttachment(const uint8_t *data, const size_t length);
   bool ParseMarkToMarkAttachment(const uint8_t *data, const size_t length);
-  bool ParseContextPositioning(const uint8_t *data, const size_t length);
-  bool ParseChainedContextPositioning(const uint8_t *data, const size_t length);
-  bool ParseExtensionPositioning(const uint8_t *data, const size_t length);
 };
 
 }  // namespace ots

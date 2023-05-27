@@ -663,39 +663,15 @@ bool OpenTypeGPOS::ParseMarkToMarkAttachment(const uint8_t *data,
 
 // Lookup Type 7:
 // Contextual Positioning Subtables
-bool OpenTypeGPOS::ParseContextPositioning(const uint8_t *data,
-                                           const size_t length) {
-  Font* font = GetFont();
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
-  if (!maxp) {
-    return Error("Required maxp table missing");
-  }
-  return ots::ParseContextSubtable(font, data, length, maxp->num_glyphs,
-                                   m_num_lookups);
-}
+// OpenTypeLayoutTable::ParseContextSubtable()
 
 // Lookup Type 8:
 // Chaining Contexual Positioning Subtable
-bool OpenTypeGPOS::ParseChainedContextPositioning(const uint8_t *data,
-                                                  const size_t length) {
-  Font* font = GetFont();
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
-  if (!maxp) {
-    return Error("Required maxp table missing");
-  }
-  return ots::ParseChainingContextSubtable(font, data, length,
-                                           maxp->num_glyphs,
-                                           m_num_lookups);
-}
+// OpenTypeLayoutTable::ParseChainingContextSubtable()
 
 // Lookup Type 9:
 // Extension Positioning
-bool OpenTypeGPOS::ParseExtensionPositioning(const uint8_t *data,
-                                             const size_t length) {
-  return ots::ParseExtensionSubtable(GetFont(), data, length, this);
-}
+// OpenTypeLayoutTable::ParseExtensionSubtable
 
 
 bool OpenTypeGPOS::ValidLookupSubtableType(const uint16_t lookup_type,
@@ -721,11 +697,11 @@ bool OpenTypeGPOS::ParseLookupSubtable(const uint8_t *data, const size_t length,
     case GPOS_TYPE_MARK_TO_MARK_ATTACHMENT:
       return ParseMarkToMarkAttachment(data, length);
     case GPOS_TYPE_CONTEXT_POSITIONING:
-      return ParseContextPositioning(data, length);
+      return ParseContextSubtable(data, length);
     case GPOS_TYPE_CHAINED_CONTEXT_POSITIONING:
-      return ParseChainedContextPositioning(data, length);
+      return ParseChainingContextSubtable(data, length);
     case GPOS_TYPE_EXTENSION_POSITIONING:
-      return ParseExtensionPositioning(data, length);
+      return ParseExtensionSubtable(data, length);
   }
   return false;
 }
