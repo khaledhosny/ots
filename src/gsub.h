@@ -15,7 +15,20 @@ class OpenTypeGSUB : public OpenTypeLayoutTable {
   explicit OpenTypeGSUB(Font *font, uint32_t tag)
       : OpenTypeLayoutTable(font, tag, tag) { }
 
-  bool Parse(const uint8_t *data, size_t length);
+  bool ValidLookupSubtableType(uint16_t lookup_type,
+                               bool extension = false) const;
+  bool ParseLookupSubtable(const uint8_t *data, const size_t length,
+                           const uint16_t lookup_type);
+
+ private:
+  bool ParseSingleSubstitution(const uint8_t *data, const size_t length);
+  bool ParseMutipleSubstitution(const uint8_t *data, const size_t length);
+  bool ParseAlternateSubstitution(const uint8_t *data, const size_t length);
+  bool ParseLigatureSubstitution(const uint8_t *data, const size_t length);
+  bool ParseContextSubstitution(const uint8_t *data, const size_t length);
+  bool ParseChainingContextSubstitution(const uint8_t *data, const size_t length);
+  bool ParseExtensionSubstitution(const uint8_t *data, const size_t length);
+  bool ParseReverseChainingContextSingleSubstitution(const uint8_t *data, const size_t length);
 };
 
 }  // namespace ots

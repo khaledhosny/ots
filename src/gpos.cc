@@ -33,43 +33,6 @@ enum GPOS_TYPE {
 // The maximum format number for anchor tables.
 const uint16_t kMaxAnchorFormat = 3;
 
-// Lookup type parsers.
-bool ParseSingleAdjustment(const ots::Font *font,
-                           const uint8_t *data, const size_t length);
-bool ParsePairAdjustment(const ots::Font *font,
-                         const uint8_t *data, const size_t length);
-bool ParseCursiveAttachment(const ots::Font *font,
-                            const uint8_t *data, const size_t length);
-bool ParseMarkToBaseAttachment(const ots::Font *font,
-                               const uint8_t *data, const size_t length);
-bool ParseMarkToLigatureAttachment(const ots::Font *font,
-                                   const uint8_t *data, const size_t length);
-bool ParseMarkToMarkAttachment(const ots::Font *font,
-                               const uint8_t *data, const size_t length);
-bool ParseContextPositioning(const ots::Font *font,
-                             const uint8_t *data, const size_t length);
-bool ParseChainedContextPositioning(const ots::Font *font,
-                                    const uint8_t *data, const size_t length);
-bool ParseExtensionPositioning(const ots::Font *font,
-                               const uint8_t *data, const size_t length);
-
-const ots::LookupSubtableParser::TypeParser kGposTypeParsers[] = {
-  {GPOS_TYPE_SINGLE_ADJUSTMENT, ParseSingleAdjustment},
-  {GPOS_TYPE_PAIR_ADJUSTMENT, ParsePairAdjustment},
-  {GPOS_TYPE_CURSIVE_ATTACHMENT, ParseCursiveAttachment},
-  {GPOS_TYPE_MARK_TO_BASE_ATTACHMENT, ParseMarkToBaseAttachment},
-  {GPOS_TYPE_MARK_TO_LIGATURE_ATTACHMENT, ParseMarkToLigatureAttachment},
-  {GPOS_TYPE_MARK_TO_MARK_ATTACHMENT, ParseMarkToMarkAttachment},
-  {GPOS_TYPE_CONTEXT_POSITIONING, ParseContextPositioning},
-  {GPOS_TYPE_CHAINED_CONTEXT_POSITIONING, ParseChainedContextPositioning},
-  {GPOS_TYPE_EXTENSION_POSITIONING, ParseExtensionPositioning}
-};
-
-const ots::LookupSubtableParser kGposLookupSubtableParser = {
-  arraysize(kGposTypeParsers),
-  GPOS_TYPE_EXTENSION_POSITIONING, kGposTypeParsers
-};
-
 // Shared Tables: ValueRecord, Anchor Table, and MarkArray
 
 size_t CalcValueRecordSize(const uint16_t value_format) {
@@ -210,59 +173,6 @@ bool ParseMarkArrayTable(const ots::Font *font,
   return true;
 }
 
-// Lookup Type 1:
-// Single Adjustment Positioning Subtable
-bool ParseSingleAdjustment(const ots::Font *font, const uint8_t *data,
-                           const size_t length) {
-  ots::Buffer subtable(data, length);
-
-  ots::OpenTypeMAXP *maxp = static_cast<ots::OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
-  if (!maxp) {
-    return OTS_FAILURE_MSG("Required maxp table missing");
-  }
-
-  uint16_t format = 0;
-  uint16_t offset_coverage = 0;
-  uint16_t value_format = 0;
-  if (!subtable.ReadU16(&format) ||
-      !subtable.ReadU16(&offset_coverage) ||
-      !subtable.ReadU16(&value_format)) {
-    return OTS_FAILURE_MSG("Can't read single adjustment information");
-  }
-
-  if (format == 1) {
-    // Format 1 exactly one value record.
-    if (!ParseValueRecord(font, &subtable, value_format)) {
-      return OTS_FAILURE_MSG("Failed to parse format 1 single adjustment table");
-    }
-  } else if (format == 2) {
-    uint16_t value_count = 0;
-    if (!subtable.ReadU16(&value_count)) {
-      return OTS_FAILURE_MSG("Failed to parse format 2 single adjustment table");
-    }
-    for (unsigned i = 0; i < value_count; ++i) {
-      if (!ParseValueRecord(font, &subtable, value_format)) {
-        return OTS_FAILURE_MSG("Failed to parse value record %d in format 2 single adjustment table", i);
-      }
-    }
-  } else {
-    return OTS_FAILURE_MSG("Bad format %d in single adjustment table", format);
-  }
-
-  if (offset_coverage < subtable.offset() || offset_coverage >= length) {
-    return OTS_FAILURE_MSG("Bad coverage offset %d in single adjustment table", offset_coverage);
-  }
-
-  if (!ots::ParseCoverageTable(font, data + offset_coverage,
-                               length - offset_coverage,
-                               maxp->num_glyphs)) {
-    return OTS_FAILURE_MSG("Failed to parse coverage table in single adjustment table");
-  }
-
-  return true;
-}
-
 bool ParsePairSetTable(const ots::Font *font,
                        const uint8_t *data, const size_t length,
                        const uint16_t value_format1,
@@ -395,128 +305,6 @@ bool ParsePairPosFormat2(const ots::Font *font,
                                length - offset_class_def2,
                                num_glyphs, ots::kMaxClassDefValue)) {
     return OTS_FAILURE_MSG("Failed to parse class definition table 2");
-  }
-
-  return true;
-}
-
-// Lookup Type 2:
-// Pair Adjustment Positioning Subtable
-bool ParsePairAdjustment(const ots::Font *font, const uint8_t *data,
-                         const size_t length) {
-  ots::Buffer subtable(data, length);
-
-  ots::OpenTypeMAXP *maxp = static_cast<ots::OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
-  if (!maxp) {
-    return OTS_FAILURE_MSG("Required maxp table missing");
-  }
-
-  uint16_t format = 0;
-  uint16_t offset_coverage = 0;
-  uint16_t value_format1 = 0;
-  uint16_t value_format2 = 0;
-  if (!subtable.ReadU16(&format) ||
-      !subtable.ReadU16(&offset_coverage) ||
-      !subtable.ReadU16(&value_format1) ||
-      !subtable.ReadU16(&value_format2)) {
-    return OTS_FAILURE_MSG("Failed to read pair adjustment structure");
-  }
-
-  if (format == 1) {
-    if (!ParsePairPosFormat1(font, data, length, value_format1, value_format2,
-                             maxp->num_glyphs)) {
-      return OTS_FAILURE_MSG("Failed to parse pair pos format 1");
-    }
-  } else if (format == 2) {
-    if (!ParsePairPosFormat2(font, data, length, value_format1, value_format2,
-                             maxp->num_glyphs)) {
-      return OTS_FAILURE_MSG("Failed to parse pair format 2");
-    }
-  } else {
-    return OTS_FAILURE_MSG("Bad pos pair format %d", format);
-  }
-
-  if (offset_coverage < subtable.offset() || offset_coverage >= length) {
-    return OTS_FAILURE_MSG("Bad pair pos offset coverage %d", offset_coverage);
-  }
-  if (!ots::ParseCoverageTable(font, data + offset_coverage,
-                               length - offset_coverage,
-                               maxp->num_glyphs)) {
-    return OTS_FAILURE_MSG("Failed to parse coverage table");
-  }
-
-  return true;
-}
-
-// Lookup Type 3
-// Cursive Attachment Positioning Subtable
-bool ParseCursiveAttachment(const ots::Font *font, const uint8_t *data,
-                            const size_t length) {
-  ots::Buffer subtable(data, length);
-
-  ots::OpenTypeMAXP *maxp = static_cast<ots::OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
-  if (!maxp) {
-    return OTS_FAILURE_MSG("Required maxp table missing");
-  }
-
-  uint16_t format = 0;
-  uint16_t offset_coverage = 0;
-  uint16_t entry_exit_count = 0;
-  if (!subtable.ReadU16(&format) ||
-      !subtable.ReadU16(&offset_coverage) ||
-      !subtable.ReadU16(&entry_exit_count)) {
-    return OTS_FAILURE_MSG("Failed to read cursive attachment structure");
-  }
-
-  if (format != 1) {
-    return OTS_FAILURE_MSG("Bad cursive attachment format %d", format);
-  }
-
-  // Check entry exit records.
-  const unsigned entry_exit_records_end =
-      2 * static_cast<unsigned>(entry_exit_count) + 6;
-  if (entry_exit_records_end > std::numeric_limits<uint16_t>::max()) {
-    return OTS_FAILURE_MSG("Bad entry exit record end %d", entry_exit_records_end);
-  }
-  for (unsigned i = 0; i < entry_exit_count; ++i) {
-    uint16_t offset_entry_anchor = 0;
-    uint16_t offset_exit_anchor = 0;
-    if (!subtable.ReadU16(&offset_entry_anchor) ||
-        !subtable.ReadU16(&offset_exit_anchor)) {
-      return OTS_FAILURE_MSG("Can't read entry exit record %d", i);
-    }
-    // These offsets could be NULL.
-    if (offset_entry_anchor) {
-      if (offset_entry_anchor < entry_exit_records_end ||
-          offset_entry_anchor >= length) {
-        return OTS_FAILURE_MSG("Bad entry anchor offset %d in entry exit record %d", offset_entry_anchor, i);
-      }
-      if (!ParseAnchorTable(font, data + offset_entry_anchor,
-                            length - offset_entry_anchor)) {
-        return OTS_FAILURE_MSG("Failed to parse entry anchor table in entry exit record %d", i);
-      }
-    }
-    if (offset_exit_anchor) {
-      if (offset_exit_anchor < entry_exit_records_end ||
-         offset_exit_anchor >= length) {
-        return OTS_FAILURE_MSG("Bad exit anchor offset %d in entry exit record %d", offset_exit_anchor, i);
-      }
-      if (!ParseAnchorTable(font, data + offset_exit_anchor,
-                            length - offset_exit_anchor)) {
-        return OTS_FAILURE_MSG("Failed to parse exit anchor table in entry exit record %d", i);
-      }
-    }
-  }
-
-  if (offset_coverage < subtable.offset() || offset_coverage >= length) {
-    return OTS_FAILURE_MSG("Bad coverage offset in cursive attachment %d", offset_coverage);
-  }
-  if (!ots::ParseCoverageTable(font, data + offset_coverage,
-                               length - offset_coverage,
-                               maxp->num_glyphs)) {
-    return OTS_FAILURE_MSG("Failed to parse coverage table in cursive attachment");
   }
 
   return true;
@@ -667,84 +455,280 @@ bool ParseMarkToAttachmentSubtables(const ots::Font *font,
   return true;
 }
 
+}  // namespace
+
+namespace ots {
+
+// Lookup Type 1:
+// Single Adjustment Positioning Subtable
+bool OpenTypeGPOS::ParseSingleAdjustment(const uint8_t *data,
+                                         const size_t length) {
+  Font* font = GetFont();
+  Buffer subtable(data, length);
+
+  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
+      font->GetTypedTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return Error("Required maxp table missing");
+  }
+
+  uint16_t format = 0;
+  uint16_t offset_coverage = 0;
+  uint16_t value_format = 0;
+  if (!subtable.ReadU16(&format) ||
+      !subtable.ReadU16(&offset_coverage) ||
+      !subtable.ReadU16(&value_format)) {
+    return Error("Can't read single adjustment information");
+  }
+
+  if (format == 1) {
+    // Format 1 exactly one value record.
+    if (!ParseValueRecord(font, &subtable, value_format)) {
+      return Error("Failed to parse format 1 single adjustment table");
+    }
+  } else if (format == 2) {
+    uint16_t value_count = 0;
+    if (!subtable.ReadU16(&value_count)) {
+      return Error("Failed to parse format 2 single adjustment table");
+    }
+    for (unsigned i = 0; i < value_count; ++i) {
+      if (!ParseValueRecord(font, &subtable, value_format)) {
+        return Error("Failed to parse value record %d in format 2 single adjustment table", i);
+      }
+    }
+  } else {
+    return Error("Bad format %d in single adjustment table", format);
+  }
+
+  if (offset_coverage < subtable.offset() || offset_coverage >= length) {
+    return Error("Bad coverage offset %d in single adjustment table", offset_coverage);
+  }
+
+  if (!ots::ParseCoverageTable(font, data + offset_coverage,
+                               length - offset_coverage,
+                               maxp->num_glyphs)) {
+    return Error("Failed to parse coverage table in single adjustment table");
+  }
+
+  return true;
+}
+
+// Lookup Type 2:
+// Pair Adjustment Positioning Subtable
+bool OpenTypeGPOS::ParsePairAdjustment(const uint8_t *data,
+                                       const size_t length) {
+  Font* font = GetFont();
+  Buffer subtable(data, length);
+
+  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
+      font->GetTypedTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return Error("Required maxp table missing");
+  }
+
+  uint16_t format = 0;
+  uint16_t offset_coverage = 0;
+  uint16_t value_format1 = 0;
+  uint16_t value_format2 = 0;
+  if (!subtable.ReadU16(&format) ||
+      !subtable.ReadU16(&offset_coverage) ||
+      !subtable.ReadU16(&value_format1) ||
+      !subtable.ReadU16(&value_format2)) {
+    return Error("Failed to read pair adjustment structure");
+  }
+
+  if (format == 1) {
+    if (!ParsePairPosFormat1(font, data, length, value_format1, value_format2,
+                             maxp->num_glyphs)) {
+      return Error("Failed to parse pair pos format 1");
+    }
+  } else if (format == 2) {
+    if (!ParsePairPosFormat2(font, data, length, value_format1, value_format2,
+                             maxp->num_glyphs)) {
+      return Error("Failed to parse pair format 2");
+    }
+  } else {
+    return Error("Bad pos pair format %d", format);
+  }
+
+  if (offset_coverage < subtable.offset() || offset_coverage >= length) {
+    return Error("Bad pair pos offset coverage %d", offset_coverage);
+  }
+  if (!ots::ParseCoverageTable(font, data + offset_coverage,
+                               length - offset_coverage,
+                               maxp->num_glyphs)) {
+    return Error("Failed to parse coverage table");
+  }
+
+  return true;
+}
+
+// Lookup Type 3
+// Cursive Attachment Positioning Subtable
+bool OpenTypeGPOS::ParseCursiveAttachment(const uint8_t *data,
+                                          const size_t length) {
+  Font* font = GetFont();
+  Buffer subtable(data, length);
+
+  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
+      font->GetTypedTable(OTS_TAG_MAXP));
+  if (!maxp) {
+    return Error("Required maxp table missing");
+  }
+
+  uint16_t format = 0;
+  uint16_t offset_coverage = 0;
+  uint16_t entry_exit_count = 0;
+  if (!subtable.ReadU16(&format) ||
+      !subtable.ReadU16(&offset_coverage) ||
+      !subtable.ReadU16(&entry_exit_count)) {
+    return Error("Failed to read cursive attachment structure");
+  }
+
+  if (format != 1) {
+    return Error("Bad cursive attachment format %d", format);
+  }
+
+  // Check entry exit records.
+  const unsigned entry_exit_records_end =
+      2 * static_cast<unsigned>(entry_exit_count) + 6;
+  if (entry_exit_records_end > std::numeric_limits<uint16_t>::max()) {
+    return Error("Bad entry exit record end %d", entry_exit_records_end);
+  }
+  for (unsigned i = 0; i < entry_exit_count; ++i) {
+    uint16_t offset_entry_anchor = 0;
+    uint16_t offset_exit_anchor = 0;
+    if (!subtable.ReadU16(&offset_entry_anchor) ||
+        !subtable.ReadU16(&offset_exit_anchor)) {
+      return Error("Can't read entry exit record %d", i);
+    }
+    // These offsets could be NULL.
+    if (offset_entry_anchor) {
+      if (offset_entry_anchor < entry_exit_records_end ||
+          offset_entry_anchor >= length) {
+        return Error("Bad entry anchor offset %d in entry exit record %d", offset_entry_anchor, i);
+      }
+      if (!ParseAnchorTable(font, data + offset_entry_anchor,
+                            length - offset_entry_anchor)) {
+        return Error("Failed to parse entry anchor table in entry exit record %d", i);
+      }
+    }
+    if (offset_exit_anchor) {
+      if (offset_exit_anchor < entry_exit_records_end ||
+         offset_exit_anchor >= length) {
+        return Error("Bad exit anchor offset %d in entry exit record %d", offset_exit_anchor, i);
+      }
+      if (!ParseAnchorTable(font, data + offset_exit_anchor,
+                            length - offset_exit_anchor)) {
+        return Error("Failed to parse exit anchor table in entry exit record %d", i);
+      }
+    }
+  }
+
+  if (offset_coverage < subtable.offset() || offset_coverage >= length) {
+    return Error("Bad coverage offset in cursive attachment %d", offset_coverage);
+  }
+  if (!ots::ParseCoverageTable(font, data + offset_coverage,
+                               length - offset_coverage,
+                               maxp->num_glyphs)) {
+    return Error("Failed to parse coverage table in cursive attachment");
+  }
+
+  return true;
+}
+
 // Lookup Type 4:
 // MarkToBase Attachment Positioning Subtable
-bool ParseMarkToBaseAttachment(const ots::Font *font,
-                               const uint8_t *data, const size_t length) {
-  return ParseMarkToAttachmentSubtables(font, data, length,
+bool OpenTypeGPOS::ParseMarkToBaseAttachment(const uint8_t *data,
+                                             const size_t length) {
+  return ParseMarkToAttachmentSubtables(GetFont(), data, length,
                                         GPOS_TYPE_MARK_TO_BASE_ATTACHMENT);
 }
 
 // Lookup Type 5:
 // MarkToLigature Attachment Positioning Subtable
-bool ParseMarkToLigatureAttachment(const ots::Font *font,
-                                   const uint8_t *data, const size_t length) {
-  return ParseMarkToAttachmentSubtables(font, data, length,
+bool OpenTypeGPOS::ParseMarkToLigatureAttachment(const uint8_t *data,
+                                                 const size_t length) {
+  return ParseMarkToAttachmentSubtables(GetFont(), data, length,
                                         GPOS_TYPE_MARK_TO_LIGATURE_ATTACHMENT);
 }
 
 // Lookup Type 6:
 // MarkToMark Attachment Positioning Subtable
-bool ParseMarkToMarkAttachment(const ots::Font *font,
-                               const uint8_t *data, const size_t length) {
-  return ParseMarkToAttachmentSubtables(font, data, length,
+bool OpenTypeGPOS::ParseMarkToMarkAttachment(const uint8_t *data,
+                                             const size_t length) {
+  return ParseMarkToAttachmentSubtables(GetFont(), data, length,
                                         GPOS_TYPE_MARK_TO_MARK_ATTACHMENT);
 }
 
 // Lookup Type 7:
 // Contextual Positioning Subtables
-bool ParseContextPositioning(const ots::Font *font,
-                             const uint8_t *data, const size_t length) {
-  ots::OpenTypeMAXP *maxp = static_cast<ots::OpenTypeMAXP*>(
+bool OpenTypeGPOS::ParseContextPositioning(const uint8_t *data,
+                                           const size_t length) {
+  Font* font = GetFont();
+  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
       font->GetTypedTable(OTS_TAG_MAXP));
   if (!maxp) {
-    return OTS_FAILURE_MSG("Required maxp table missing");
-  }
-  ots::OpenTypeGPOS *gpos = static_cast<ots::OpenTypeGPOS*>(
-      font->GetTypedTable(OTS_TAG_GPOS));
-  if (!gpos) {
-    return OTS_FAILURE_MSG("Internal error!");
+    return Error("Required maxp table missing");
   }
   return ots::ParseContextSubtable(font, data, length, maxp->num_glyphs,
-                                   gpos->num_lookups);
+                                   m_num_lookups);
 }
 
 // Lookup Type 8:
 // Chaining Contexual Positioning Subtable
-bool ParseChainedContextPositioning(const ots::Font *font,
-                                    const uint8_t *data, const size_t length) {
-  ots::OpenTypeMAXP *maxp = static_cast<ots::OpenTypeMAXP*>(
+bool OpenTypeGPOS::ParseChainedContextPositioning(const uint8_t *data,
+                                                  const size_t length) {
+  Font* font = GetFont();
+  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
       font->GetTypedTable(OTS_TAG_MAXP));
   if (!maxp) {
-    return OTS_FAILURE_MSG("Required maxp table missing");
-  }
-  ots::OpenTypeGPOS *gpos = static_cast<ots::OpenTypeGPOS*>(
-      font->GetTypedTable(OTS_TAG_GPOS));
-  if (!gpos) {
-    return OTS_FAILURE_MSG("Internal error!");
+    return Error("Required maxp table missing");
   }
   return ots::ParseChainingContextSubtable(font, data, length,
                                            maxp->num_glyphs,
-                                           gpos->num_lookups);
+                                           m_num_lookups);
 }
 
 // Lookup Type 9:
 // Extension Positioning
-bool ParseExtensionPositioning(const ots::Font *font,
-                               const uint8_t *data, const size_t length) {
-  return ots::ParseExtensionSubtable(font, data, length,
-                                     &kGposLookupSubtableParser);
+bool OpenTypeGPOS::ParseExtensionPositioning(const uint8_t *data,
+                                             const size_t length) {
+  return ots::ParseExtensionSubtable(GetFont(), data, length, this);
 }
 
-}  // namespace
 
-namespace ots {
-
-bool OpenTypeGPOS::Parse(const uint8_t *data, size_t length) {
-  m_subtable_parser = &kGposLookupSubtableParser;
-  return OpenTypeLayoutTable::Parse(data, length);
+bool OpenTypeGPOS::ValidLookupSubtableType(const uint16_t lookup_type,
+                                           bool extension) const {
+  if (extension && lookup_type == GPOS_TYPE_EXTENSION_POSITIONING)
+    return false;
+  return lookup_type >= GPOS_TYPE_SINGLE_ADJUSTMENT && lookup_type < GPOS_TYPE_RESERVED;
 }
 
+bool OpenTypeGPOS::ParseLookupSubtable(const uint8_t *data, const size_t length,
+                                       const uint16_t lookup_type) {
+  switch (lookup_type) {
+    case GPOS_TYPE_SINGLE_ADJUSTMENT:
+      return ParseSingleAdjustment(data, length);
+    case GPOS_TYPE_PAIR_ADJUSTMENT:
+      return ParsePairAdjustment(data, length);
+    case GPOS_TYPE_CURSIVE_ATTACHMENT:
+      return ParseCursiveAttachment(data, length);
+    case GPOS_TYPE_MARK_TO_BASE_ATTACHMENT:
+      return ParseMarkToBaseAttachment(data, length);
+    case GPOS_TYPE_MARK_TO_LIGATURE_ATTACHMENT:
+      return ParseMarkToLigatureAttachment(data, length);
+    case GPOS_TYPE_MARK_TO_MARK_ATTACHMENT:
+      return ParseMarkToMarkAttachment(data, length);
+    case GPOS_TYPE_CONTEXT_POSITIONING:
+      return ParseContextPositioning(data, length);
+    case GPOS_TYPE_CHAINED_CONTEXT_POSITIONING:
+      return ParseChainedContextPositioning(data, length);
+    case GPOS_TYPE_EXTENSION_POSITIONING:
+      return ParseExtensionPositioning(data, length);
+  }
+  return false;
+}
 
 }  // namespace ots
 
