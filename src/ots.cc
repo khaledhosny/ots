@@ -903,6 +903,32 @@ bool ProcessGeneric(ots::FontFile *header,
   return true;
 }
 
+bool IsGraphiteTag(uint32_t tag) {
+  if (tag == OTS_TAG_FEAT ||
+      tag == OTS_TAG_GLAT ||
+      tag == OTS_TAG_GLOC ||
+      tag == OTS_TAG_SILE ||
+      tag == OTS_TAG_SILF ||
+      tag == OTS_TAG_SILL) {
+    return true;
+  }
+  return false;
+}
+
+bool IsVariationsTag(uint32_t tag) {
+  if (tag == OTS_TAG_AVAR ||
+      tag == OTS_TAG_CVAR ||
+      tag == OTS_TAG_FVAR ||
+      tag == OTS_TAG_GVAR ||
+      tag == OTS_TAG_HVAR ||
+      tag == OTS_TAG_MVAR ||
+      tag == OTS_TAG_STAT ||
+      tag == OTS_TAG_VVAR) {
+    return true;
+  }
+  return false;
+}
+
 }  // namespace
 
 namespace ots {
@@ -991,14 +1017,9 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
 
     ret = GetTableData(data, table_entry, arena, &table_length, &table_data);
     if (ret) {
-      // FIXME: Parsing some tables will fail if the table is not added to
-      // m_tables first.
-      m_tables[tag] = table;
       ret = table->Parse(table_data, table_length);
       if (ret)
-        file->tables[table_entry] = table;
-      else
-        m_tables.erase(tag);
+        AddTable(table_entry, table);
     }
   }
 
@@ -1033,12 +1054,7 @@ void Font::AddTable(TableEntry entry, Table* table) {
 void Font::DropGraphite() {
   file->context->Message(0, "Dropping all Graphite tables");
   for (const std::pair<uint32_t, Table*> entry : m_tables) {
-    if (entry.first == OTS_TAG_FEAT ||
-        entry.first == OTS_TAG_GLAT ||
-        entry.first == OTS_TAG_GLOC ||
-        entry.first == OTS_TAG_SILE ||
-        entry.first == OTS_TAG_SILF ||
-        entry.first == OTS_TAG_SILL) {
+    if (IsGraphiteTag(entry.first)) {
       entry.second->Drop("Discarding Graphite table");
     }
   }
@@ -1047,14 +1063,7 @@ void Font::DropGraphite() {
 void Font::DropVariations() {
   file->context->Message(0, "Dropping all Variation tables");
   for (const std::pair<uint32_t, Table*> entry : m_tables) {
-    if (entry.first == OTS_TAG_AVAR ||
-        entry.first == OTS_TAG_CVAR ||
-        entry.first == OTS_TAG_FVAR ||
-        entry.first == OTS_TAG_GVAR ||
-        entry.first == OTS_TAG_HVAR ||
-        entry.first == OTS_TAG_MVAR ||
-        entry.first == OTS_TAG_STAT ||
-        entry.first == OTS_TAG_VVAR) {
+    if (IsVariationsTag(entry.first)) {
       entry.second->Drop("Discarding Variations table");
     }
   }
@@ -1107,6 +1116,9 @@ bool Table::DropGraphite(const char *format, ...) {
   va_end(va);
 
   m_font->DropGraphite();
+  if (IsGraphiteTag(m_tag))
+      Drop("Discarding Graphite table");
+
   return true;
 }
 
@@ -1117,6 +1129,9 @@ bool Table::DropVariations(const char *format, ...) {
   va_end(va);
 
   m_font->DropVariations();
+  if (IsVariationsTag(m_tag))
+      Drop("Discarding Variations table");
+
   return true;
 }
 
