@@ -385,39 +385,15 @@ bool OpenTypeGSUB::ParseLigatureSubstitution(const uint8_t *data,
 
 // Lookup Type 5:
 // Contextual Substitution Subtable
-bool OpenTypeGSUB::ParseContextSubstitution(const uint8_t *data,
-                                            const size_t length) {
-  Font* font = GetFont();
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
-  if (!maxp) {
-    return Error("Required maxp table missing");
-  }
-  return ots::ParseContextSubtable(font, data, length, maxp->num_glyphs,
-                                   m_num_lookups);
-}
+// OpenTypeLayoutTable::ParseContextSubtable()
 
 // Lookup Type 6:
 // Chaining Contextual Substitution Subtable
-bool OpenTypeGSUB::ParseChainingContextSubstitution(const uint8_t *data,
-                                                    const size_t length) {
-  Font* font = GetFont();
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
-  if (!maxp) {
-    return Error("Required maxp table missing");
-  }
-  return ots::ParseChainingContextSubtable(font, data, length,
-                                           maxp->num_glyphs,
-                                           m_num_lookups);
-}
+// OpenTypeLayoutTable::ParseChainingContextSubtable
 
 // Lookup Type 7:
 // Extension Substition
-bool OpenTypeGSUB::ParseExtensionSubstitution(const uint8_t *data,
-                                              const size_t length) {
-  return ots::ParseExtensionSubtable(GetFont(), data, length, this);
-}
+// OpenTypeLayoutTable::ParseExtensionSubtable
 
 // Lookup Type 8:
 // Reverse Chaining Contexual Single Substitution Subtable
@@ -541,11 +517,11 @@ bool OpenTypeGSUB::ParseLookupSubtable(const uint8_t *data, const size_t length,
     case GSUB_TYPE_LIGATURE:
       return ParseLigatureSubstitution(data, length);
     case GSUB_TYPE_CONTEXT:
-      return ParseContextSubstitution(data, length);
+      return ParseContextSubtable(data, length);
     case GSUB_TYPE_CHANGING_CONTEXT:
-      return ParseChainingContextSubstitution(data, length);
+      return ParseChainingContextSubtable(data, length);
     case GSUB_TYPE_EXTENSION_SUBSTITUTION:
-      return ParseExtensionSubstitution(data, length);
+      return ParseExtensionSubtable(data, length);
     case GSUB_TYPE_REVERSE_CHAINING_CONTEXT_SINGLE:
       return ParseReverseChainingContextSingleSubstitution(data, length);
   }
