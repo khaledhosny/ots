@@ -16,9 +16,11 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
-    - uses: actions/setup-python@v1
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
 
     - name: Install Python Dependencies
       run: pip install --upgrade meson==0.60.2 ninja
@@ -54,7 +56,7 @@ jobs:
 
     - name: Upload
       if: github.ref_type == 'tag'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: bin-${{ runner.os }}
         path: ots-*.zip
@@ -66,7 +68,7 @@ jobs:
 
     - name: Upload Dist Tarball
       if: github.ref_type == 'tag' && matrix.os == 'ubuntu-latest'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: dist
         path: build/meson-dist/ots-*.tar.xz
@@ -78,10 +80,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Download artifacts from build jobs
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         path: dist
 
