@@ -476,10 +476,17 @@ bool ParsePrivateDictData(
         if (operands.back().second != DICT_OPERAND_INTEGER) {
           return OTS_FAILURE();
         }
-        if (operands.back().first >= 1024 * 1024 * 1024) {
+        // In theory a negative operand could occur here, if the Local Subrs
+        // were stored before the Private dict, but this does not seem to be
+        // well supported by implementations, and mishandling of a negative
+        // offset (e.g. by using unsigned offset arithmetic) might become a
+        // vector for exploitation.  AFAIK no major font creation tool will
+        // generate such an offset, so to be on the safe side, we don't allow
+        // it here.
+        if (operands.back().first >= 1024 * 1024 * 1024 || operands.back().first < 0) {
           return OTS_FAILURE();
         }
-        if (operands.back().first + offset >= table.length() || operands.back().first + offset < 0) {
+        if (operands.back().first + offset >= table.length()) {
           return OTS_FAILURE();
         }
         // parse "16. Local Subrs INDEX"
