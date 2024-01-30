@@ -1,0 +1,30 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "(lldb) Launch",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/ots-sanitize",
+      "args": [
+        // "/Users/m/Downloads/test_ebdt_fonts/batacg_transfonter/Batang-01.ttf",
+        // "/Users/m/Downloads/test_ebdt_fonts/batacg_transfonter/Batang-01.output.ttf",
+
+        // "/Users/m/Downloads/test_ebdt_fonts/batang_fonttools.ttf",
+        // "/Users/m/Downloads/test_ebdt_fonts/batang_fonttools.output.ttf",
+
+        "/Users/m/Downloads/test_ebdt_fonts/Batang_gen.ttf",
+        "/Users/m/Downloads/test_ebdt_fonts/Batang_gen.output.ttf",
+
+      ],
+      "stopAtEntry": false,
+      "cwd": "${fileDirname}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "lldb"
+    }
+  ]
+}

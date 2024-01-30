@@ -1,0 +1,21 @@
+{
+    "files.associations": {
+        "*.ts_j": "json",
+        "*.tile_set": "json",
+        "*.tsj": "json",
+        "*.animation": "json",
+        "*.vertex": "glsl",
+        "*.fragment": "glsl",
+        "*.scene": "json",
+        "*.mesh": "json",
+        "*.font": "json",
+        "*.mesh_anim": "json",
+        "*.shader": "glsl",
+        "*.shader_template": "wgsl",
+        "*.scheme": "scheme",
+        "limits": "cpp",
+        "__locale": "cpp",
+        "string": "cpp",
+        "string_view": "cpp"
+    }
+}

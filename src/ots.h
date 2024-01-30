@@ -61,7 +61,7 @@ namespace ots {
 // Convenience macros for use in files that only handle a single table tag,
 // defined as TABLE_NAME at the top of the file; the 'file' variable is
 // expected to be the current FontFile pointer.
-#define OTS_FAILURE_MSG(...) OTS_FAILURE_MSG_(font->file, TABLE_NAME ": " __VA_ARGS__)
+#define OTS_FAILURE_MSG(...) assert(false),OTS_FAILURE_MSG_(font->file, TABLE_NAME ": " __VA_ARGS__)
 
 #define OTS_WARNING(...) OTS_WARNING_MSG_(font->file, TABLE_NAME ": " __VA_ARGS__)
 

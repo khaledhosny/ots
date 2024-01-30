@@ -68,6 +68,7 @@ namespace
                     return OTS_FAILURE_MSG("Failed to read IndexSubTable");
                 }
                 int32_t image_size = next_glyph_sbit_offset - this_glyph_sbit_offset;
+                uint32_t glyphDataOffset = this_glyph_sbit_offset + ebdt_table_image_data_offset;
                 this_glyph_sbit_offset = next_glyph_sbit_offset;
                 if (image_size < 0)
                 {
@@ -84,8 +85,6 @@ namespace
                 }
                 uint32_t unsigned_image_size = static_cast<uint32_t>(image_size);
                 uint32_t out_image_size = 0;
-
-                auto glyphDataOffset = this_glyph_sbit_offset + ebdt_table_image_data_offset;
 
                 if (!ebdt->ParseGlyphBitmapDataWithVariableMetrics(image_format,
                                                                    glyphDataOffset,
@@ -120,6 +119,7 @@ namespace
             {
                 return OTS_FAILURE_MSG("Failed to read IndexSubTable, image size");
             }
+            uint32_t image_data_offset_plus_this_sub_table = ebdt_table_image_data_offset + /*image_size*/ 4 + /*Big Glyph metrics*/ 8;
             uint32_t num_glyphs = last_glyph_index - first_glyph_index + 1;
             /**
              * @brief @TODO does out_image size have to match image_size?
@@ -128,7 +128,7 @@ namespace
             uint32_t __unused_out_image_size = 0;
             for (uint32_t i = 0; i < num_glyphs; i++)
             {
-                uint32_t glyphDataOffset = ebdt_table_image_data_offset + image_size * i;
+                uint32_t glyphDataOffset = image_data_offset_plus_this_sub_table + image_size * i;
                 if (!ebdt->ParseGlyphBitmapDataWithConstantMetrics(image_format,
                                                                    glyphDataOffset,
                                                                    bit_depth,
@@ -150,11 +150,6 @@ namespace
              * @brief @TODO check table for 32-bit alignment
              *
              */
-            uint16_t sbitOffsets_arrray = 0;
-            if (!table.ReadU16(&sbitOffsets_arrray))
-            {
-                return OTS_FAILURE_MSG("Failed to read IndexSubTable");
-            }
             /**
              * @brief From spec:
              * sbitOffets[glyphIndex] + imageDataOffset = glyphData
@@ -166,23 +161,26 @@ namespace
 
             uint32_t this_glyph_sbit_offset = 0;
             uint32_t next_glyph_sbit_offset = 0;
-            uint16_t read_sbit_offset = 0;
 
-            if (!table.ReadU16(&read_sbit_offset))
+            uint16_t sbit_offset_16_bit = 0;
+
+            if (!table.ReadU16(&sbit_offset_16_bit))
             {
                 return OTS_FAILURE_MSG("Failed to read IndexSubTable");
             }
-            this_glyph_sbit_offset = read_sbit_offset;
+            this_glyph_sbit_offset = sbit_offset_16_bit;
 
             for (uint16_t glyphIndex = 0; glyphIndex < number_of_glyphs; glyphIndex++)
             {
-                if (!table.ReadU16(&read_sbit_offset))
+                if (!table.ReadU16(&sbit_offset_16_bit))
                 {
                     return OTS_FAILURE_MSG("Failed to read IndexSubTable");
                 }
-                next_glyph_sbit_offset = read_sbit_offset;
+                next_glyph_sbit_offset = sbit_offset_16_bit;
 
                 int32_t image_size = next_glyph_sbit_offset - this_glyph_sbit_offset;
+                uint32_t glyphDataOffset = this_glyph_sbit_offset + ebdt_table_image_data_offset;
+
                 this_glyph_sbit_offset = next_glyph_sbit_offset;
 
                 if (image_size < 0)
@@ -202,7 +200,6 @@ namespace
                 uint32_t unsigned_image_size = static_cast<uint32_t>(image_size);
                 uint32_t out_image_size = 0;
 
-                uint32_t glyphDataOffset = this_glyph_sbit_offset + ebdt_table_image_data_offset;
                 if (!ebdt->ParseGlyphBitmapDataWithVariableMetrics(image_format,
                                                                    glyphDataOffset,
                                                                    bit_depth,
@@ -248,8 +245,14 @@ namespace
                     return OTS_FAILURE_MSG("Invalid glyph id %d, last glyph id %d, they must be sorted by glyph id", next_glyph_id, this_glyph_id);
                 }
                 this_glyph_id = next_glyph_id;
+                if (this_glyph_id < first_glyph_index || this_glyph_id > last_glyph_index)
+                {
+                    return OTS_FAILURE_MSG("Invalid glyph id %d, must be between first glyph id %d and last glyph id %d", this_glyph_id, first_glyph_index, last_glyph_index);
+                }
 
                 uint32_t image_size = next_sbix_offset - this_sbix_offset;
+                uint32_t glyphDataOffset = this_sbix_offset + ebdt_table_image_data_offset;
+
                 this_sbix_offset = next_sbix_offset;
                 if (image_size < 0)
                 {
@@ -266,16 +269,7 @@ namespace
                 }
                 uint32_t unsigned_image_size = static_cast<uint32_t>(image_size);
                 uint32_t out_image_size = 0;
-
-                /**
-                 * @TODO is this an absolute sbit offset or is it relative to the
-                 * ebdt_table_image_data_offset, ie should
-                 * glyphDataOffset = sbitOffset
-                 * or
-                 * glyphDataOffset = sbitOffset + ebdt_table_image_data_offset
-                 *
-                 */
-                uint32_t glyphDataOffset = this_sbix_offset + ebdt_table_image_data_offset;
+               
                 if (!ebdt->ParseGlyphBitmapDataWithVariableMetrics(image_format,
                                                                    glyphDataOffset,
                                                                    bit_depth,
@@ -315,7 +309,11 @@ namespace
             }
             uint16_t glyphId = 0;
             uint16_t last_glyph_id = 0;
-
+            uint32_t image_data_offset_plus_this_sub_table = ebdt_table_image_data_offset +
+                                                             /*image_size*/ 4 +
+                                                             /*Big Glyph metrics*/ 8 +
+                                                             /*num_glyphs*/ 4 +
+                                                             /**glyphIdArray[numGlyphs]*/ num_glyphs * 2;
             for (uint32_t i = 0; i < num_glyphs; i++)
             {
                 if (!table.ReadU16(&glyphId))
@@ -333,7 +331,7 @@ namespace
                     }
                 }
                 last_glyph_id = glyphId;
-                uint32_t glyphDataOffset = image_size * i + ebdt_table_image_data_offset;
+                uint32_t glyphDataOffset = image_size * i + image_data_offset_plus_this_sub_table;
                 /**
                  * @brief @TODO does out_image size have to match image_size?
                  *
