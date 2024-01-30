@@ -34,9 +34,6 @@ namespace
             return OTS_FAILURE_MSG("Failed to read IndexSubTable");
         }
 
-        // @TODO index_format and image_format can be contradictory
-        // ie, a constatnt metric index format can have a variable metric image format
-        //  (They can both provide metrics) is this allowed?
         switch (index_format)
         {
         /**
@@ -147,10 +144,6 @@ namespace
         case 3:
         {
             /**
-             * @brief @TODO check table for 32-bit alignment
-             *
-             */
-            /**
              * @brief From spec:
              * sbitOffets[glyphIndex] + imageDataOffset = glyphData
              * sizeOfArray = (lastGlyph - firstGlyph + 1) + 1 + 1 pad if needed
@@ -212,6 +205,22 @@ namespace
                     return OTS_FAILURE_MSG("Image size %d does not match expected size %d", out_image_size, unsigned_image_size);
                 }
             }
+            /**
+             * @brief check if the table size is aligned to a 32-bit boundary
+             *
+             */
+            if (((number_of_glyphs + /**the extra offset for size calculation*/ 1) % 2) != 0)
+            {
+                uint16_t pad = 0;
+                if (!table.ReadU16(&pad))
+                {
+                    return OTS_FAILURE_MSG("Failed to read IndexSubTable");
+                }
+                if (pad != 0)
+                {
+                    return OTS_FAILURE_MSG("Invalid pad %d", pad);
+                }
+            }
         }
         break;
         // IndexSubTable4: variable-metrics glyphs with sparse glyph codes
@@ -269,7 +278,7 @@ namespace
                 }
                 uint32_t unsigned_image_size = static_cast<uint32_t>(image_size);
                 uint32_t out_image_size = 0;
-               
+
                 if (!ebdt->ParseGlyphBitmapDataWithVariableMetrics(image_format,
                                                                    glyphDataOffset,
                                                                    bit_depth,
@@ -287,10 +296,7 @@ namespace
         // IndexSubTable5: constant-metrics glyphs with sparse glyph codes
         case 5:
         {
-            /**
-             * @brief @TODO check table for 32-bit alignment
-             *
-             */
+
             uint32_t image_size = 0;
             if (!table.ReadU32(&image_size))
             {
@@ -322,9 +328,6 @@ namespace
                 }
                 if (last_glyph_id != 0)
                 {
-                    /**
-                     * @TODO what does the design doc say about things not being sorted?
-                     */
                     if (glyphId <= last_glyph_id)
                     {
                         return OTS_FAILURE_MSG("Invalid glyph id %d, last glyph id %d, they must be sorted by glyph id", glyphId, last_glyph_id);
@@ -347,6 +350,23 @@ namespace
                     return OTS_FAILURE_MSG("Failed to parse glyph bitmap data");
                 }
             }
+            /**
+             * @brief check if the table size is aligned to a 32-bit boundary
+             *
+             */
+            if (((num_glyphs + /**the extra offset for size calculation*/ 1) % 2) != 0)
+                {
+                    uint16_t pad = 0;
+                    if (!table.ReadU16(&pad))
+                    {
+                        return OTS_FAILURE_MSG("Failed to read IndexSubTable");
+                    }
+                    if (pad != 0)
+                    {
+                        return OTS_FAILURE_MSG("Invalid pad %d", pad);
+                    }
+                }
+
             break;
         }
         default:
