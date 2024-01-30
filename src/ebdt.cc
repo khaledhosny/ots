@@ -57,7 +57,7 @@ namespace ots
   }
   bool OpenTypeEBDT::Parse(const uint8_t *data, size_t length)
   {
-    Font *font = GetFont();
+    // Font *font = GetFont();
     Buffer table(data, length);
 
     this->m_data = data;
@@ -257,7 +257,8 @@ namespace ots
     case 7:
     case 8:
     case 9:
-      return OTS_FAILURE_MSG("Using a variable metrics image format with constant metrics");
+      return OpenTypeEBDT::ParseGlyphBitmapDataWithVariableMetrics(image_format, ebdt_table_offset, bit_depth, out_image_size);
+      // return OTS_FAILURE_MSG("Using a variable metrics image format with constant metrics");
     case 5:
       break;
     default:

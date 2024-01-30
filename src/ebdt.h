@@ -11,6 +11,8 @@ namespace ots
 {
     namespace ebdt
     {
+        extern uint32_t BigGlyphMetricsSize;
+        extern uint32_t SmallGlyphMetricsSize;
         struct BigGlyphMetrics
         {
             uint8_t height;

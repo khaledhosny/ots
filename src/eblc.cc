@@ -48,21 +48,20 @@ namespace
              * sizeOfArray = (lastGlyph - firstGlyph + 1) + 1 + 1 pad if needed
              *
              */
-            // uint32_t sizeOfArray = last_glyph_index - first_glyph_index + 1 + 1 + ((last_glyph_index - first_glyph_index + 1) % 2 ? 0 : 1);
             uint32_t number_of_glyphs = last_glyph_index - first_glyph_index + 1;
             uint32_t this_glyph_sbit_offset = 0;
             uint32_t next_glyph_sbit_offset = 0;
 
             if (!table.ReadU32(&this_glyph_sbit_offset))
             {
-                return OTS_FAILURE_MSG("Failed to read IndexSubTable");
+                return OTS_FAILURE_MSG("Failed to read sbit offset for IndexSubTable1");
             }
 
             for (uint32_t glyphIndex = 0; glyphIndex < number_of_glyphs; glyphIndex++)
             {
                 if (!table.ReadU32(&next_glyph_sbit_offset))
                 {
-                    return OTS_FAILURE_MSG("Failed to read IndexSubTable");
+                    return OTS_FAILURE_MSG("Failed to sbit offset[%d] for IndexSubTable1", glyphIndex + 1);
                 }
                 int32_t image_size = next_glyph_sbit_offset - this_glyph_sbit_offset;
                 uint32_t glyphDataOffset = this_glyph_sbit_offset + ebdt_table_image_data_offset;
@@ -107,16 +106,16 @@ namespace
             uint32_t image_size;
             if (!table.ReadU32(&image_size))
             {
-                return OTS_FAILURE_MSG("Failed to read IndexSubTable, image size");
+                return OTS_FAILURE_MSG("Failed to read indexSubTable2, image size");
             }
             // Parsing BigGlyphMetrics
             ots::ebdt::BigGlyphMetrics metrics;
 
             if (!ots::ebdt::ParseBigGlyphMetrics(table, &metrics))
             {
-                return OTS_FAILURE_MSG("Failed to read IndexSubTable, image size");
+                return OTS_FAILURE_MSG("Failed to read indexSubTable2, big glyph metrics");
             }
-            uint32_t image_data_offset_plus_this_sub_table = ebdt_table_image_data_offset + /*image_size*/ 4 + /*Big Glyph metrics*/ 8;
+            uint32_t image_data_offset_plus_this_sub_table = ebdt_table_image_data_offset + /*image_size*/ 4 + ots::ebdt::BigGlyphMetricsSize;
             uint32_t num_glyphs = last_glyph_index - first_glyph_index + 1;
             /**
              * @brief @TODO does out_image size have to match image_size?
@@ -149,7 +148,6 @@ namespace
              * sizeOfArray = (lastGlyph - firstGlyph + 1) + 1 + 1 pad if needed
              */
 
-            // uint16_t sizeOfArray = last_glyph_index - first_glyph_index + 1 + 1 + ((last_glyph_index - first_glyph_index + 1) % 2 ? 0 : 1);
             uint32_t number_of_glyphs = last_glyph_index - first_glyph_index + 1;
 
             uint32_t this_glyph_sbit_offset = 0;
@@ -159,7 +157,7 @@ namespace
 
             if (!table.ReadU16(&sbit_offset_16_bit))
             {
-                return OTS_FAILURE_MSG("Failed to read IndexSubTable");
+                return OTS_FAILURE_MSG("Failed to read IndexSubTable3, sbit offset for IndexSubTable3");
             }
             this_glyph_sbit_offset = sbit_offset_16_bit;
 
@@ -167,7 +165,7 @@ namespace
             {
                 if (!table.ReadU16(&sbit_offset_16_bit))
                 {
-                    return OTS_FAILURE_MSG("Failed to read IndexSubTable");
+                    return OTS_FAILURE_MSG("Failed to read IndexSubTable3, sbit offset for IndexSubTable3, glyphIndex[%d]", glyphIndex + 1);
                 }
                 next_glyph_sbit_offset = sbit_offset_16_bit;
 
@@ -214,7 +212,7 @@ namespace
                 uint16_t pad = 0;
                 if (!table.ReadU16(&pad))
                 {
-                    return OTS_FAILURE_MSG("Failed to read IndexSubTable");
+                    return OTS_FAILURE_MSG("Failed to read IndexSubTable3, pad for IndexSubTable3, not aligned to 32-bit boundary");
                 }
                 if (pad != 0)
                 {
@@ -229,7 +227,7 @@ namespace
             uint16_t num_glyphs = 0;
             if (!table.ReadU16(&num_glyphs))
             {
-                return OTS_FAILURE_MSG("Failed to read IndexSubTable");
+                return OTS_FAILURE_MSG("Failed to read IndexSubTable4 num_glyphs");
             }
             uint16_t this_glyph_id = 0;
             uint16_t this_sbix_offset = 0;
@@ -237,8 +235,8 @@ namespace
             if (!table.ReadU16(&this_glyph_id) ||
                 !table.ReadU16(&this_sbix_offset))
             {
-                return OTS_FAILURE_MSG("Failed to read IndexSubTable");
-            }
+                return OTS_FAILURE_MSG("Failed to read IndexSubTable4 GlyphIdOffsetPair record");
+                        }
 
             uint16_t next_glyph_id = 0;
             uint16_t next_sbix_offset = 0;
@@ -247,7 +245,7 @@ namespace
                 if (!table.ReadU16(&next_glyph_id) ||
                     !table.ReadU16(&next_sbix_offset))
                 {
-                    return OTS_FAILURE_MSG("Failed to read IndexSubTable");
+                    return OTS_FAILURE_MSG("Failed to read IndexSubTable4 GlyphIdOffsetPair record, glyphIndex[%d]", glyphIndex + 1);
                 }
                 if (glyphIndex < num_glyphs - 1 && next_glyph_id < this_glyph_id)
                 {
@@ -300,31 +298,30 @@ namespace
             uint32_t image_size = 0;
             if (!table.ReadU32(&image_size))
             {
-                return OTS_FAILURE_MSG("Failed to read IndexSubTable");
+                return OTS_FAILURE_MSG("Failed to read IndexSubTable5, image size");
             }
             ots::ebdt::BigGlyphMetrics metrics;
             if (!ots::ebdt::ParseBigGlyphMetrics(table, &metrics))
             {
-
-                return OTS_FAILURE_MSG("Failed to read IndexSubTable, image size");
+                return OTS_FAILURE_MSG("Failed to read IndexSubTable5, big glyph metrics");
             }
             uint32_t num_glyphs = 0;
             if (!table.ReadU32(&num_glyphs))
             {
-                return OTS_FAILURE_MSG("Failed to read IndexSubTable");
+                return OTS_FAILURE_MSG("Failed to read IndexSubTable5, num_glyphs");
             }
             uint16_t glyphId = 0;
             uint16_t last_glyph_id = 0;
             uint32_t image_data_offset_plus_this_sub_table = ebdt_table_image_data_offset +
                                                              /*image_size*/ 4 +
-                                                             /*Big Glyph metrics*/ 8 +
+                                                             ots::ebdt::BigGlyphMetricsSize +
                                                              /*num_glyphs*/ 4 +
                                                              /**glyphIdArray[numGlyphs]*/ num_glyphs * 2;
             for (uint32_t i = 0; i < num_glyphs; i++)
             {
                 if (!table.ReadU16(&glyphId))
                 {
-                    return OTS_FAILURE_MSG("Failed to read IndexSubTable");
+                    return OTS_FAILURE_MSG("Failed to read IndexSubTable5, glyphId");
                 }
                 if (last_glyph_id != 0)
                 {
@@ -355,22 +352,22 @@ namespace
              *
              */
             if (((num_glyphs + /**the extra offset for size calculation*/ 1) % 2) != 0)
+            {
+                uint16_t pad = 0;
+                if (!table.ReadU16(&pad))
                 {
-                    uint16_t pad = 0;
-                    if (!table.ReadU16(&pad))
-                    {
-                        return OTS_FAILURE_MSG("Failed to read IndexSubTable");
-                    }
-                    if (pad != 0)
-                    {
-                        return OTS_FAILURE_MSG("Invalid pad %d", pad);
-                    }
+                    return OTS_FAILURE_MSG("Failed to read IndexSubTable5, pad for IndexSubTable5, not aligned to 32-bit boundary");
                 }
+                if (pad != 0)
+                {
+                    return OTS_FAILURE_MSG("Invalid pad %, for IndexSubTable5", pad);
+                }
+            }
 
             break;
         }
         default:
-            return OTS_FAILURE_MSG("Invalid format %d", index_format);
+            return OTS_FAILURE_MSG("Invalid index format %d", index_format);
         }
 
         return true;
