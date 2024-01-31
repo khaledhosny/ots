@@ -17,6 +17,38 @@
 namespace
 {
 
+// #define DEBUG_EBDT
+#ifdef DEBUG_EBDT
+  std::vector<bool> formats_tested(5);
+  void declare_tested_format(uint16_t index_format)
+  {
+    if (formats_tested[index_format])
+    {
+      return;
+    }
+    formats_tested[index_format] = true;
+    printf("Tested format %d\n", index_format);
+    return;
+  }
+#endif
+
+  uint32_t number_of_bytes_in_bit_aligned_image_data(uint32_t width, uint32_t height, uint8_t bit_depth)
+  {
+    uint32_t number_of_bits = width * height * bit_depth;
+    return (number_of_bits + 7) / 8;
+  }
+  uint32_t number_of_bytes_in_byte_aligned_image_data(uint32_t width, uint32_t height, uint8_t bit_depth)
+  {
+    uint32_t number_of_bits_per_row = width * bit_depth;
+    uint32_t number_of_bytes_per_row = (number_of_bits_per_row + 7) / 8;
+    return number_of_bytes_per_row * height;
+  }
+
+  uint32_t number_of_bytes_with_component_data(
+      uint32_t numComponents)
+  {
+    return /* numComponents */ 2 + numComponents * (/* glyphId */ 2 + /* xOffset */ 1 + /* yOffset */ 1);
+  }
 } // namespace
 
 namespace ots
@@ -93,6 +125,9 @@ namespace ots
                                                              uint32_t *out_image_size)
 
   {
+#ifdef DEBUG_EBDT
+    declare_tested_format(image_format);
+#endif
     Font *font = GetFont();
     Buffer table(m_data + ebdt_table_offset, m_length - ebdt_table_offset);
 
@@ -106,10 +141,11 @@ namespace ots
         {
           return OTS_FAILURE_MSG("Failed to parse small glyph metrics");
         }
-        uint32_t number_of_bits_per_row = metrics.width * bit_depth;
-        uint32_t number_of_bytes_per_row = (number_of_bits_per_row + 7) / 8;
-        uint32_t number_of_bytes = number_of_bytes_per_row * metrics.height;
-        *out_image_size = ots::ebdt::SmallGlyphMetricsSize + number_of_bytes;
+        *out_image_size = ots::ebdt::SmallGlyphMetricsSize +
+                          number_of_bytes_in_byte_aligned_image_data(
+                              metrics.width,
+                              metrics.height,
+                              bit_depth);
         if (ebdt_table_offset + *out_image_size > m_length)
         {
           return OTS_FAILURE_MSG("EBDT table too small or image size too large");
@@ -124,9 +160,10 @@ namespace ots
       {
         return OTS_FAILURE_MSG("Failed to parse small glyph metrics");
       }
-      uint32_t number_of_bits = metrics.height * metrics.width * bit_depth;
-      uint32_t number_of_bytes = (number_of_bits + 7) / 8;
-      *out_image_size = ots::ebdt::SmallGlyphMetricsSize + number_of_bytes;
+      *out_image_size = ots::ebdt::SmallGlyphMetricsSize +
+                        number_of_bytes_in_bit_aligned_image_data(metrics.width,
+                                                                  metrics.height,
+                                                                  bit_depth);
       if (ebdt_table_offset + *out_image_size > m_length)
       {
         return OTS_FAILURE_MSG("EBDT table too small or image size too large");
@@ -147,10 +184,10 @@ namespace ots
         {
           return OTS_FAILURE_MSG("Failed to parse big glyph metrics");
         }
-        uint32_t number_of_bits_per_row = metrics.width * bit_depth;
-        uint32_t number_of_bytes_per_row = (number_of_bits_per_row + 7) / 8;
-        uint32_t number_of_bytes = number_of_bytes_per_row * metrics.height;
-        *out_image_size = ots::ebdt::BigGlyphMetricsSize + number_of_bytes;
+        *out_image_size = ots::ebdt::BigGlyphMetricsSize +
+                          number_of_bytes_in_byte_aligned_image_data(metrics.width,
+                                                                     metrics.height,
+                                                                     bit_depth);
         if (ebdt_table_offset + *out_image_size > m_length)
         {
           return OTS_FAILURE_MSG("EBDT table too small or image size too large");
@@ -165,9 +202,10 @@ namespace ots
         {
           return OTS_FAILURE_MSG("Failed to parse big glyph metrics");
         }
-        uint32_t number_of_bits = metrics.height * metrics.width * bit_depth;
-        uint32_t number_of_bytes = (number_of_bits + 7) / 8;
-        *out_image_size = ots::ebdt::BigGlyphMetricsSize + number_of_bytes;
+        *out_image_size = ots::ebdt::BigGlyphMetricsSize +
+                          number_of_bytes_in_bit_aligned_image_data(metrics.width,
+                                                                    metrics.height,
+                                                                    bit_depth);
         if (ebdt_table_offset + *out_image_size > m_length)
         {
           return OTS_FAILURE_MSG("EBDT table too small or image size too large");
@@ -196,8 +234,8 @@ namespace ots
          * @TODO do we need to validate that the
          * glyph Id referenced in the component is available?
          */
-        *out_image_size = ots::ebdt::SmallGlyphMetricsSize + /*pad*/ 1 + /* numComponents */ 2 +
-                          numComponents * (/* glyphId */ 2 + /* xOffset */ 1 + /* yOffset */ 1);
+        *out_image_size = ots::ebdt::SmallGlyphMetricsSize + /*pad*/ 1 +
+                          number_of_bytes_with_component_data(numComponents);
         if (ebdt_table_offset + *out_image_size > m_length)
         {
           return OTS_FAILURE_MSG("EBDT table too small or image size too large");
@@ -218,11 +256,11 @@ namespace ots
         return OTS_FAILURE_MSG("Failed to read numComponents");
       }
       /**
-       * @TODO do we need to validate that the
+       * @TODO(mmulet) do we need to validate that the
        * glyph Id referenced in the component is available?
        */
-      *out_image_size = ots::ebdt::BigGlyphMetricsSize + /* numComponents */ 2 +
-                        numComponents * (/* glyphId */ 2 + /* xOffset */ 1 + /* yOffset */ 1);
+      *out_image_size = ots::ebdt::BigGlyphMetricsSize +
+                        number_of_bytes_with_component_data(numComponents);
       if (ebdt_table_offset + *out_image_size > m_length)
       {
         return OTS_FAILURE_MSG("EBDT table too small or image size too large");
@@ -242,6 +280,9 @@ namespace ots
                                                              uint32_t *out_image_size)
 
   {
+#ifdef DEBUG_EBDT
+    declare_tested_format(image_format);
+#endif
     Font *font = GetFont();
     // Buffer table(m_data + ebdt_table_offset, m_length = );
 
@@ -265,9 +306,9 @@ namespace ots
       return OTS_FAILURE_MSG("Unsupported image format");
     }
     // Format 5: metrics in EBLC, bit-aligned image data only
-    uint32_t number_of_bits = width * height * bit_depth;
-    uint32_t number_of_bytes = (number_of_bits + 7) / 8;
-    *out_image_size = number_of_bytes;
+    *out_image_size = number_of_bytes_in_bit_aligned_image_data(width,
+                                                                height,
+                                                                bit_depth);
     if (ebdt_table_offset + *out_image_size > m_length)
     {
       return OTS_FAILURE_MSG("EBDT table too small or image size too large");

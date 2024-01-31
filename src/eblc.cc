@@ -15,7 +15,20 @@
 
 namespace
 {
-
+// #define DEBUG_EBLC
+#ifdef DEBUG_EBLC
+    std::vector<bool> subtables_tested(5);
+    void declare_tested_table(uint16_t index_format)
+    {
+        if (subtables_tested[index_format])
+        {
+            return;
+        }
+        subtables_tested[index_format] = true;
+        printf("Tested subtable %d\n", index_format);
+        return;
+    }
+#endif
     bool ParseIndexSubTable(const ots::Font *font,
                             ots::OpenTypeEBDT *ebdt,
                             uint8_t bit_depth,
@@ -33,6 +46,9 @@ namespace
         {
             return OTS_FAILURE_MSG("Failed to read IndexSubTable");
         }
+#ifdef DEBUG_EBLC
+        declare_tested_table(index_format);
+#endif
 
         switch (index_format)
         {
@@ -42,6 +58,7 @@ namespace
          */
         case 1:
         {
+
             /**
              * From spec:
              * sbitOffsets[glyphIndex] + imageDataOffset = glyphData
@@ -236,7 +253,7 @@ namespace
                 !table.ReadU16(&this_sbix_offset))
             {
                 return OTS_FAILURE_MSG("Failed to read IndexSubTable4 GlyphIdOffsetPair record");
-                        }
+            }
 
             uint16_t next_glyph_id = 0;
             uint16_t next_sbix_offset = 0;

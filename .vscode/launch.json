@@ -10,19 +10,48 @@
       "request": "launch",
       "program": "${workspaceFolder}/build/ots-sanitize",
       "args": [
+        // "/Users/m/Downloads/test_ebdt_fonts/gulim.ttc",
+        // "/Users/m/Downloads/test_ebdt_fonts/gulim.ttc.output.ttc"
+
+        // "/Users/m/Downloads/test_ebdt_fonts/batang.ttc",
+        // "/Users/m/Downloads/test_ebdt_fonts/batang.ttc.output.ttc",
+
+        // "/Users/m/Downloads/test_ebdt_fonts/python_script/batang3.ttf",
+        // "/Users/m/Downloads/test_ebdt_fonts/python_script/batang3.ttf.output.tff",
+
+        // "/Users/m/Downloads/test_ebdt_fonts/python_script/batang2.ttf",
+        // "/Users/m/Downloads/test_ebdt_fonts/python_script/batang2.ttf.output.tff",
+
+        // "/Users/m/Downloads/test_ebdt_fonts/python_script/batang0.ttf",
+        // "/Users/m/Downloads/test_ebdt_fonts/python_script/batang0.ttf.output.tff",
+
+        // "/Users/m/Downloads/test_ebdt_fonts/python_script/batang1.ttf",
+        // "/Users/m/Downloads/test_ebdt_fonts/python_script/batang1.ttf.output.tff",
+
+        // "/Users/m/Downloads/test_ebdt_fonts/python_script/gulim2.ttf",
+        // "/Users/m/Downloads/test_ebdt_fonts/python_script/gulim2.ttf.output.tff",
+
+        // "/Users/m/Downloads/test_ebdt_fonts/python_script/gulim3.ttf",
+        // "/Users/m/Downloads/test_ebdt_fonts/python_script/gulim3.ttf.output.tff",
+
+        // "/Users/m/Downloads/test_ebdt_fonts/python_script/gulim1.ttf",
+        // "/Users/m/Downloads/test_ebdt_fonts/python_script/gulim1.ttf.output.tff",
+
+        // "/Users/m/Downloads/test_ebdt_fonts/python_script/gulim0.ttf",
+        // "/Users/m/Downloads/test_ebdt_fonts/python_script/gulim0.ttf.output.tff"
 
         // "/Users/m/Downloads/test_ebdt_fonts/test_fonts/batang_1.ttf",
         // "/Users/m/Downloads/test_ebdt_fonts/test_fonts/output/batang_1.output.ttf",
 
-        // "/Users/m/Downloads/test_ebdt_fonts/test_fonts/batang_3.ttf",
-        // "/Users/m/Downloads/test_ebdt_fonts/test_fonts/output/batang_3.output.ttf",
+        "/Users/m/Downloads/test_ebdt_fonts/test_fonts/batang_3.ttf",
+        "/Users/m/Downloads/test_ebdt_fonts/test_fonts/output/batang_3.output.ttf",
 
         // "/Users/m/Downloads/test_ebdt_fonts/test_fonts/batang_2.ttf",
         // "/Users/m/Downloads/test_ebdt_fonts/test_fonts/output/batang_2.output.ttf",
 
         // "/Users/m/Downloads/test_ebdt_fonts/test_fonts/gulim2.ttf",
         // "/Users/m/Downloads/test_ebdt_fonts/test_fonts/output/gulim2.output.ttf",
-        
+
         // "/Users/m/Downloads/test_ebdt_fonts/test_fonts/gulim3.ttf",
         // "/Users/m/Downloads/test_ebdt_fonts/test_fonts/output/gulim3.output.ttf",
 
@@ -32,9 +61,6 @@
         // "/Users/m/Downloads/test_ebdt_fonts/test_fonts/gulim0.ttf",
         // "/Users/m/Downloads/test_ebdt_fonts/test_fonts/output/gulim0.output.ttf",
 
-
-
-
         // "/Users/m/Downloads/test_ebdt_fonts/batacg_transfonter/Batang-01.ttf",
         // "/Users/m/Downloads/test_ebdt_fonts/batacg_transfonter/Batang-01.output.ttf",
 
@@ -43,7 +69,6 @@
 
         // "/Users/m/Downloads/test_ebdt_fonts/Batang_gen.ttf",
         // "/Users/m/Downloads/test_ebdt_fonts/Batang_gen.output.ttf",
-
       ],
       "stopAtEntry": false,
       "cwd": "${fileDirname}",
