@@ -29,6 +29,94 @@ namespace
         return;
     }
 #endif
+
+    bool read_offset_16_or_offset_32(ots::Buffer &table,
+                                     bool offset_16,
+                                     uint32_t *out_offset)
+    {
+        if (!offset_16)
+        {
+            return table.ReadU32(out_offset);
+        }
+        uint16_t offset_16_bit = 0;
+        if (!table.ReadU16(&offset_16_bit))
+        {
+            return false;
+        }
+        *out_offset = offset_16_bit;
+        return true;
+    }
+
+    bool ParseIndexSubTable1or3(
+        const ots::Font *font,
+        ots::OpenTypeEBDT *ebdt,
+        uint8_t bit_depth,
+        uint16_t first_glyph_index,
+        uint16_t last_glyph_index,
+        uint16_t image_format,
+        uint32_t ebdt_table_image_data_offset,
+        ots::Buffer &table,
+        bool index_sub_table_3)
+    {
+        /**
+         * From spec:
+         * sbitOffsets[glyphIndex] + imageDataOffset = glyphData
+         * sizeOfArray = (lastGlyph - firstGlyph + 1) + 1 + 1 pad if needed
+         *
+         */
+        uint32_t number_of_glyphs = last_glyph_index - first_glyph_index + 1;
+        uint32_t this_glyph_sbit_offset = 0;
+        uint32_t next_glyph_sbit_offset = 0;
+        /**
+         * @brief IndexSubTable1: variable-metrics glyphs with 4-byte offsets
+         * IndexSubTable3: variable-metrics glyphs with 2-byte offsets
+         *
+         */
+        if (!read_offset_16_or_offset_32(table, index_sub_table_3, &this_glyph_sbit_offset))
+        {
+            return OTS_FAILURE_MSG("Failed to read sbit offset for IndexSubTable1");
+        }
+
+        for (uint32_t glyphIndex = 0; glyphIndex < number_of_glyphs; glyphIndex++)
+        {
+            if (!read_offset_16_or_offset_32(table, index_sub_table_3, &next_glyph_sbit_offset))
+            {
+                return OTS_FAILURE_MSG("Failed to sbit offset[%d] for IndexSubTable1", glyphIndex + 1);
+            }
+            int32_t image_size = next_glyph_sbit_offset - this_glyph_sbit_offset;
+            uint32_t glyphDataOffset = this_glyph_sbit_offset + ebdt_table_image_data_offset;
+            this_glyph_sbit_offset = next_glyph_sbit_offset;
+            if (image_size < 0)
+            {
+                return OTS_FAILURE_MSG("Offsets not in orderInvalid image size %d", image_size);
+            }
+            if (image_size == 0)
+            {
+                /**
+                 * @brief The spec says that image-size 0 is used
+                 * to skip glyphs
+                 *
+                 */
+                continue;
+            }
+            uint32_t unsigned_image_size = static_cast<uint32_t>(image_size);
+            uint32_t out_image_size = 0;
+
+            if (!ebdt->ParseGlyphBitmapDataWithVariableMetrics(image_format,
+                                                               glyphDataOffset,
+                                                               bit_depth,
+                                                               &out_image_size))
+            {
+                return OTS_FAILURE_MSG("Failed to parse glyph bitmap data");
+            }
+            if (out_image_size != unsigned_image_size)
+            {
+                return OTS_FAILURE_MSG("Image size %d does not match expected size %d", out_image_size, unsigned_image_size);
+            }
+        }
+        return true;
+    }
+
     bool ParseIndexSubTable(const ots::Font *font,
                             ots::OpenTypeEBDT *ebdt,
                             uint8_t bit_depth,
@@ -57,67 +145,23 @@ namespace
          *
          */
         case 1:
-        {
-
-            /**
-             * From spec:
-             * sbitOffsets[glyphIndex] + imageDataOffset = glyphData
-             * sizeOfArray = (lastGlyph - firstGlyph + 1) + 1 + 1 pad if needed
-             *
-             */
-            uint32_t number_of_glyphs = last_glyph_index - first_glyph_index + 1;
-            uint32_t this_glyph_sbit_offset = 0;
-            uint32_t next_glyph_sbit_offset = 0;
-
-            if (!table.ReadU32(&this_glyph_sbit_offset))
+            if (!ParseIndexSubTable1or3(font,
+                                        ebdt,
+                                        bit_depth,
+                                        first_glyph_index,
+                                        last_glyph_index,
+                                        image_format,
+                                        ebdt_table_image_data_offset,
+                                        table,
+                                        /**is subtable3*/ false))
             {
-                return OTS_FAILURE_MSG("Failed to read sbit offset for IndexSubTable1");
-            }
-
-            for (uint32_t glyphIndex = 0; glyphIndex < number_of_glyphs; glyphIndex++)
-            {
-                if (!table.ReadU32(&next_glyph_sbit_offset))
-                {
-                    return OTS_FAILURE_MSG("Failed to sbit offset[%d] for IndexSubTable1", glyphIndex + 1);
-                }
-                int32_t image_size = next_glyph_sbit_offset - this_glyph_sbit_offset;
-                uint32_t glyphDataOffset = this_glyph_sbit_offset + ebdt_table_image_data_offset;
-                this_glyph_sbit_offset = next_glyph_sbit_offset;
-                if (image_size < 0)
-                {
-                    return OTS_FAILURE_MSG("Offsets not in orderInvalid image size %d", image_size);
-                }
-                if (image_size == 0)
-                {
-                    /**
-                     * @brief The spec says that image-size 0 is used
-                     * to skip glyphs
-                     *
-                     */
-                    continue;
-                }
-                uint32_t unsigned_image_size = static_cast<uint32_t>(image_size);
-                uint32_t out_image_size = 0;
-
-                if (!ebdt->ParseGlyphBitmapDataWithVariableMetrics(image_format,
-                                                                   glyphDataOffset,
-                                                                   bit_depth,
-                                                                   &out_image_size))
-                {
-                    return OTS_FAILURE_MSG("Failed to parse glyph bitmap data");
-                }
-                if (out_image_size != unsigned_image_size)
-                {
-                    return OTS_FAILURE_MSG("Image size %d does not match expected size %d", out_image_size, unsigned_image_size);
-                }
+                return OTS_FAILURE_MSG("Failed to parse IndexSubTable1");
             }
             break;
-        }
-        break;
-            /**
-             *  IndexSubTable2: all glyphs have identical metrics
-             *
-             */
+        /**
+         *  IndexSubTable2: all glyphs have identical metrics
+         *
+         */
         case 2:
         {
             uint32_t image_size;
@@ -158,86 +202,19 @@ namespace
 
         // IndexSubTable3: variable-metrics glyphs with 2-byte offsets
         case 3:
-        {
-            /**
-             * @brief From spec:
-             * sbitOffets[glyphIndex] + imageDataOffset = glyphData
-             * sizeOfArray = (lastGlyph - firstGlyph + 1) + 1 + 1 pad if needed
-             */
-
-            uint32_t number_of_glyphs = last_glyph_index - first_glyph_index + 1;
-
-            uint32_t this_glyph_sbit_offset = 0;
-            uint32_t next_glyph_sbit_offset = 0;
-
-            uint16_t sbit_offset_16_bit = 0;
-
-            if (!table.ReadU16(&sbit_offset_16_bit))
+            if (!ParseIndexSubTable1or3(font,
+                                        ebdt,
+                                        bit_depth,
+                                        first_glyph_index,
+                                        last_glyph_index,
+                                        image_format,
+                                        ebdt_table_image_data_offset,
+                                        table,
+                                        /**is subtable3*/ true))
             {
-                return OTS_FAILURE_MSG("Failed to read IndexSubTable3, sbit offset for IndexSubTable3");
+                return OTS_FAILURE_MSG("Failed to parse IndexSubTable3");
             }
-            this_glyph_sbit_offset = sbit_offset_16_bit;
-
-            for (uint16_t glyphIndex = 0; glyphIndex < number_of_glyphs; glyphIndex++)
-            {
-                if (!table.ReadU16(&sbit_offset_16_bit))
-                {
-                    return OTS_FAILURE_MSG("Failed to read IndexSubTable3, sbit offset for IndexSubTable3, glyphIndex[%d]", glyphIndex + 1);
-                }
-                next_glyph_sbit_offset = sbit_offset_16_bit;
-
-                int32_t image_size = next_glyph_sbit_offset - this_glyph_sbit_offset;
-                uint32_t glyphDataOffset = this_glyph_sbit_offset + ebdt_table_image_data_offset;
-
-                this_glyph_sbit_offset = next_glyph_sbit_offset;
-
-                if (image_size < 0)
-                {
-                    return OTS_FAILURE_MSG("Offsets not in orderInvalid image size %d", image_size);
-                }
-                if (image_size == 0)
-                {
-                    /**
-                     * @brief The spec says that image-size 0 is used
-                     * to skip glyphs
-                     *
-                     */
-
-                    continue;
-                }
-                uint32_t unsigned_image_size = static_cast<uint32_t>(image_size);
-                uint32_t out_image_size = 0;
-
-                if (!ebdt->ParseGlyphBitmapDataWithVariableMetrics(image_format,
-                                                                   glyphDataOffset,
-                                                                   bit_depth,
-                                                                   &out_image_size))
-                {
-                    return OTS_FAILURE_MSG("Failed to parse glyph bitmap data");
-                }
-                if (out_image_size != unsigned_image_size)
-                {
-                    return OTS_FAILURE_MSG("Image size %d does not match expected size %d", out_image_size, unsigned_image_size);
-                }
-            }
-            /**
-             * @brief check if the table size is aligned to a 32-bit boundary
-             *
-             */
-            if (((number_of_glyphs + /**the extra offset for size calculation*/ 1) % 2) != 0)
-            {
-                uint16_t pad = 0;
-                if (!table.ReadU16(&pad))
-                {
-                    return OTS_FAILURE_MSG("Failed to read IndexSubTable3, pad for IndexSubTable3, not aligned to 32-bit boundary");
-                }
-                if (pad != 0)
-                {
-                    return OTS_FAILURE_MSG("Invalid pad %d", pad);
-                }
-            }
-        }
-        break;
+            break;
         // IndexSubTable4: variable-metrics glyphs with sparse glyph codes
         case 4:
         {
