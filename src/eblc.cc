@@ -114,6 +114,7 @@ namespace
                 return OTS_FAILURE_MSG("Image size %d does not match expected size %d", out_image_size, unsigned_image_size);
             }
         }
+
         return true;
     }
 
@@ -176,7 +177,7 @@ namespace
             {
                 return OTS_FAILURE_MSG("Failed to read indexSubTable2, big glyph metrics");
             }
-            uint32_t image_data_offset_plus_this_sub_table = ebdt_table_image_data_offset + /*image_size*/ 4 + ots::ebdt::BigGlyphMetricsSize;
+            uint32_t image_data_offset_plus_this_sub_table = ebdt_table_image_data_offset;
             uint32_t num_glyphs = last_glyph_index - first_glyph_index + 1;
             /**
              * @brief @TODO does out_image size have to match image_size?
@@ -218,8 +219,8 @@ namespace
         // IndexSubTable4: variable-metrics glyphs with sparse glyph codes
         case 4:
         {
-            uint16_t num_glyphs = 0;
-            if (!table.ReadU16(&num_glyphs))
+            uint32_t num_glyphs = 0;
+            if (!table.ReadU32(&num_glyphs))
             {
                 return OTS_FAILURE_MSG("Failed to read IndexSubTable4 num_glyphs");
             }
@@ -245,7 +246,6 @@ namespace
                 {
                     return OTS_FAILURE_MSG("Invalid glyph id %d, last glyph id %d, they must be sorted by glyph id", next_glyph_id, this_glyph_id);
                 }
-                this_glyph_id = next_glyph_id;
                 if (this_glyph_id < first_glyph_index || this_glyph_id > last_glyph_index)
                 {
                     return OTS_FAILURE_MSG("Invalid glyph id %d, must be between first glyph id %d and last glyph id %d", this_glyph_id, first_glyph_index, last_glyph_index);
@@ -254,6 +254,7 @@ namespace
                 uint32_t image_size = next_sbix_offset - this_sbix_offset;
                 uint32_t glyphDataOffset = this_sbix_offset + ebdt_table_image_data_offset;
 
+                this_glyph_id = next_glyph_id;
                 this_sbix_offset = next_sbix_offset;
                 if (image_size < 0)
                 {
@@ -306,11 +307,14 @@ namespace
             }
             uint16_t glyphId = 0;
             uint16_t last_glyph_id = 0;
-            uint32_t image_data_offset_plus_this_sub_table = ebdt_table_image_data_offset +
-                                                             /*image_size*/ 4 +
-                                                             ots::ebdt::BigGlyphMetricsSize +
-                                                             /*num_glyphs*/ 4 +
-                                                             /**glyphIdArray[numGlyphs]*/ num_glyphs * 2;
+            // uint32_t image_data_offset_plus_this_sub_table = ebdt_table_image_data_offset +
+            //                                                  /*image_size*/ 4 +
+            //                                                  ots::ebdt::BigGlyphMetricsSize +
+            //                                                  /*num_glyphs*/ 4 +
+            //                                                  /**glyphIdArray[numGlyphs]*/ num_glyphs * 2;
+
+            uint32_t image_data_offset_plus_this_sub_table = ebdt_table_image_data_offset;
+
             for (uint32_t i = 0; i < num_glyphs; i++)
             {
                 if (!table.ReadU16(&glyphId))
@@ -339,22 +343,6 @@ namespace
                                                                    &_unused_out_image_size))
                 {
                     return OTS_FAILURE_MSG("Failed to parse glyph bitmap data");
-                }
-            }
-            /**
-             * @brief check if the table size is aligned to a 32-bit boundary
-             *
-             */
-            if (((num_glyphs + /**the extra offset for size calculation*/ 1) % 2) != 0)
-            {
-                uint16_t pad = 0;
-                if (!table.ReadU16(&pad))
-                {
-                    return OTS_FAILURE_MSG("Failed to read IndexSubTable5, pad for IndexSubTable5, not aligned to 32-bit boundary");
-                }
-                if (pad != 0)
-                {
-                    return OTS_FAILURE_MSG("Invalid pad %, for IndexSubTable5", pad);
                 }
             }
 
@@ -438,10 +426,10 @@ namespace ots
         {
             return Error("Bad version");
         }
-        std::vector<uint32_t> index_subtable_offsets_arrays;
-        index_subtable_offsets_arrays.reserve(num_sizes);
+        std::vector<uint32_t> index_subtable_offsets_arrays(num_sizes);
         std::vector<uint8_t> bit_depths(num_sizes);
         const unsigned bitmap_size_end = 48 * static_cast<unsigned>(num_sizes) + 8;
+        std::vector<uint32_t> number_of_index_sub_tables_per_size(num_sizes);
 
         OpenTypeEBDT *ebdt = static_cast<OpenTypeEBDT *>(
             font->GetTypedTable(OTS_TAG_EBDT));
@@ -502,7 +490,8 @@ namespace ots
             {
                 return OTS_FAILURE_MSG("Bad index sub table array offset %d for BitmapSize %d", index_sub_table_array_offset, i);
             }
-            index_subtable_offsets_arrays.push_back(index_sub_table_array_offset);
+            index_subtable_offsets_arrays[i] = index_sub_table_array_offset;
+            number_of_index_sub_tables_per_size[i] = number_of_index_sub_tables;
         }
         if (index_subtable_offsets_arrays.size() != num_sizes)
         {
@@ -514,17 +503,20 @@ namespace ots
 
         for (unsigned i = 0; i < num_sizes; ++i)
         {
-            if (!ParseIndexSubTableArray(
-                    font,
-                    ebdt,
-                    /* eblc_data */ data,
-                    /* eblc_length */ length,
-                    /* bit_depth*/ bit_depths[i],
-                    /*index_sub_table_array_offset*/ index_subtable_offsets_arrays[i],
-                    data + index_subtable_offsets_arrays[i],
-                    length - index_subtable_offsets_arrays[i]))
+            for (uint32_t array_index = 0; array_index < number_of_index_sub_tables_per_size[i]; array_index++)
             {
-                return OTS_FAILURE_MSG("Failed to parse IndexSubTableArray %d", i);
+                if (!ParseIndexSubTableArray(
+                        font,
+                        ebdt,
+                        /* eblc_data */ data,
+                        /* eblc_length */ length,
+                        /* bit_depth*/ bit_depths[i],
+                        /*index_sub_table_array_offset*/ index_subtable_offsets_arrays[i],
+                        data + index_subtable_offsets_arrays[i] + array_index * /*IndexSubTableArraySize*/ 8,
+                        length - index_subtable_offsets_arrays[i]))
+                {
+                    return OTS_FAILURE_MSG("Failed to parse IndexSubTableArray %d", i);
+                }
             }
         }
         // if (lowest_glyph)

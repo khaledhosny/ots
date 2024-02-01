@@ -241,6 +241,7 @@ namespace ots
           return OTS_FAILURE_MSG("EBDT table too small or image size too large");
         }
       }
+      return true;
     case 9:
     {
       // big metrics, component data
@@ -265,6 +266,7 @@ namespace ots
       {
         return OTS_FAILURE_MSG("EBDT table too small or image size too large");
       }
+     return true;
     }
 
     default:
