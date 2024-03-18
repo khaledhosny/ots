@@ -66,6 +66,7 @@ good_fonts = [
   'fonts/good/a29b6af1965f9cac3b4ada03258bcce6a155b168.ttf',
   'fonts/good/a64a622a50d6400592a9590c003afb02e9e4436d.otf',
   'fonts/good/a69c0298f6d3e29903a492ce1f175932dabf800e.otf',
+  'fonts/good/aabe188315aa874a8e3ad3531efd3f62de10c67e.ttf',
   'fonts/good/ad455c8c531334cf470a98901cbe86a378895c14.ttf',
   'fonts/good/b258998a804fe4780216ebd43248436e2d015f03.ttf',
   'fonts/good/b2fc7c776ddbc942ae72bf4060a8c1412b715cf3.otf',
