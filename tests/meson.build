@@ -224,6 +224,7 @@ bad_fonts = [
   'fonts/bad/ed550c912a8c5febfdad9ca2500b3284ecfac0d7.ttf',
   'fonts/bad/edaf09c932e0582b1473384f66d5571da752a4d2.otf',
   'fonts/bad/f1dba4340ce94f5359fa4434debc7efcfd1b521f.ttf',
+  'fonts/bad/f457d1f9504dbf206f50ea8ae7ab1bc4c51b95c0.ttc',
 ]
 
 fuzzing_fonts = good_fonts + bad_fonts + [
