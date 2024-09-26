@@ -544,6 +544,7 @@ bool ProcessWOFF2(ots::FontFile *header,
 
   std::string buf(decompressed_size, 0);
   woff2::WOFF2StringOut out(&buf);
+  out.SetMaxSize(decompressed_size);
   if (!woff2::ConvertWOFF2ToTTF(data, length, &out)) {
     return OTS_FAILURE_MSG_HDR("Failed to convert WOFF 2.0 font to SFNT");
   }
