@@ -28,7 +28,9 @@ if get_option('colr-cycle-check')
   conf.set('OTS_COLR_CYCLE_CHECK', 1)
 endif
 
-freetype = dependency('freetype2', required: false)
+freetype = dependency('freetype2', required: false,
+  default_options: ['harfbuzz=disabled', 'brotli=disabled', 'zlib=disabled', 'bzip2=disabled']
+)
 if freetype.found()
   conf.set('HAVE_FREETYPE', 1)
 endif
