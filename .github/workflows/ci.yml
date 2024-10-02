@@ -93,7 +93,7 @@ jobs:
         echo "release_name=$(git tag -l --format='%(contents:subject)' ${{ github.ref_name }})" >> $GITHUB_ENV
 
     - name: Publish
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         name: ${{ env.release_name }}
         body_path: ${{ runner.temp }}/release_body.md
