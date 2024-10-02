@@ -39,7 +39,6 @@ jobs:
       run: ninja -C build test
 
     - name: Install
-      if: github.ref_type == 'tag'
       shell: bash
       run: |
         ninja -C build install
@@ -48,14 +47,12 @@ jobs:
         mv -v dist/bin ots-$VERSION-${{ runner.os }}
 
     - name: Archive
-      if: github.ref_type == 'tag'
       uses: thedoctor0/zip-release@master
       with:
         path: ots-${{ env.ots_version }}-${{ runner.os }}
         filename: ots-${{ env.ots_version }}-${{ runner.os }}.zip
 
     - name: Upload
-      if: github.ref_type == 'tag'
       uses: actions/upload-artifact@v4
       with:
         name: ots-${{ env.ots_version }}-${{ runner.os }}
@@ -63,11 +60,11 @@ jobs:
         if-no-files-found: error
 
     - name: Make Dist Tarball
-      if: github.ref_type == 'tag' && matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-latest'
       run: meson dist -C build --no-tests
 
     - name: Upload Dist Tarball
-      if: github.ref_type == 'tag' && matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-latest'
       uses: actions/upload-artifact@v4
       with:
         name: ots-${{ env.ots_version }}
