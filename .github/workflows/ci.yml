@@ -56,9 +56,9 @@ jobs:
 
     - name: Upload
       if: github.ref_type == 'tag'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: bin-${{ runner.os }}
+        name: ots-${{ env.ots_version }}-${{ runner.os }}
         path: ots-*.zip
         if-no-files-found: error
 
@@ -68,9 +68,9 @@ jobs:
 
     - name: Upload Dist Tarball
       if: github.ref_type == 'tag' && matrix.os == 'ubuntu-latest'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: dist
+        name: ots-${{ env.ots_version }}
         path: build/meson-dist/ots-*.tar.xz
         if-no-files-found: error
 
@@ -83,7 +83,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Download artifacts from build jobs
-      uses: actions/download-artifact@v4.1.7
+      uses: actions/download-artifact@v4
       with:
         path: dist
 
