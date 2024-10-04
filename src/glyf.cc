@@ -15,6 +15,8 @@
 // glyf - Glyph Data
 // http://www.microsoft.com/typography/otspec/glyf.htm
 
+#define TABLE_NAME "glyf"
+
 namespace ots {
 
 bool OpenTypeGLYF::ParseFlagsForSimpleGlyph(Buffer &glyph,
@@ -259,10 +261,15 @@ bool OpenTypeGLYF::ParseSimpleGlyph(Buffer &glyph,
 
 bool OpenTypeGLYF::ParseCompositeGlyph(
     Buffer &glyph,
-    ComponentPointCount* component_point_count) {
+    unsigned glyph_id,
+    ComponentPointCount* component_point_count,
+    unsigned* skip_count) {
   uint16_t flags = 0;
   uint16_t gid = 0;
+  std::vector<std::pair<unsigned, unsigned>> skip_ranges;
   do {
+    unsigned int start = glyph.offset();
+
     if (!glyph.ReadU16(&flags) || !glyph.ReadU16(&gid)) {
       return Error("Can't read composite glyph flags or glyphIndex");
     }
@@ -309,6 +316,23 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
       }
     }
 
+    if (this->loca->offsets[gid] == this->loca->offsets[gid + 1]) {
+      // DirectWrite chokes on composite glyphs that have a completely empty glyph
+      // as a component; see https://github.com/mozilla/pdf.js/issues/18848.
+      // To work around this, we attempt to drop empty components.
+      Font* font = this->GetFont();
+      if (flags & MORE_COMPONENTS) {
+        OTS_WARNING("skipping empty gid %u used as component in composite glyph %u", gid, glyph_id);
+        skip_ranges.push_back(std::make_pair(start, glyph.offset()));
+      } else {
+        // We can't drop the empty glyph if it is the last component, because that would
+        // invalidate the previous component's flags.
+        // TODO: Handle this case? Not currently observed in the wild, so maybe not a priority.
+        OTS_WARNING("empty gid %u used as last component in glyph %u; "
+                    "may fail to render in Windows", gid, glyph_id);
+      }
+    }
+
     // Push inital components on stack at level 1
     // to traverse them in parent function.
     component_point_count->gid_stack.push_back({gid, 1});
@@ -333,7 +357,21 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
     }
   }
 
-  this->iov.push_back(std::make_pair(glyph.buffer(), glyph.offset()));
+  // Append the glyph data to this->iov, skipping any ranges recorded in skip_ranges.
+  *skip_count = 0;
+  unsigned offset = 0;
+  while (!skip_ranges.empty()) {
+    auto& range = skip_ranges.front();
+    if (range.first > offset) {
+      this->iov.push_back(std::make_pair(glyph.buffer() + offset, range.first - offset));
+    }
+    offset = range.second;
+    *skip_count += range.second - range.first;
+    skip_ranges.erase(skip_ranges.begin());
+  }
+  if (glyph.offset() > offset) {
+    this->iov.push_back(std::make_pair(glyph.buffer() + offset, glyph.offset() - offset));
+  }
 
   return true;
 }
@@ -353,6 +391,7 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
       GetFont()->GetTypedTable(OTS_TAG_NAME));
   bool is_tricky = name->IsTrickyFont();
 
+  this->loca = loca;
   this->maxp = maxp;
 
   const unsigned num_glyphs = maxp->num_glyphs;
@@ -366,6 +405,9 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
   uint32_t current_offset = 0;
 
   for (unsigned i = 0; i < num_glyphs; ++i) {
+    // Used by ParseCompositeGlyph to return the number of bytes being skipped
+    // in the glyph description, so we can adjust offsets properly.
+    unsigned skip_count = 0;
 
     Buffer glyph(GetGlyphBufferSection(data, length, offsets, i));
     if (!glyph.buffer())
@@ -414,7 +456,7 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
     } else {
 
       ComponentPointCount component_point_count;
-      if (!ParseCompositeGlyph(glyph, &component_point_count)) {
+      if (!ParseCompositeGlyph(glyph, i, &component_point_count, &skip_count)) {
         return Error("Failed to parse glyph %d", i);
       }
 
@@ -465,7 +507,7 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
       }
     }
 
-    size_t new_size = glyph.offset();
+    size_t new_size = glyph.offset() - skip_count;
     resulting_offsets[i] = current_offset;
     // glyphs must be four byte aligned
     // TODO(yusukes): investigate whether this padding is really necessary.
@@ -622,7 +664,7 @@ Buffer OpenTypeGLYF::GetGlyphBufferSection(
 bool OpenTypeGLYF::Serialize(OTSStream *out) {
   for (unsigned i = 0; i < this->iov.size(); ++i) {
     if (!out->Write(this->iov[i].first, this->iov[i].second)) {
-      return Error("Falied to write glyph %d", i);
+      return Error("Failed to write glyph %d", i);
     }
   }
 
@@ -630,3 +672,5 @@ bool OpenTypeGLYF::Serialize(OTSStream *out) {
 }
 
 }  // namespace ots
+
+#undef TABLE_NAME
