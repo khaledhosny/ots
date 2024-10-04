@@ -262,6 +262,7 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
     ComponentPointCount* component_point_count) {
   uint16_t flags = 0;
   uint16_t gid = 0;
+  bool we_have_instructions = false;
   do {
     if (!glyph.ReadU16(&flags) || !glyph.ReadU16(&gid)) {
       return Error("Can't read composite glyph flags or glyphIndex");
@@ -270,6 +271,12 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
     if (gid >= this->maxp->num_glyphs) {
       return Error("Invalid glyph id used in composite glyph: %d", gid);
     }
+
+    // According to https://learn.microsoft.com/en-gb/typography/opentype/spec/glyf#composite-glyph-description,
+    // if the WE_HAVE_INSTRUCTIONS bit is set on ANY component,
+    // there are instructions (following the last component) for
+    // the composite as a whole.
+    we_have_instructions = we_have_instructions || (flags & WE_HAVE_INSTRUCTIONS);
 
     if (flags & ARG_1_AND_2_ARE_WORDS) {
       int16_t argument1;
@@ -314,7 +321,7 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
     component_point_count->gid_stack.push_back({gid, 1});
   } while (flags & MORE_COMPONENTS);
 
-  if (flags & WE_HAVE_INSTRUCTIONS) {
+  if (we_have_instructions) {
     uint16_t bytecode_length;
     if (!glyph.ReadU16(&bytecode_length)) {
       return Error("Can't read instructions size");
