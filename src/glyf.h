@@ -21,7 +21,7 @@ class OpenTypeGLYF : public Table {
       : Table(font, tag, tag), maxp(NULL) { }
 
   ~OpenTypeGLYF() {
-    for (auto* p : fixed_bboxes) {
+    for (auto* p : replacements) {
       delete[] p;
     }
   }
@@ -80,7 +80,9 @@ class OpenTypeGLYF : public Table {
 
   std::vector<std::pair<const uint8_t*, size_t> > iov;
 
-  std::vector<uint8_t*> fixed_bboxes;
+  // Any blocks of replacement data created during parsing are stored here
+  // to be available during serialization.
+  std::vector<uint8_t*> replacements;
 };
 
 }  // namespace ots
