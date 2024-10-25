@@ -588,19 +588,25 @@ bool ParsePrivateDictData(
 }
 
 bool ParseVariationStore(ots::OpenTypeCFF& out_cff, ots::Buffer& table) {
-  uint16_t length;
+  uint16_t encoded_length;
 
-  if (!table.ReadU16(&length)) {
+  if (!table.ReadU16(&encoded_length)) {
     return OTS_FAILURE();
   }
+
+  unsigned length = encoded_length;
 
   // Empty VariationStore is allowed.
   if (!length) {
     return true;
   }
 
-  if (length > table.remaining()) {
-    return OTS_FAILURE();
+  if (length != 65535) {
+    if (length > table.remaining()) {
+      return OTS_FAILURE();
+    }
+  } else {
+    length = table.remaining();
   }
 
   if (!ParseItemVariationStore(out_cff.GetFont(),
