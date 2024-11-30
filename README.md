@@ -8,7 +8,7 @@ The OpenType Sanitizer (OTS) parses and serializes OpenType files (OTF, TTF)
 and WOFF and WOFF2 font files, validating them and sanitizing them as it goes.
 
 The C library is integrated into Chromium and Firefox, and also simple
-command line tools to check files offline in a Terminal.
+command line tools to check files offline in a terminal.
 
 The CSS [font-face property][1] is great for web typography. Having to use images
 in order to get the correct typeface is a great sadness; one should be able to
