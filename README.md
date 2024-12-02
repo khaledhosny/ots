@@ -29,12 +29,16 @@ shared library intentionally.
 
 Build OTS:
 
-    $ meson build
-    $ ninja -C build
+    $ meson setup build
+    $ meson compile -C build
+
+Run `ots-sanitize`, for example:
+
+    $ ./build/ots-sanitize path/to/font/file
 
 Run the tests (if you wish):
 
-    $ ninja -C build test
+    $ meson test -C build
 
 Usage
 -----
