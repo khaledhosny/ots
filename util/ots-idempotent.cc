@@ -149,14 +149,14 @@ int main(int argc, char **argv) {
   if (result2_len != result_len) {
     std::fprintf(stderr, "Outputs differ in length\n");
     dump_results = true;
-  } else if (std::memcmp(result.data(), result.data(), result_len)) {
+  } else if (std::memcmp(result.data(), result2.data(), result_len)) {
     std::fprintf(stderr, "Outputs differ in content\n");
     dump_results = true;
   }
 
   if (dump_results) {
     std::fprintf(stderr, "Dumping results to out1.tff and out2.tff\n");
-    if (!DumpResults(result.data(), result_len, result.data(), result2_len)) {
+    if (!DumpResults(result.data(), result_len, result2.data(), result2_len)) {
       std::fprintf(stderr, "Failed to dump output files.\n");
       return 1;
     }
