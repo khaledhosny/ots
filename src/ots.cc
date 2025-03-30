@@ -26,6 +26,9 @@
 #include "cpal.h"
 #include "cvar.h"
 #include "cvt.h"
+#include "ebdt.h"
+#include "eblc.h"
+#include "ebsc.h"
 #include "fpgm.h"
 #include "fvar.h"
 #include "gasp.h"
@@ -166,6 +169,13 @@ const struct {
   { OTS_TAG_VHEA, false },
   { OTS_TAG_VMTX, false },
   { OTS_TAG_MATH, false },
+
+  // We need to parse EBDT table in advance of parsing the 
+  // EBLC and EBSC tables because they refer to data in
+  // EBDT
+  { OTS_TAG_EBDT, false },
+  { OTS_TAG_EBLC, false },
+  { OTS_TAG_EBSC, false },
   // Graphite tables
 #ifdef OTS_GRAPHITE
   { OTS_TAG_GLOC, false },
@@ -994,6 +1004,9 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       case OTS_TAG_CPAL: table = new OpenTypeCPAL(this, tag); break;
       case OTS_TAG_CVAR: table = new OpenTypeCVAR(this, tag); break;
       case OTS_TAG_CVT:  table = new OpenTypeCVT(this,  tag); break;
+      case OTS_TAG_EBDT: table = new OpenTypeEBDT(this, tag); break;
+      case OTS_TAG_EBLC: table = new OpenTypeEBLC(this, tag); break;
+      case OTS_TAG_EBSC: table = new OpenTypeEBSC(this, tag); break;
       case OTS_TAG_FPGM: table = new OpenTypeFPGM(this, tag); break;
       case OTS_TAG_FVAR: table = new OpenTypeFVAR(this, tag); break;
       case OTS_TAG_GASP: table = new OpenTypeGASP(this, tag); break;
@@ -1023,6 +1036,7 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       case OTS_TAG_VMTX: table = new OpenTypeVMTX(this, tag); break;
       case OTS_TAG_VORG: table = new OpenTypeVORG(this, tag); break;
       case OTS_TAG_VVAR: table = new OpenTypeVVAR(this, tag); break;
+
       // Graphite tables
 #ifdef OTS_GRAPHITE
       case OTS_TAG_FEAT: table = new OpenTypeFEAT(this, tag); break;
