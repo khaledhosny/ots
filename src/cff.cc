@@ -214,7 +214,7 @@ bool ParseDictDataBcd(ots::Buffer &table, std::vector<Operand> &operands) {
 
     // check number format
     uint8_t nibbles[2];
-    nibbles[0] = (nibble & 0xf0) >> 8;
+    nibbles[0] = (nibble & 0xf0) >> 4;
     nibbles[1] = (nibble & 0x0f);
     for (unsigned i = 0; i < 2; ++i) {
       if (nibbles[i] == 0xd) {  // reserved number
