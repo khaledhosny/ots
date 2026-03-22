@@ -315,7 +315,7 @@ bool OpenTypeCMAP::Parse31012(const uint8_t *data, size_t length,
                              groups[i].end_range, groups[i].start_range);
     }
     if ((groups[i].end_range - groups[i].start_range) +
-        groups[i].start_glyph_id > num_glyphs) {
+        groups[i].start_glyph_id >= num_glyphs) {
       return Error("bad format 12 subtable group startGlyphID (%d)", groups[i].start_glyph_id);
     }
   }
