@@ -311,7 +311,7 @@ bool ParseDictDataNumber(ots::Buffer &table, uint8_t b0,
     if (!table.ReadU8(&b1)) {
       return OTS_FAILURE();
     }
-    result = -(b0 - 251) * 256 + b1 - 108;
+    result = -(b0 - 251) * 256 - b1 - 108;
   } else {
     return OTS_FAILURE();
   }
