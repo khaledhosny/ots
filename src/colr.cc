@@ -824,9 +824,9 @@ bool ParseBaseGlyphList(const ots::Font* font,
     prevGlyphID = glyphID;
   }
 
-  for (const auto& [gid, rec] : state.baseGlyphMap) {
-    if (!ParsePaint(font, rec.first, rec.second, state, 0)) {
-      return OTS_FAILURE_MSG("Failed to parse paint for base glyph ID %u", gid);
+  for (const auto& iter : state.baseGlyphMap) {
+    if (!ParsePaint(font, iter.second.first, iter.second.second, state, 0)) {
+      return OTS_FAILURE_MSG("Failed to parse paint for base glyph ID %u", iter.first);
     }
 
     // After each base glyph record is fully processed, the visited set should be clear;
