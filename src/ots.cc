@@ -774,6 +774,9 @@ bool ProcessGeneric(ots::FontFile *header,
     font->GetTypedTable(OTS_TAG_MAXP));
 
   if (glyf && loca) {
+    if (!maxp) {
+      return OTS_FAILURE_MSG_TAG("missing maxp table", OTS_TAG_MAXP);
+    }
     if (font->version != 0x000010000) {
       OTS_WARNING_MSG_HDR("wrong sfntVersion for glyph data");
       font->version = 0x000010000;
@@ -787,6 +790,9 @@ bool ProcessGeneric(ots::FontFile *header,
     if (cff2)
        cff2->Drop("font contains both CFF and glyf/loca tables");
   } else if (cff || cff2) {
+    if (!maxp) {
+      return OTS_FAILURE_MSG_TAG("missing maxp table", OTS_TAG_MAXP);
+    }
     if (font->version != OTS_TAG('O','T','T','O')) {
       OTS_WARNING_MSG_HDR("wrong sfntVersion for glyph data");
       font->version = OTS_TAG('O','T','T','O');

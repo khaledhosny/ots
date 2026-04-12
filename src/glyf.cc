@@ -468,6 +468,9 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
 
   OpenTypeNAME *name = static_cast<OpenTypeNAME*>(
       GetFont()->GetTypedTable(OTS_TAG_NAME));
+  if (!name) {
+    return Error("Missing name table needed by glyf table");
+  }
   bool is_tricky = name->IsTrickyFont();
 
   this->loca = loca;
