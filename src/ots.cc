@@ -525,44 +525,63 @@ bool ProcessWOFF(ots::FontFile *header,
   return ProcessGeneric(header, font, woff_tag, output, data, length, tables, file);
 }
 
-bool ProcessWOFF2(ots::FontFile *header,
-                  ots::OTSStream *output,
-                  const uint8_t *data,
-                  size_t length,
-                  uint32_t index) {
-  size_t decompressed_size = woff2::ComputeWOFF2FinalSize(data, length);
+ots::ExpandingMemoryStream ProcessWOFF2(
+    ots::FontFile* header,
+    ots::ExpandingMemoryStream&& input_output,
+    size_t length,
+    uint32_t index) {
+  size_t decompressed_size =
+      woff2::ComputeWOFF2FinalSize(input_output.data(), length);
 
   if (decompressed_size < length) {
-    return OTS_FAILURE_MSG_HDR("Size of decompressed WOFF 2.0 is less than compressed size");
+    OTS_FAILURE_MSG_HDR(
+        "Size of decompressed WOFF 2.0 is less than compressed size");
+    return ots::ExpandingMemoryStream();
   }
 
   if (decompressed_size == 0) {
-    return OTS_FAILURE_MSG_HDR("Size of decompressed WOFF 2.0 is set to 0");
+    OTS_FAILURE_MSG_HDR("Size of decompressed WOFF 2.0 is set to 0");
+    return ots::ExpandingMemoryStream();
   }
   // decompressed font must be <= OTS_MAX_DECOMPRESSED_FILE_SIZE
   if (decompressed_size > OTS_MAX_DECOMPRESSED_FILE_SIZE) {
-    return OTS_FAILURE_MSG_HDR("Size of decompressed WOFF 2.0 font exceeds %gMB",
-                               OTS_MAX_DECOMPRESSED_FILE_SIZE / (1024.0 * 1024.0));
+    OTS_FAILURE_MSG_HDR("Size of decompressed WOFF 2.0 font exceeds %gMB",
+                        OTS_MAX_DECOMPRESSED_FILE_SIZE / (1024.0 * 1024.0));
+    return ots::ExpandingMemoryStream();
   }
 
-  if (decompressed_size > output->size()) {
-    return OTS_FAILURE_MSG_HDR("Size of decompressed WOFF 2.0 font exceeds output size (%gMB)", output->size() / (1024.0 * 1024.0));
+  if (decompressed_size > input_output.size()) {
+    OTS_FAILURE_MSG_HDR(
+        "Size of decompressed WOFF 2.0 font exceeds output size (%gMB)",
+        input_output.size() / (1024.0 * 1024.0));
+    return ots::ExpandingMemoryStream();
   }
 
   std::string buf(decompressed_size, 0);
   woff2::WOFF2StringOut out(&buf);
   out.SetMaxSize(decompressed_size);
-  if (!woff2::ConvertWOFF2ToTTF(data, length, &out)) {
-    return OTS_FAILURE_MSG_HDR("Failed to convert WOFF 2.0 font to SFNT");
+  if (!woff2::ConvertWOFF2ToTTF(input_output.data(), length, &out)) {
+    OTS_FAILURE_MSG_HDR("Failed to convert WOFF 2.0 font to SFNT");
+    return ots::ExpandingMemoryStream();
   }
   const uint8_t *decompressed = reinterpret_cast<const uint8_t*>(buf.data());
 
-  if (data[4] == 't' && data[5] == 't' && data[6] == 'c' && data[7] == 'f') {
-    return ProcessTTC(header, output, decompressed, out.Size(), index);
+  bool result;
+  // Important to seek to 0 so we write from start of buffer
+  input_output.Seek(0u);
+
+  if (input_output.data()[4] == 't' && input_output.data()[5] == 't' &&
+      input_output.data()[6] == 'c' && input_output.data()[7] == 'f') {
+    result = ProcessTTC(header, &input_output, decompressed, out.Size(), index);
   } else {
     ots::Font font(header);
-    return ProcessTTF(header, &font, output, decompressed, out.Size());
+    result = ProcessTTF(header, &font, &input_output, decompressed, out.Size());
   }
+
+  if (result) {
+    return std::move(input_output);
+  }
+  return ots::ExpandingMemoryStream();
 }
 
 ots::TableAction GetTableAction(const ots::FontFile *header, uint32_t tag) {
@@ -665,7 +684,7 @@ bool ProcessGeneric(ots::FontFile *header,
       if (tables[i].uncompressed_length > OTS_MAX_DECOMPRESSED_TABLE_SIZE) {
         return OTS_FAILURE_MSG_HDR("%c%c%c%c: decompressed table length exceeds %gMB",
                                    OTS_UNTAG(tables[i].tag),
-                                   OTS_MAX_DECOMPRESSED_TABLE_SIZE / (1024.0 * 1024.0));        
+                                   OTS_MAX_DECOMPRESSED_TABLE_SIZE / (1024.0 * 1024.0));
       }
       if (uncompressed_sum + tables[i].uncompressed_length < uncompressed_sum) {
         return OTS_FAILURE_MSG_TAG("overflow of decompressed sum", tables[i].tag);
@@ -688,7 +707,7 @@ bool ProcessGeneric(ots::FontFile *header,
   // All decompressed tables decompressed must be <= OTS_MAX_DECOMPRESSED_FILE_SIZE.
   if (uncompressed_sum > OTS_MAX_DECOMPRESSED_FILE_SIZE) {
     return OTS_FAILURE_MSG_HDR("decompressed sum exceeds %gMB",
-                               OTS_MAX_DECOMPRESSED_FILE_SIZE / (1024.0 * 1024.0));        
+                               OTS_MAX_DECOMPRESSED_FILE_SIZE / (1024.0 * 1024.0));
   }
 
   if (uncompressed_sum > output->size()) {
@@ -1188,30 +1207,58 @@ bool TablePassthru::Serialize(OTSStream *out) {
   return true;
 }
 
-bool OTSContext::Process(OTSStream *output,
-                         const uint8_t *data,
-                         size_t length,
-                         uint32_t index) {
+ots::ExpandingMemoryStream OTSContext::Process(
+    ots::ExpandingMemoryStream&& input_output,
+    uint32_t index) {
   FontFile header;
   Font font(&header);
   header.context = this;
 
-  if (length < 4) {
-    return OTS_FAILURE_MSG_(&header, "file less than 4 bytes");
+  if (input_output.Tell() < 4) {
+    OTS_FAILURE_MSG_(&header, "file less than 4 bytes");
+    return ots::ExpandingMemoryStream();
+  }
+
+  // Special-case WOFF2 as we see it using a lot of RAM for some fonts.
+  if (input_output.data()[0] == 'w' && input_output.data()[1] == 'O' &&
+      input_output.data()[2] == 'F' && input_output.data()[3] == '2') {
+    return ProcessWOFF2(&header, std::move(input_output), input_output.Tell(),
+                        index);
   }
 
   bool result;
-  if (data[0] == 'w' && data[1] == 'O' && data[2] == 'F' && data[3] == 'F') {
-    result = ProcessWOFF(&header, &font, output, data, length);
-  } else if (data[0] == 'w' && data[1] == 'O' && data[2] == 'F' && data[3] == '2') {
-    result = ProcessWOFF2(&header, output, data, length, index);
-  } else if (data[0] == 't' && data[1] == 't' && data[2] == 'c' && data[3] == 'f') {
-    result = ProcessTTC(&header, output, data, length, index);
+  ots::ExpandingMemoryStream output(input_output.Tell(), input_output.size());
+  if (input_output.data()[0] == 'w' && input_output.data()[1] == 'O' &&
+      input_output.data()[2] == 'F' && input_output.data()[3] == 'F') {
+    result = ProcessWOFF(&header, &font, &output, input_output.data(),
+                         input_output.Tell());
+  } else if (input_output.data()[0] == 't' && input_output.data()[1] == 't' &&
+             input_output.data()[2] == 'c' && input_output.data()[3] == 'f') {
+    result = ProcessTTC(&header, &output, input_output.data(),
+                        input_output.Tell(), index);
   } else {
-    result = ProcessTTF(&header, &font, output, data, length);
+    result = ProcessTTF(&header, &font, &output, input_output.data(),
+                        input_output.Tell());
   }
 
-  return result;
+  if (result) {
+    return output;
+  }
+  return ots::ExpandingMemoryStream();
+}
+
+bool OTSContext::Process(OTSStream* output,
+                         const uint8_t* data,
+                         size_t length,
+                         uint32_t index) {
+  ots::ExpandingMemoryStream input(length, output->size());
+  input.WriteRaw(data, length);
+  ots::ExpandingMemoryStream out = Process(std::move(input), index);
+  if (!out) {
+    return false;
+  }
+  *output = std::move(out);
+  return true;
 }
 
 }  // namespace ots
