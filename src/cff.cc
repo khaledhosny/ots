@@ -5,6 +5,7 @@
 #include "cff.h"
 
 #include <cstring>
+#include <cmath>
 #include <utility>
 #include <vector>
 
@@ -41,7 +42,42 @@ enum FONT_FORMAT {
 // see Appendix. A
 const size_t kNStdString = 390;
 
-typedef std::pair<int32_t, DICT_OPERAND_TYPE> Operand;
+class Operand {
+ public:
+  // Unsigned values are used for operator codes (either single-byte or extended).
+  Operand(uint8_t o) : operand_type(DICT_OPERATOR), op(o) {}
+  Operand(uint16_t o) : operand_type(DICT_OPERATOR), op(o) {}
+
+  // Signed values are used for integers.
+  Operand(int32_t i) : operand_type(DICT_OPERAND_INTEGER), integer(i) {}
+
+  // Real (floating-point) values.
+  Operand(float f) : operand_type(DICT_OPERAND_REAL), real(f) {}
+
+  DICT_OPERAND_TYPE type() const { return operand_type; }
+
+  uint16_t as_operator() const {
+    assert(operand_type == DICT_OPERATOR);
+    return op;
+  }
+  int32_t as_integer() const {
+    assert(operand_type == DICT_OPERAND_INTEGER);
+    return integer;
+  }
+  float as_real() const {
+    assert(operand_type == DICT_OPERAND_REAL);
+    return real;
+  }
+
+ private:
+  DICT_OPERAND_TYPE operand_type;
+
+  union {
+    uint16_t op;
+    int32_t  integer;
+    float    real;
+  };
+};
 
 bool ReadOffset(ots::Buffer &table, uint8_t off_size, uint32_t *offset) {
   if (off_size > 4) {
@@ -169,28 +205,32 @@ bool ParseNameData(
 }
 
 bool CheckOffset(const Operand& operand, size_t table_length) {
-  if (operand.second != DICT_OPERAND_INTEGER) {
+  if (operand.type() != DICT_OPERAND_INTEGER) {
     return OTS_FAILURE();
   }
-  if (operand.first >= static_cast<int32_t>(table_length) || operand.first < 0) {
+  if (operand.as_integer() >= static_cast<int32_t>(table_length) || operand.as_integer() < 0) {
     return OTS_FAILURE();
   }
   return true;
 }
 
 bool CheckSid(const Operand& operand, size_t sid_max) {
-  if (operand.second != DICT_OPERAND_INTEGER) {
+  if (operand.type() != DICT_OPERAND_INTEGER) {
     return OTS_FAILURE();
   }
-  if (operand.first > static_cast<int32_t>(sid_max) || operand.first < 0) {
+  if (operand.as_integer() > static_cast<int32_t>(sid_max) || operand.as_integer() < 0) {
     return OTS_FAILURE();
   }
   return true;
 }
 
 bool ParseDictDataBcd(ots::Buffer &table, std::vector<Operand> &operands) {
-  bool read_decimal_point = false;
   bool read_e = false;
+  bool negative = false;
+  float value = 0.0f;
+  float dec_value = 1.0f;
+  int exponent = 0;
+  bool exp_negative = false;
 
   uint8_t nibble = 0;
   size_t count = 0;
@@ -198,47 +238,65 @@ bool ParseDictDataBcd(ots::Buffer &table, std::vector<Operand> &operands) {
     if (!table.ReadU8(&nibble)) {
       return OTS_FAILURE();
     }
-    if ((nibble & 0xf0) == 0xf0) {
-      if ((nibble & 0xf) == 0xf) {
-        // TODO(yusukes): would be better to store actual double value,
-        // rather than the dummy integer.
-        operands.push_back(std::make_pair(0, DICT_OPERAND_REAL));
-        return true;
-      }
-      return OTS_FAILURE();
-    }
-    if ((nibble & 0x0f) == 0x0f) {
-      operands.push_back(std::make_pair(0, DICT_OPERAND_REAL));
-      return true;
-    }
-
-    // check number format
+    // Check number format and read the value.
     uint8_t nibbles[2];
     nibbles[0] = (nibble & 0xf0) >> 4;
     nibbles[1] = (nibble & 0x0f);
     for (unsigned i = 0; i < 2; ++i) {
+      if (nibbles[i] == 0xf) {  // end of number
+        if (i == 0 && nibbles[1] != 0xf) {
+          return OTS_FAILURE();  // missing required padding
+        }
+        if (exponent != 0) {
+          if (exp_negative) {
+            exponent = -exponent;
+          }
+          value = value * std::pow(10.0f, (float)exponent);
+        }
+        if (negative) {
+          value = -value;
+        }
+        operands.push_back(Operand(value));
+        return true;
+      }
       if (nibbles[i] == 0xd) {  // reserved number
         return OTS_FAILURE();
       }
-      if ((nibbles[i] == 0xe) &&  // minus
-          ((count > 0) || (i > 0))) {
-        return OTS_FAILURE();  // minus sign should be the first character.
+      if (nibbles[i] == 0xe) {  // minus
+        if (count > 0 || i > 0) {
+          return OTS_FAILURE();  // minus sign should be the first character.
+        }
+        negative = true;
+        continue;
       }
       if (nibbles[i] == 0xa) {  // decimal point
-        if (!read_decimal_point) {
-          read_decimal_point = true;
+        if (dec_value == 1.0f && !read_e) {
+          dec_value = 0.1f;
+          continue;
         } else {
-          return OTS_FAILURE();  // two or more points.
+          return OTS_FAILURE();  // two or more points, or point after E±.
         }
       }
       if ((nibbles[i] == 0xb) ||  // E+
           (nibbles[i] == 0xc)) {  // E-
         if (!read_e) {
           read_e = true;
+          exp_negative = nibbles[i] == 0x0c;
+          continue;
         } else {
           return OTS_FAILURE();  // two or more E's.
         }
       }
+      if (read_e) {
+        exponent = exponent * 10 + nibbles[i];
+        continue;
+      }
+      if (dec_value < 1.0f) {
+        value = value + dec_value * nibbles[i];
+        dec_value /= 10.0f;
+        continue;
+      }
+      value = value * 10.0f + nibbles[i];
     }
     ++count;
   }
@@ -254,7 +312,8 @@ bool ParseDictDataEscapedOperator(ots::Buffer &table,
   if ((op <= 14) ||
       (op >= 17 && op <= 23) ||
       (op >= 30 && op <= 38)) {
-    operands.push_back(std::make_pair((12 << 8) + op, DICT_OPERATOR));
+    // Push as uint16_t to indicate it has OPERATOR type.
+    operands.push_back(Operand(uint16_t((12 << 8) + op)));
     return true;
   }
 
@@ -269,6 +328,7 @@ bool ParseDictDataNumber(ots::Buffer &table, uint8_t b0,
   uint8_t b3 = 0;
   uint8_t b4 = 0;
 
+  int32_t result;
   switch (b0) {
     case 28:  // shortint
       if (!table.ReadU8(&b1) ||
@@ -276,8 +336,8 @@ bool ParseDictDataNumber(ots::Buffer &table, uint8_t b0,
         return OTS_FAILURE();
       }
       //the two-byte value needs to be casted to int16_t in order to get the right sign
-      operands.push_back(std::make_pair(
-          static_cast<int16_t>((b1 << 8) + b2), DICT_OPERAND_INTEGER));
+      result = static_cast<int16_t>((b1 << 8) + b2);
+      operands.push_back(Operand(result));
       return true;
 
     case 29:  // longint
@@ -287,9 +347,8 @@ bool ParseDictDataNumber(ots::Buffer &table, uint8_t b0,
           !table.ReadU8(&b4)) {
         return OTS_FAILURE();
       }
-      operands.push_back(std::make_pair(
-          (b1 << 24) + (b2 << 16) + (b3 << 8) + b4,
-          DICT_OPERAND_INTEGER));
+      result = static_cast<int32_t>((b1 << 24) + (b2 << 16) + (b3 << 8) + b4);
+      operands.push_back(Operand(result));
       return true;
 
     case 30:  // binary coded decimal
@@ -299,7 +358,6 @@ bool ParseDictDataNumber(ots::Buffer &table, uint8_t b0,
       break;
   }
 
-  int32_t result;
   if (b0 >=32 && b0 <=246) {
     result = b0 - 139;
   } else if (b0 >=247 && b0 <= 250) {
@@ -316,7 +374,7 @@ bool ParseDictDataNumber(ots::Buffer &table, uint8_t b0,
     return OTS_FAILURE();
   }
 
-  operands.push_back(std::make_pair(result, DICT_OPERAND_INTEGER));
+  operands.push_back(Operand(result));
   return true;
 }
 
@@ -330,8 +388,7 @@ bool ParseDictDataReadNext(ots::Buffer &table,
     if (op == 12) {
       return ParseDictDataEscapedOperator(table, operands);
     }
-    operands.push_back(std::make_pair(
-        static_cast<int32_t>(op), DICT_OPERATOR));
+    operands.push_back(Operand(op));
     return true;
   } else if (op <= 27 || op == 31 || op == 255) {
     // reserved area.
@@ -420,12 +477,12 @@ bool ParsePrivateDictData(
     if (!ParseDictDataReadOperands(dict, operands, cff2)) {
       return OTS_FAILURE();
     }
-    if (operands.back().second != DICT_OPERATOR) {
+    if (operands.back().type() != DICT_OPERATOR) {
       continue;
     }
 
     // got operator
-    const int32_t op = operands.back().first;
+    const int32_t op = operands.back().as_operator();
     operands.pop_back();
 
     if (cff2 && !ValidCFF2DictOp(op, DICT_DATA_PRIVATE)) {
@@ -473,7 +530,7 @@ bool ParsePrivateDictData(
         if (operands.size() != 1) {
           return OTS_FAILURE();
         }
-        if (operands.back().second != DICT_OPERAND_INTEGER) {
+        if (operands.back().type() != DICT_OPERAND_INTEGER) {
           return OTS_FAILURE();
         }
         // In theory a negative operand could occur here, if the Local Subrs
@@ -483,14 +540,14 @@ bool ParsePrivateDictData(
         // vector for exploitation.  AFAIK no major font creation tool will
         // generate such an offset, so to be on the safe side, we don't allow
         // it here.
-        if (operands.back().first >= 1024 * 1024 * 1024 || operands.back().first < 0) {
+        if (operands.back().as_integer() >= 1024 * 1024 * 1024 || operands.back().as_integer() < 0) {
           return OTS_FAILURE();
         }
-        if (operands.back().first + offset >= table.length()) {
+        if (operands.back().as_integer() + offset >= table.length()) {
           return OTS_FAILURE();
         }
         // parse "16. Local Subrs INDEX"
-        table.set_offset(operands.back().first + offset);
+        table.set_offset(operands.back().as_integer() + offset);
         ots::CFFIndex *local_subrs_index = NULL;
         if (type == DICT_DATA_FDARRAY) {
           if (out_cff->local_subrs_per_font.empty()) {
@@ -515,10 +572,10 @@ bool ParsePrivateDictData(
         if (operands.size() != 1) {
           return OTS_FAILURE();
         }
-        if (operands.back().second != DICT_OPERAND_INTEGER) {
+        if (operands.back().type() != DICT_OPERAND_INTEGER) {
           return OTS_FAILURE();
         }
-        if (operands.back().first >= 2 || operands.back().first < 0) {
+        if (operands.back().as_integer() >= 2 || operands.back().as_integer() < 0) {
           return OTS_FAILURE();
         }
         break;
@@ -530,13 +587,13 @@ bool ParsePrivateDictData(
         if (operands.size() != 1) {
           return OTS_FAILURE();
         }
-        if (operands.back().second != DICT_OPERAND_INTEGER) {
+        if (operands.back().type() != DICT_OPERAND_INTEGER) {
           return OTS_FAILURE();
         }
         if (blend_seen) {
           return OTS_FAILURE();
         }
-        vsindex = operands.back().first;
+        vsindex = operands.back().as_integer();
         if (vsindex < 0 ||
             vsindex >= static_cast<int32_t>(out_cff->region_index_count.size())) {
           return OTS_FAILURE();
@@ -557,10 +614,13 @@ bool ParsePrivateDictData(
         }
         uint16_t k = out_cff->region_index_count.at(vsindex);
 
-        if (operands.back().first > static_cast<uint16_t>(0xffff) || operands.back().first < 0){
+        if (operands.back().type() != DICT_OPERAND_INTEGER) {
           return OTS_FAILURE();
         }
-        uint16_t n = static_cast<uint16_t>(operands.back().first);
+        if (operands.back().as_integer() > static_cast<uint16_t>(0xffff) || operands.back().as_integer() < 0){
+          return OTS_FAILURE();
+        }
+        uint16_t n = static_cast<uint16_t>(operands.back().as_integer());
         if (operands.size() < n * (k + 1) + 1) {
           return OTS_FAILURE();
         }
@@ -651,10 +711,10 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
       if (!ParseDictDataReadOperands(dict, operands, cff2)) {
         return OTS_FAILURE();
       }
-      if (operands.back().second != DICT_OPERATOR) continue;
+      if (operands.back().type() != DICT_OPERATOR) continue;
 
       // got operator
-      const int32_t op = operands.back().first;
+      const int32_t op = operands.back().as_operator();
       operands.pop_back();
 
       if (op == 18 && type == DICT_DATA_FDARRAY) {
@@ -672,7 +732,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
           return OTS_FAILURE();
         }
         // parse "VariationStore Data Contents"
-        table.set_offset(operands.back().first);
+        table.set_offset(operands.back().as_integer());
         if (!ParseVariationStore(*out_cff, table)) {
           return OTS_FAILURE();
         }
@@ -693,10 +753,10 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
     if (!ParseDictDataReadOperands(dict, operands, cff2)) {
       return OTS_FAILURE();
     }
-    if (operands.back().second != DICT_OPERATOR) continue;
+    if (operands.back().type() != DICT_OPERATOR) continue;
 
     // got operator
-    const int32_t op = operands.back().first;
+    const int32_t op = operands.back().as_operator();
     operands.pop_back();
 
     if (cff2 && !ValidCFF2DictOp(op, type)) {
@@ -760,10 +820,10 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
         if (operands.size() != 1) {
           return OTS_FAILURE();
         }
-        if(operands.back().second != DICT_OPERAND_INTEGER) {
+        if(operands.back().type() != DICT_OPERAND_INTEGER) {
           return OTS_FAILURE();
         }
-        if (operands.back().first != 2) {
+        if (operands.back().as_integer() != 2) {
           // We only support the "Type 2 Charstring Format."
           // TODO(yusukes): Support Type 1 format? Is that still in use?
           return OTS_FAILURE();
@@ -775,10 +835,10 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
         if (operands.size() != 1) {
           return OTS_FAILURE();
         }
-        if (operands.back().second != DICT_OPERAND_INTEGER) {
+        if (operands.back().type() != DICT_OPERAND_INTEGER) {
           return OTS_FAILURE();
         }
-        if (operands.back().first >= 2 || operands.back().first < 0) {
+        if (operands.back().as_integer() >= 2 || operands.back().as_integer() < 0) {
           return OTS_FAILURE();
         }
         break;
@@ -788,7 +848,10 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
         if (operands.size() != 1) {
           return OTS_FAILURE();
         }
-        if (operands.back().first <= 2 && operands.back().first >= 0) {
+        if (operands.back().type() != DICT_OPERAND_INTEGER) {
+          return OTS_FAILURE();
+        }
+        if (operands.back().as_integer() <= 2 && operands.back().as_integer() >= 0) {
           // predefined charset, ISOAdobe, Expert or ExpertSubset, is used.
           break;
         }
@@ -798,21 +861,24 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
         if (charset_offset) {
           return OTS_FAILURE();  // multiple charset tables?
         }
-        charset_offset = operands.back().first;
+        charset_offset = operands.back().as_integer();
         break;
 
       case 16: {  // Encoding
         if (operands.size() != 1) {
           return OTS_FAILURE();
         }
-        if (operands.back().first <= 1 && operands.back().first >= 0) {
+        if (operands.back().type() != DICT_OPERAND_INTEGER) {
+          return OTS_FAILURE();
+        }
+        if (operands.back().as_integer() <= 1 && operands.back().as_integer() >= 0) {
           break;  // predefined encoding, "Standard" or "Expert", is used.
         }
         if (!CheckOffset(operands.back(), table.length())) {
           return OTS_FAILURE();
         }
 
-        table.set_offset(operands.back().first);
+        table.set_offset(operands.back().as_integer());
         uint8_t format = 0;
         if (!table.ReadU8(&format)) {
           return OTS_FAILURE();
@@ -836,7 +902,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
           return OTS_FAILURE();
         }
         // parse "14. CharStrings INDEX"
-        table.set_offset(operands.back().first);
+        table.set_offset(operands.back().as_integer());
         ots::CFFIndex *charstring_index = out_cff->charstrings_index;
         if (!ParseIndex(table, *charstring_index, cff2)) {
           return OTS_FAILURE();
@@ -878,7 +944,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
         }
 
         // parse Font DICT INDEX.
-        table.set_offset(operands.back().first);
+        table.set_offset(operands.back().as_integer());
         ots::CFFIndex sub_dict_index;
         if (!ParseIndex(table, sub_dict_index, cff2)) {
           return OTS_FAILURE();
@@ -912,7 +978,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
         }
 
         // parse FDSelect data structure
-        table.set_offset(operands.back().first);
+        table.set_offset(operands.back().as_integer());
         uint8_t format = 0;
         if (!table.ReadU8(&format)) {
           return OTS_FAILURE();
@@ -1060,14 +1126,14 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
         if (!CheckOffset(operands.back(), table.length() + 1)) {
           return OTS_FAILURE();
         }
-        const int32_t private_offset = operands.back().first;
+        const int32_t private_offset = operands.back().as_integer();
         operands.pop_back();
         // The next operand is a length, not an offset, but we can usefully apply the same check:
         // if it is negative or exceeds the table length, it cannot be valid.
         if (!CheckOffset(operands.back(), table.length())) {
           return OTS_FAILURE();
         }
-        const int32_t private_length = operands.back().first;
+        const int32_t private_length = operands.back().as_integer();
         // The offset & length were individually plausible; check that the combination doesn't overflow the table.
         if (private_length + private_offset > static_cast<int32_t>(table.length()) || private_length + private_offset < 0) {
           return OTS_FAILURE();
