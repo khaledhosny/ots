@@ -46,7 +46,7 @@ bool ProcessFont(ots::OTSContext& context,
 // All tables use passthrough (the primary bug trigger from issue #308).
 class AllPassthruContext : public ots::OTSContext {
  public:
-  void Message(int, const char*, ...) {}
+  void Message(int, const char*, ...) override {}
   ots::TableAction GetTableAction(uint32_t) override {
     return ots::TABLE_ACTION_PASSTHRU;
   }
@@ -55,7 +55,7 @@ class AllPassthruContext : public ots::OTSContext {
 // Only maxp is passthrough, all others default.
 class MaxpPassthruContext : public ots::OTSContext {
  public:
-  void Message(int, const char*, ...) {}
+  void Message(int, const char*, ...) override {}
   ots::TableAction GetTableAction(uint32_t tag) override {
     if (tag == OTS_TAG('m', 'a', 'x', 'p'))
       return ots::TABLE_ACTION_PASSTHRU;
@@ -67,7 +67,7 @@ class MaxpPassthruContext : public ots::OTSContext {
 // Exercises the glyf.cc null dereference path (name->IsTrickyFont()).
 class NamePassthruContext : public ots::OTSContext {
  public:
-  void Message(int, const char*, ...) {}
+  void Message(int, const char*, ...) override {}
   ots::TableAction GetTableAction(uint32_t tag) override {
     if (tag == OTS_TAG('n', 'a', 'm', 'e'))
       return ots::TABLE_ACTION_PASSTHRU;
@@ -78,7 +78,7 @@ class NamePassthruContext : public ots::OTSContext {
 // Both maxp and name are passthrough — exercises both null-pointer paths.
 class MaxpAndNamePassthruContext : public ots::OTSContext {
  public:
-  void Message(int, const char*, ...) {}
+  void Message(int, const char*, ...) override {}
   ots::TableAction GetTableAction(uint32_t tag) override {
     if (tag == OTS_TAG('m', 'a', 'x', 'p') ||
         tag == OTS_TAG('n', 'a', 'm', 'e'))
@@ -91,7 +91,7 @@ class MaxpAndNamePassthruContext : public ots::OTSContext {
 // maxp is a real OpenTypeMAXP → GetTypedTable returns non-null → safe.
 class OutlinesPassthruContext : public ots::OTSContext {
  public:
-  void Message(int, const char*, ...) {}
+  void Message(int, const char*, ...) override {}
   ots::TableAction GetTableAction(uint32_t tag) override {
     if (tag == OTS_TAG('g', 'l', 'y', 'f') ||
         tag == OTS_TAG('l', 'o', 'c', 'a') ||
@@ -105,7 +105,7 @@ class OutlinesPassthruContext : public ots::OTSContext {
 // maxp is dropped entirely, everything else is default.
 class MaxpDropContext : public ots::OTSContext {
  public:
-  void Message(int, const char*, ...) {}
+  void Message(int, const char*, ...) override {}
   ots::TableAction GetTableAction(uint32_t tag) override {
     if (tag == OTS_TAG('m', 'a', 'x', 'p'))
       return ots::TABLE_ACTION_DROP;
@@ -116,7 +116,7 @@ class MaxpDropContext : public ots::OTSContext {
 // All tables are dropped.
 class AllDropContext : public ots::OTSContext {
  public:
-  void Message(int, const char*, ...) {}
+  void Message(int, const char*, ...) override {}
   ots::TableAction GetTableAction(uint32_t) override {
     return ots::TABLE_ACTION_DROP;
   }
@@ -125,7 +125,7 @@ class AllDropContext : public ots::OTSContext {
 // All tables explicitly sanitized (equivalent to default, but explicit).
 class AllSanitizeContext : public ots::OTSContext {
  public:
-  void Message(int, const char*, ...) {}
+  void Message(int, const char*, ...) override {}
   ots::TableAction GetTableAction(uint32_t) override {
     return ots::TABLE_ACTION_SANITIZE;
   }
@@ -136,7 +136,7 @@ class AllSanitizeContext : public ots::OTSContext {
 // a proper typed pointer.
 class MaxpAndOutlinesPassthruContext : public ots::OTSContext {
  public:
-  void Message(int, const char*, ...) {}
+  void Message(int, const char*, ...) override {}
   ots::TableAction GetTableAction(uint32_t tag) override {
     if (tag == OTS_TAG('m', 'a', 'x', 'p') ||
         tag == OTS_TAG('g', 'l', 'y', 'f') ||
@@ -153,7 +153,7 @@ class MaxpAndOutlinesPassthruContext : public ots::OTSContext {
 // doesn't cause unrelated crashes.
 class HeadPassthruContext : public ots::OTSContext {
  public:
-  void Message(int, const char*, ...) {}
+  void Message(int, const char*, ...) override {}
   ots::TableAction GetTableAction(uint32_t tag) override {
     if (tag == OTS_TAG('h', 'e', 'a', 'd'))
       return ots::TABLE_ACTION_PASSTHRU;
@@ -164,7 +164,7 @@ class HeadPassthruContext : public ots::OTSContext {
 // Use SANITIZE_SOFT for maxp — should not crash.
 class MaxpSoftSanitizeContext : public ots::OTSContext {
  public:
-  void Message(int, const char*, ...) {}
+  void Message(int, const char*, ...) override {}
   ots::TableAction GetTableAction(uint32_t tag) override {
     if (tag == OTS_TAG('m', 'a', 'x', 'p'))
       return ots::TABLE_ACTION_SANITIZE_SOFT;
