@@ -289,6 +289,9 @@ bool ParseDictDataBcd(ots::Buffer &table, std::vector<Operand> &operands) {
       }
       if (read_e) {
         exponent = exponent * 10 + nibbles[i];
+        if (exponent >= 120) {
+          return OTS_FAILURE();  // exponent excessively large.
+        }
         continue;
       }
       if (dec_value < 1.0f) {
