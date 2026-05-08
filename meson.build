@@ -270,6 +270,19 @@ cff_charstring = executable('cff_charstring',
 test('cff_charstring', cff_charstring)
 
 
+passthru_test = executable('passthru_test',
+  'tests/passthru_test.cc',
+  include_directories: include_directories(['include']),
+  link_with: libots,
+  dependencies: gtest,
+)
+
+test('passthru_test', passthru_test,
+  env: ['OTS_TEST_FONT=' + meson.current_source_dir() / 'tests/fonts/good/00ae3c2b1b7718361fc76ee31da97253057b15b7.ttf'],
+  suite: 'passthru',
+)
+
+
 foreach file_name : bad_fonts
   test(file_name, ots_sanitize,
     args: meson.current_source_dir() / 'tests' / file_name,
