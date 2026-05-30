@@ -4,7 +4,6 @@
 
 #include "metrics.h"
 
-#include "head.h"
 #include "maxp.h"
 
 // OpenType horizontal and vertical common header format
@@ -41,19 +40,6 @@ bool OpenTypeMetricsHeader::Parse(const uint8_t *data, size_t length) {
   if (this->linegap < 0) {
     Warning("Negative linegap, setting to: %d", this->linegap);
     this->linegap = 0;
-  }
-
-  OpenTypeHEAD *head = static_cast<OpenTypeHEAD*>(
-      GetFont()->GetTypedTable(OTS_TAG_HEAD));
-  if (!head) {
-    return Error("Missing head font table");
-  }
-
-  // if the font is non-slanted, caret_offset should be zero.
-  if (!(head->mac_style & 2) &&
-      (this->caret_offset != 0)) {
-    Warning("Non-zero caretOffset but head.macStyle italic bit is not set, setting to caretOffset to 0: %d", this->caret_offset);
-    this->caret_offset = 0;
   }
 
   // skip the reserved bytes
