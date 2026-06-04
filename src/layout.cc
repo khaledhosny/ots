@@ -489,8 +489,8 @@ bool ParseClassRuleTable(const ots::Font *font,
     return OTS_FAILURE_MSG("Failed to read header of class rule table");
   }
 
-  if (glyph_count == 0 || glyph_count >= num_glyphs) {
-    return OTS_FAILURE_MSG("Bad glyph count %d in class rule table", glyph_count);
+  if (glyph_count == 0) {
+    return OTS_FAILURE_MSG("Glyph count cannot be 0 in class rule table");
   }
 
   // ClassRule table contains an array of classes. Each value of classes
@@ -614,9 +614,6 @@ bool ParseContextFormat3(const ots::Font *font,
     return OTS_FAILURE_MSG("Failed to read header in context format 3");
   }
 
-  if (glyph_count >= num_glyphs) {
-    return OTS_FAILURE_MSG("Bad glyph count %d in context format 3", glyph_count);
-  }
   const unsigned lookup_record_end = 2 * static_cast<unsigned>(glyph_count) +
       4 * static_cast<unsigned>(lookup_count) + 6;
   if (lookup_record_end > std::numeric_limits<uint16_t>::max()) {
