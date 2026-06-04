@@ -38,9 +38,6 @@ bool ParseSequenceTable(const ots::Font *font,
   if (!subtable.ReadU16(&glyph_count)) {
     return OTS_FAILURE_MSG("Failed to read glyph count in sequence table");
   }
-  if (glyph_count > num_glyphs) {
-    return OTS_FAILURE_MSG("bad glyph count %d > %d", glyph_count, num_glyphs);
-  }
   for (unsigned i = 0; i < glyph_count; ++i) {
     uint16_t substitute = 0;
     if (!subtable.ReadU16(&substitute)) {
@@ -62,9 +59,6 @@ bool ParseAlternateSetTable(const ots::Font *font,
   uint16_t glyph_count = 0;
   if (!subtable.ReadU16(&glyph_count)) {
     return OTS_FAILURE_MSG("Failed to read alternate set header");
-  }
-  if (glyph_count > num_glyphs) {
-    return OTS_FAILURE_MSG("Bad glyph count %d > %d in alternate set table", glyph_count, num_glyphs);
   }
   for (unsigned i = 0; i < glyph_count; ++i) {
     uint16_t alternate = 0;
