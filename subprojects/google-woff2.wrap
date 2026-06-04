@@ -1,15 +1,16 @@
 [wrap-file]
 directory = woff2-1.0.2
 source_url = https://github.com/google/woff2/archive/v1.0.2.tar.gz
-source_filename = v1.0.2.tar.gz
+source_filename = woff2-1.0.2.tar.gz
 source_hash = add272bb09e6384a4833ffca4896350fdb16e0ca22df68c0384773c67a175594
-patch_filename = google-woff2_1.0.2-2_patch.zip
-patch_url = https://wrapdb.mesonbuild.com/v2/google-woff2_1.0.2-2/get_patch
-patch_hash = b93c458d3af73be33a87c713ee57fbcc2823472132331039d6fca6b20bb8ebc2
+patch_filename = google-woff2_1.0.2-4_patch.zip
+patch_url = https://wrapdb.mesonbuild.com/v2/google-woff2_1.0.2-4/get_patch
+patch_hash = 3ee19aee6b83c85d979b5ada1a786a2cb8a111d345312bc397e2ed68f0d03090
+source_fallback_url = https://github.com/mesonbuild/wrapdb/releases/download/google-woff2_1.0.2-4/woff2-1.0.2.tar.gz
+wrapdb_version = 1.0.2-4
 
 [provide]
-libwoff2common = woff2_common_dep4
+libwoff2common = woff2_common_dep
 libwoff2dec = woff2_decoder_dep
 libwoff2enc = woff2_encoder_dep
 program_names = woff2_decompress, woff2_compress, woff2_info
-
