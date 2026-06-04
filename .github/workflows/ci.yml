@@ -23,7 +23,7 @@ jobs:
         python-version: '3.10'
 
     - name: Install Python Dependencies
-      run: pip install --upgrade meson==0.60.2 ninja
+      run: pip install --upgrade meson==1.11.1 ninja
 
     - name: MSVC Setup
       if: matrix.os == 'windows-latest'
