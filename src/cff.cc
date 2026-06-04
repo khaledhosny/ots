@@ -624,7 +624,7 @@ bool ParsePrivateDictData(
           return OTS_FAILURE();
         }
         uint16_t n = static_cast<uint16_t>(operands.back().as_integer());
-        if (operands.size() < n * (k + 1) + 1) {
+        if (operands.size() < n * (k + 1u) + 1u) {
           return OTS_FAILURE();
         }
         size_t operands_size = operands.size();
