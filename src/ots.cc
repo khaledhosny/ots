@@ -807,8 +807,10 @@ bool ProcessGeneric(ots::FontFile *header,
       OTS_WARNING_MSG_HDR("fixing incorrect maxp version for CFF font");
       maxp->version_1 = false;
     }
-  } else if (font->GetTable(OTS_TAG('C','B','D','T')) &&
-             font->GetTable(OTS_TAG('C','B','L','C'))) {
+  } else if ((font->GetTable(OTS_TAG('C','B','D','T')) &&
+              font->GetTable(OTS_TAG('C','B','L','C'))) ||
+             (font->GetTable(OTS_TAG('E','B','D','T')) &&
+              font->GetTable(OTS_TAG('E','B','L','C')))) {
       // We don't sanitize bitmap tables, but don’t reject bitmap-only fonts if
       // we are asked to pass them thru.
   } else {
