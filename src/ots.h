@@ -230,6 +230,7 @@ bool CheckTag(uint32_t tag_value);
 #define OTS_TAG_MVAR OTS_TAG('M','V','A','R')
 #define OTS_TAG_VVAR OTS_TAG('V','V','A','R')
 #define OTS_TAG_STAT OTS_TAG('S','T','A','T')
+#define OTS_TAG_VARC OTS_TAG('V','A','R','C')
 
 // See https://github.com/khaledhosny/ots/issues/219
 #define OTS_MAX_DECOMPRESSED_FILE_SIZE 300 * 1024 * 1024
