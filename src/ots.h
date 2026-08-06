@@ -106,6 +106,13 @@ class Buffer {
     return true;
   }
 
+  inline bool ReadS8(int8_t *value) {
+    return ReadU8(reinterpret_cast<uint8_t*>(value));
+  }
+
+
+
+
   bool ReadU16(uint16_t *value) {
     if (length_ < 2 || offset_ > length_ - 2) {
       return OTS_FAILURE();
@@ -192,6 +199,9 @@ bool CheckTag(uint32_t tag_value);
 #define OTS_TAG_COLR OTS_TAG('C','O','L','R')
 #define OTS_TAG_CPAL OTS_TAG('C','P','A','L')
 #define OTS_TAG_CVT  OTS_TAG('c','v','t',' ')
+#define OTS_TAG_EBDT OTS_TAG('E','B','D','T')
+#define OTS_TAG_EBLC OTS_TAG('E','B','L','C')
+#define OTS_TAG_EBSC OTS_TAG('E','B','S','C')
 #define OTS_TAG_FEAT OTS_TAG('F','e','a','t')
 #define OTS_TAG_FPGM OTS_TAG('f','p','g','m')
 #define OTS_TAG_GASP OTS_TAG('g','a','s','p')
@@ -230,6 +240,8 @@ bool CheckTag(uint32_t tag_value);
 #define OTS_TAG_MVAR OTS_TAG('M','V','A','R')
 #define OTS_TAG_VVAR OTS_TAG('V','V','A','R')
 #define OTS_TAG_STAT OTS_TAG('S','T','A','T')
+
+
 
 // See https://github.com/khaledhosny/ots/issues/219
 #define OTS_MAX_DECOMPRESSED_FILE_SIZE 300 * 1024 * 1024
