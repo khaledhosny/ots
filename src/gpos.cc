@@ -283,7 +283,7 @@ bool ParsePairPosFormat2(const ots::Font *font,
     for (unsigned i = 0; i < class1_count; ++i) {
       // Check class 2 records.
       for (unsigned j = 0; j < class2_count; ++j) {
-        if (value_format1 && value_record2_size &&
+        if (value_format1 && value_record1_size &&
             !ParseValueRecord(font, &subtable, value_format1)) {
           return OTS_FAILURE_MSG("Failed to parse value record 1 %d and %d", j, i);
         }
