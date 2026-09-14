@@ -54,7 +54,9 @@ bool ParseClassDefTable(const ots::Font *font,
 bool ParseCoverageTable(const ots::Font *font,
                         const uint8_t *data, size_t length,
                         const uint16_t num_glyphs,
-                        const uint16_t expected_num_glyphs = 0);
+                        const uint16_t expected_num_glyphs = 0,
+                        uint32_t *out_num_glyphs = nullptr,
+                        uint16_t *out_last_glyph = nullptr);
 
 bool ParseDeviceTable(const ots::Font *font,
                       const uint8_t *data, size_t length);
@@ -62,4 +64,3 @@ bool ParseDeviceTable(const ots::Font *font,
 }  // namespace ots
 
 #endif  // OTS_LAYOUT_H_
-

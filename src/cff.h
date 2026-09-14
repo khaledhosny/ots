@@ -34,6 +34,7 @@ class OpenTypeCFF : public Table {
         font_dict_length(0),
         charstrings_index(NULL),
         local_subrs(NULL),
+        variation_axis_count(0),
         m_data(NULL),
         m_length(0) {
   }
@@ -63,6 +64,7 @@ class OpenTypeCFF : public Table {
 
   // CFF2 VariationStore regionIndexCount.
   std::vector<uint16_t> region_index_count;
+  uint16_t variation_axis_count;
 
   // CFF2 vsindex: per FontDICT->PrivateDICT
   // default of 0 is stored for each font if not

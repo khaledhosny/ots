@@ -668,7 +668,10 @@ bool ParseVariationStore(ots::OpenTypeCFF& out_cff, ots::Buffer& table) {
 
   if (!ParseItemVariationStore(out_cff.GetFont(),
                                table.buffer() + table.offset(), length,
-                               &(out_cff.region_index_count))) {
+                               &(out_cff.region_index_count),
+                               &(out_cff.variation_axis_count),
+                               out_cff.major == 2 &&
+                                   out_cff.GetFont()->has_varc)) {
     return OTS_FAILURE();
   }
 

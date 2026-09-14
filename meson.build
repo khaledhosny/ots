@@ -121,6 +121,8 @@ ots_sources = [
   'src/prep.h',
   'src/stat.cc',
   'src/stat.h',
+  'src/varc.cc',
+  'src/varc.h',
   'src/variations.cc',
   'src/variations.h',
   'src/vdmx.cc',

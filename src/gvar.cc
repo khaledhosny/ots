@@ -96,15 +96,18 @@ bool OpenTypeGVAR::Parse(const uint8_t* data, size_t length) {
     return DropVariations("Unknown table version");
   }
 
-  // check axisCount == fvar->axisCount
+  // Normally gvar axes are defined by fvar.  A static VARC font is explicitly
+  // allowed to omit fvar and use gvar's axisCount for component-internal
+  // coordinates.
   OpenTypeFVAR* fvar = static_cast<OpenTypeFVAR*>(
       GetFont()->GetTypedTable(OTS_TAG_FVAR));
-  if (!fvar) {
+  if (!fvar && !GetFont()->has_varc) {
     return DropVariations("Required fvar table is missing");
   }
-  if (axisCount != fvar->AxisCount()) {
+  if (fvar && axisCount != fvar->AxisCount()) {
     return DropVariations("Axis count mismatch");
   }
+  this->m_axisCount = axisCount;
 
   // check glyphCount == maxp->num_glyphs
   OpenTypeMAXP* maxp = static_cast<OpenTypeMAXP*>(
@@ -164,6 +167,7 @@ bool OpenTypeGVAR::InitEmpty() {
   uint16_t majorVersion = 1;
   uint16_t minorVersion = 0;
   uint16_t axisCount = fvar->AxisCount();
+  this->m_axisCount = axisCount;
   uint16_t sharedTupleCount = 0;
   uint32_t sharedTuplesOffset = 0;
   uint16_t glyphCount = maxp->num_glyphs;

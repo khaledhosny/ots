@@ -13,7 +13,8 @@
 namespace {
 
 bool ParseVariationRegionList(const ots::Font* font, const uint8_t* data, const size_t length,
-                              uint16_t* regionCount) {
+                              uint16_t* regionCount, uint16_t* outAxisCount,
+                              bool allowNoFvar) {
   ots::Buffer subtable(data, length);
 
   uint16_t axisCount;
@@ -22,6 +23,9 @@ bool ParseVariationRegionList(const ots::Font* font, const uint8_t* data, const 
       !subtable.ReadU16(regionCount)) {
     return OTS_FAILURE_MSG("Failed to read variation region list header");
   }
+  if (outAxisCount) {
+    *outAxisCount = axisCount;
+  }
 
   if (*regionCount == 0) {
     return true;
@@ -29,10 +33,10 @@ bool ParseVariationRegionList(const ots::Font* font, const uint8_t* data, const 
 
   const ots::OpenTypeFVAR* fvar =
     static_cast<ots::OpenTypeFVAR*>(font->GetTypedTable(OTS_TAG_FVAR));
-  if (!fvar) {
+  if (!fvar && !allowNoFvar) {
     return OTS_FAILURE_MSG("Required fvar table is missing");
   }
-  if (axisCount != fvar->AxisCount()) {
+  if (fvar && axisCount != fvar->AxisCount()) {
     return OTS_FAILURE_MSG("Axis count mismatch");
   }
 
@@ -113,7 +117,9 @@ namespace ots {
 bool
 ParseItemVariationStore(const Font* font,
                         const uint8_t* data, const size_t length,
-                        std::vector<uint16_t>* regionIndexCounts) {
+                        std::vector<uint16_t>* regionIndexCounts,
+                        uint16_t* axisCount,
+                        bool allowNoFvar) {
   Buffer subtable(data, length);
 
   uint16_t format;
@@ -139,7 +145,7 @@ ParseItemVariationStore(const Font* font,
   if (!ParseVariationRegionList(font,
                                 data + variationRegionListOffset,
                                 length - variationRegionListOffset,
-                                &regionCount)) {
+                                &regionCount, axisCount, allowNoFvar)) {
     return OTS_FAILURE_MSG("Failed to parse variation region list");
   }
 

@@ -51,6 +51,7 @@
 #include "post.h"
 #include "prep.h"
 #include "stat.h"
+#include "varc.h"
 #include "vdmx.h"
 #include "vhea.h"
 #include "vmtx.h"
@@ -158,6 +159,9 @@ const struct {
   // is known; and these tables follow fvar because COLR may use variations.
   { OTS_TAG_CPAL, false },
   { OTS_TAG_COLR, false },
+  // VARC follows fvar (it may reference variation axes) and maxp (it is always
+  // parsed first, being required).
+  { OTS_TAG_VARC, false },
   // We need to parse GDEF table in advance of parsing GSUB/GPOS tables
   // because they could refer GDEF table.
   { OTS_TAG_GDEF, false },
@@ -717,6 +721,7 @@ bool ProcessGeneric(ots::FontFile *header,
   for (unsigned i = 0; i < font->num_tables; ++i) {
     table_map[tables[i].tag] = tables[i];
   }
+  font->has_varc = table_map.find(OTS_TAG_VARC) != table_map.end();
 
   ots::Arena arena;
   // Parse known tables first as we need to parse them in specific order.
@@ -1032,6 +1037,7 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       case OTS_TAG_VHEA: table = new OpenTypeVHEA(this, tag); break;
       case OTS_TAG_VMTX: table = new OpenTypeVMTX(this, tag); break;
       case OTS_TAG_VORG: table = new OpenTypeVORG(this, tag); break;
+      case OTS_TAG_VARC: table = new OpenTypeVARC(this, tag); break;
       case OTS_TAG_VVAR: table = new OpenTypeVVAR(this, tag); break;
       // Graphite tables
 #ifdef OTS_GRAPHITE

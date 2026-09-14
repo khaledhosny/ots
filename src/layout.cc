@@ -261,7 +261,9 @@ bool ParseClassDefFormat2(const ots::Font *font,
 bool ParseCoverageFormat1(const ots::Font *font,
                           const uint8_t *data, size_t length,
                           const uint16_t num_glyphs,
-                          const uint16_t expected_num_glyphs) {
+                          const uint16_t expected_num_glyphs,
+                          uint32_t *out_num_glyphs,
+                          uint16_t *out_last_glyph) {
   ots::Buffer subtable(data, length);
 
   // Skip format field.
@@ -284,10 +286,16 @@ bool ParseCoverageFormat1(const ots::Font *font,
     if (glyph >= num_glyphs) {
       return OTS_FAILURE_MSG("bad glyph ID: %u", glyph);
     }
+    if (out_last_glyph) {
+      *out_last_glyph = glyph;
+    }
   }
 
   if (expected_num_glyphs && expected_num_glyphs != glyph_count) {
       return OTS_FAILURE_MSG("unexpected number of glyphs: %u", glyph_count);
+  }
+  if (out_num_glyphs) {
+    *out_num_glyphs = glyph_count;
   }
 
   return true;
@@ -296,7 +304,9 @@ bool ParseCoverageFormat1(const ots::Font *font,
 bool ParseCoverageFormat2(const ots::Font *font,
                           const uint8_t *data, size_t length,
                           const uint16_t num_glyphs,
-                          const uint16_t expected_num_glyphs) {
+                          const uint16_t expected_num_glyphs,
+                          uint32_t *out_num_glyphs,
+                          uint16_t *out_last_glyph) {
   ots::Buffer subtable(data, length);
 
   // Skip format field.
@@ -312,7 +322,7 @@ bool ParseCoverageFormat2(const ots::Font *font,
     return OTS_FAILURE_MSG("bad range count: %u", range_count);
   }
   uint16_t last_end = 0;
-  uint16_t last_start_coverage_index = 0;
+  uint32_t last_start_coverage_index = 0;
   for (unsigned i = 0; i < range_count; ++i) {
     uint16_t start = 0;
     uint16_t end = 0;
@@ -340,6 +350,12 @@ bool ParseCoverageFormat2(const ots::Font *font,
   if (expected_num_glyphs &&
       expected_num_glyphs != last_start_coverage_index) {
       return OTS_FAILURE_MSG("unexpected number of glyphs: %u", last_start_coverage_index);
+  }
+  if (out_num_glyphs) {
+    *out_num_glyphs = last_start_coverage_index;
+  }
+  if (out_last_glyph && range_count) {
+    *out_last_glyph = last_end;
   }
 
   return true;
@@ -1421,7 +1437,9 @@ bool ParseClassDefTable(const ots::Font *font,
 bool ParseCoverageTable(const ots::Font *font,
                         const uint8_t *data, size_t length,
                         const uint16_t num_glyphs,
-                        const uint16_t expected_num_glyphs) {
+                        const uint16_t expected_num_glyphs,
+                        uint32_t *out_num_glyphs,
+                        uint16_t *out_last_glyph) {
   Buffer subtable(data, length);
 
   uint16_t format = 0;
@@ -1429,9 +1447,13 @@ bool ParseCoverageTable(const ots::Font *font,
     return OTS_FAILURE_MSG("Failed to read coverage table format");
   }
   if (format == 1) {
-    return ParseCoverageFormat1(font, data, length, num_glyphs, expected_num_glyphs);
+    return ParseCoverageFormat1(font, data, length, num_glyphs,
+                                expected_num_glyphs, out_num_glyphs,
+                                out_last_glyph);
   } else if (format == 2) {
-    return ParseCoverageFormat2(font, data, length, num_glyphs, expected_num_glyphs);
+    return ParseCoverageFormat2(font, data, length, num_glyphs,
+                                expected_num_glyphs, out_num_glyphs,
+                                out_last_glyph);
   }
 
   return OTS_FAILURE_MSG("Bad coverage table format %d", format);
