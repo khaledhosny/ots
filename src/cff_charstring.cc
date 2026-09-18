@@ -25,6 +25,11 @@ const size_t kMaxCharStringLength = 65535;
 const size_t kMaxNumberOfStemHints = 96;
 const size_t kMaxSubrNesting = 10;
 
+// We reject the table if any charstring results in executing too many ops.
+// This should be more than enough for any realistic use case; only a malicious
+// font would run millions of ops for a single glyph.
+const uint32_t kMaxCharStringOps = 1024 * 1024 * 64;
+
 // |dummy_result| should be a huge positive integer so callsubr and callgsubr
 // will fail with the dummy value.
 const int32_t dummy_result = INT_MAX;
@@ -887,6 +892,11 @@ bool ExecuteCharString(ots::OpenTypeCFF& cff,
         return OTS_FAILURE();
       }
       continue;
+    }
+
+    if (++cs_ctx.num_ops > kMaxCharStringOps) {
+      ots::Font* font = cff.GetFont();
+      return OTS_FAILURE_MSG("charstring executes too many ops");
     }
 
     // An operator is found. Execute it.
