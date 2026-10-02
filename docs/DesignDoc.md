@@ -56,9 +56,9 @@ Supported OpenType tables
 | `jstf` | No                          | No                |        |
 | `vmtx` | No                          | Yes               |        |
 | `vhea` | No                          | Yes               |        |
-| `EBDT` | No                          | No                | We don't support embedded bitmap strikes.|
-| `EBLC` | No                          | No                | Ditto. |
-| `EBSC` | No                          | No                | Ditto. |
+| `EBDT` | No                          | In progress                | We don't support embedded bitmap strikes.|
+| `EBLC` | No                          | In progress                | Ditto. |
+| `EBSC` | No                          | In progress                | Ditto. |
 | `bdat` | No                          | No                | Ditto. |
 | `bhed` | No                          | No                | Ditto. |
 | `bloc` | No                          | No                | Ditto. |
