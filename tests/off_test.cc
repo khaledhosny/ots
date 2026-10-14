@@ -8,6 +8,7 @@
 
 #include "gvar.h"
 #include "maxp.h"
+#include "layout.h"
 #include "ots-memory-stream.h"
 #include "varc.h"
 
@@ -90,6 +91,38 @@ class OFFTest : public ::testing::Test {
   ots::Font font;
   Bytes internal_gvar;
 };
+
+TEST_F(OFFTest, ExtendedCoverageAndClasses) {
+  Bytes coverage;
+  U16(coverage, 3); U24(coverage, 2); U24(coverage, 65536); U24(coverage, 70000);
+  uint32_t count = 0, last = 0;
+  EXPECT_TRUE(ots::ParseCoverageTable(&font, coverage.data(), coverage.size(),
+                                     70001, 2, &count, &last));
+  EXPECT_EQ(2u, count);
+  EXPECT_EQ(70000u, last);
+  EXPECT_FALSE(ots::ParseCoverageTable(&font, coverage.data(), coverage.size(), 70000));
+  coverage.pop_back();
+  EXPECT_FALSE(ots::ParseCoverageTable(&font, coverage.data(), coverage.size(), 70001));
+
+  Bytes ranges;
+  U16(ranges, 4); U24(ranges, 1);
+  U24(ranges, 65536); U24(ranges, 70000); U24(ranges, 0);
+  EXPECT_TRUE(ots::ParseCoverageTable(&font, ranges.data(), ranges.size(),
+                                     70001, 4465, &count, &last));
+  EXPECT_EQ(4465u, count);
+  EXPECT_EQ(70000u, last);
+
+  Bytes classes;
+  U16(classes, 3); U24(classes, 65536); U24(classes, 2);
+  U24(classes, 1); U24(classes, 4);
+  EXPECT_TRUE(ots::ParseClassDefTable(&font, classes.data(), classes.size(), 70001, 4));
+  EXPECT_FALSE(ots::ParseClassDefTable(&font, classes.data(), classes.size(), 65537, 4));
+  classes.clear();
+  U16(classes, 4); U24(classes, 1);
+  U24(classes, 65536); U24(classes, 70000); U16(classes, 4);
+  EXPECT_TRUE(ots::ParseClassDefTable(&font, classes.data(), classes.size(), 70001, 4));
+  EXPECT_FALSE(ots::ParseClassDefTable(&font, classes.data(), classes.size(), 70000, 4));
+}
 
 TEST_F(OFFTest, VarcIndirectVariationStore) {
   AddInternalAxis();

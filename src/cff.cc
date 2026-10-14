@@ -1331,12 +1331,11 @@ bool OpenTypeCFF::Parse(const uint8_t *data, size_t length) {
     return Error("Too many entries in String INDEX: %d", string_index.count);
   }
 
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-    font->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = font->GetMaxp();
   if (!maxp) {
     return Error("Required maxp table missing");
   }
-  const uint16_t num_glyphs = maxp->num_glyphs;
+  const uint32_t num_glyphs = maxp->num_glyphs;
   const size_t sid_max = string_index.count + kNStdString;
   // string_index.count == 0 is allowed.
 
@@ -1417,12 +1416,11 @@ bool OpenTypeCFF2::Parse(const uint8_t *data, size_t length) {
     return Error("Bad topDictLength: %d", top_dict_size);
   }
 
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-    font->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = font->GetMaxp();
   if (!maxp) {
     return Error("Required maxp table missing");
   }
-  const uint16_t num_glyphs = maxp->num_glyphs;
+  const uint32_t num_glyphs = maxp->num_glyphs;
   const size_t sid_max = kNStdString;
 
   // parse "7. Top DICT Data"

@@ -1003,7 +1003,7 @@ bool OpenTypeCOLR::Parse(const uint8_t *data, size_t length) {
 
   colrState state;
 
-  auto* maxp = static_cast<ots::OpenTypeMAXP*>(font->GetTypedTable(OTS_TAG_MAXP));
+  auto* maxp = font->GetMaxp();
   if (!maxp) {
     return OTS_FAILURE_MSG("Required maxp table missing");
   }

@@ -48,15 +48,15 @@ class OpenTypeLayoutTable : public Table {
 
 bool ParseClassDefTable(const ots::Font *font,
                         const uint8_t *data, size_t length,
-                        const uint16_t num_glyphs,
-                        const uint16_t num_classes);
+                        const uint32_t num_glyphs,
+                        const uint32_t num_classes);
 
 bool ParseCoverageTable(const ots::Font *font,
                         const uint8_t *data, size_t length,
-                        const uint16_t num_glyphs,
-                        const uint16_t expected_num_glyphs = 0,
+                        const uint32_t num_glyphs,
+                        const uint32_t expected_num_glyphs = 0,
                         uint32_t *out_num_glyphs = nullptr,
-                        uint16_t *out_last_glyph = nullptr);
+                        uint32_t *out_last_glyph = nullptr);
 
 bool ParseDeviceTable(const ots::Font *font,
                       const uint8_t *data, size_t length);

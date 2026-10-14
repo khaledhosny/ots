@@ -75,9 +75,9 @@ class OpenTypeCMAP : public Table {
   std::vector<uint8_t> subtable_1_0_0;
 
   bool ParseFormat4(int platform, int encoding, const uint8_t *data,
-                    size_t length, uint16_t num_glyphs);
-  bool Parse31012(const uint8_t *data, size_t length, uint16_t num_glyphs);
-  bool Parse31013(const uint8_t *data, size_t length, uint16_t num_glyphs);
+                    size_t length, uint32_t num_glyphs);
+  bool Parse31012(const uint8_t *data, size_t length, uint32_t num_glyphs);
+  bool Parse31013(const uint8_t *data, size_t length, uint32_t num_glyphs);
   bool Parse0514(const uint8_t *data, size_t length);
   bool Parse100(const uint8_t *data, size_t length);
 };

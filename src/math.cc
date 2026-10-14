@@ -162,7 +162,7 @@ bool OpenTypeMATH::ParseMathConstantsTable(const uint8_t *data,
 bool OpenTypeMATH::ParseMathValueRecordSequenceForGlyphs(ots::Buffer* subtable,
                                                          const uint8_t *data,
                                                          const size_t length,
-                                                         const uint16_t num_glyphs) {
+                                                         const uint32_t num_glyphs) {
   // Check the header.
   uint16_t offset_coverage = 0;
   uint16_t sequence_count = 0;
@@ -199,7 +199,7 @@ bool OpenTypeMATH::ParseMathValueRecordSequenceForGlyphs(ots::Buffer* subtable,
 
 bool OpenTypeMATH::ParseMathItalicsCorrectionInfoTable(const uint8_t *data,
                                                        size_t length,
-                                                       const uint16_t num_glyphs) {
+                                                       const uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
   return ParseMathValueRecordSequenceForGlyphs(&subtable, data, length,
                                                num_glyphs);
@@ -207,7 +207,7 @@ bool OpenTypeMATH::ParseMathItalicsCorrectionInfoTable(const uint8_t *data,
 
 bool OpenTypeMATH::ParseMathTopAccentAttachmentTable(const uint8_t *data,
                                                      size_t length,
-                                                     const uint16_t num_glyphs) {
+                                                     const uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
   return ParseMathValueRecordSequenceForGlyphs(&subtable, data, length,
                                                num_glyphs);
@@ -241,7 +241,7 @@ bool OpenTypeMATH::ParseMathKernTable(const uint8_t *data, size_t length) {
 
 bool OpenTypeMATH::ParseMathKernInfoTable(const uint8_t *data,
                                           size_t length,
-                                          const uint16_t num_glyphs) {
+                                          const uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
   // Check the header.
@@ -290,7 +290,7 @@ bool OpenTypeMATH::ParseMathKernInfoTable(const uint8_t *data,
 
 bool OpenTypeMATH::ParseMathGlyphInfoTable(const uint8_t *data,
                                            size_t length,
-                                           const uint16_t num_glyphs) {
+                                           const uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
   // Check Header.
@@ -353,7 +353,7 @@ bool OpenTypeMATH::ParseMathGlyphInfoTable(const uint8_t *data,
 
 bool OpenTypeMATH::ParseGlyphAssemblyTable(const uint8_t *data,
                                            size_t length,
-                                           const uint16_t num_glyphs) {
+                                           const uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
   // Check the header.
@@ -391,7 +391,7 @@ bool OpenTypeMATH::ParseGlyphAssemblyTable(const uint8_t *data,
 
 bool OpenTypeMATH::ParseMathGlyphConstructionTable(const uint8_t *data,
                                                    size_t length,
-                                                   const uint16_t num_glyphs) {
+                                                   const uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
   // Check the header.
@@ -438,7 +438,7 @@ bool OpenTypeMATH::ParseMathGlyphConstructionTable(const uint8_t *data,
 bool OpenTypeMATH::ParseMathGlyphConstructionSequence(ots::Buffer* subtable,
                                                       const uint8_t *data,
                                                       size_t length,
-                                                      const uint16_t num_glyphs,
+                                                      const uint32_t num_glyphs,
                                                       uint16_t offset_coverage,
                                                       uint16_t glyph_count,
                                                       const unsigned sequence_end) {
@@ -477,7 +477,7 @@ bool OpenTypeMATH::ParseMathGlyphConstructionSequence(ots::Buffer* subtable,
 
 bool OpenTypeMATH::ParseMathVariantsTable(const uint8_t *data,
                                           size_t length,
-                                          const uint16_t num_glyphs) {
+                                          const uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
   // Check the header.
@@ -516,12 +516,11 @@ bool OpenTypeMATH::ParseMathVariantsTable(const uint8_t *data,
 bool OpenTypeMATH::Parse(const uint8_t *data, size_t length) {
   // Grab the number of glyphs in the font from the maxp table to check
   // GlyphIDs in MATH table.
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      GetFont()->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = GetFont()->GetMaxp();
   if (!maxp) {
     return Error("Required maxp table missing");
   }
-  const uint16_t num_glyphs = maxp->num_glyphs;
+  const uint32_t num_glyphs = maxp->num_glyphs;
 
   Buffer table(data, length);
 

@@ -60,7 +60,7 @@ namespace ots {
 
 // Parses Format 4 tables
 bool OpenTypeCMAP::ParseFormat4(int platform, int encoding,
-              const uint8_t *data, size_t length, uint16_t num_glyphs) {
+              const uint8_t *data, size_t length, uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
   // 0.3.4, 3.0.4 or 3.1.4 subtables are complex and, rather than expanding the
@@ -265,7 +265,7 @@ bool OpenTypeCMAP::ParseFormat4(int platform, int encoding,
 }
 
 bool OpenTypeCMAP::Parse31012(const uint8_t *data, size_t length,
-                              uint16_t num_glyphs) {
+                              uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
   // Format 12 tables are simple. We parse these and fully serialise them
@@ -336,7 +336,7 @@ bool OpenTypeCMAP::Parse31012(const uint8_t *data, size_t length,
 }
 
 bool OpenTypeCMAP::Parse31013(const uint8_t *data, size_t length,
-                              uint16_t num_glyphs) {
+                              uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
   // Format 13 tables are simple. We parse these and fully serialise them
@@ -720,12 +720,11 @@ bool OpenTypeCMAP::Parse(const uint8_t *data, size_t length) {
 
   // we grab the number of glyphs in the file from the maxp table to make sure
   // that the character map isn't referencing anything beyound this range.
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      GetFont()->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = GetFont()->GetMaxp();
   if (!maxp) {
     return Error("No maxp table in font! Needed by cmap.");
   }
-  const uint16_t num_glyphs = maxp->num_glyphs;
+  const uint32_t num_glyphs = maxp->num_glyphs;
 
   // We only support a subset of the possible character map tables. Microsoft
   // 'strongly recommends' that everyone supports the Unicode BMP table with

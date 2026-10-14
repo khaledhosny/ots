@@ -228,8 +228,7 @@ bool OpenTypeGDEF::ParseMarkGlyphSetsDefTable(const uint8_t *data, size_t length
 }
 
 bool OpenTypeGDEF::Parse(const uint8_t *data, size_t length) {
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      GetFont()->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = GetFont()->GetMaxp();
 
   // Grab the number of glyphs in the font from the maxp table to check
   // GlyphIDs in GDEF table.

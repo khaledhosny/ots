@@ -21,10 +21,12 @@ bool OpenTypeMAXP::Parse(const uint8_t *data, size_t length) {
     return Error("Unsupported table version 0x%x", version);
   }
 
-  if (!table.ReadU16(&this->num_glyphs)) {
+  uint16_t num_glyphs;
+  if (!table.ReadU16(&num_glyphs)) {
     return Error("Failed to read numGlyphs");
   }
 
+  this->num_glyphs = num_glyphs;
   if (!this->num_glyphs) {
     return Error("numGlyphs is 0");
   }

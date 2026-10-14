@@ -222,6 +222,16 @@ bool CheckTag(uint32_t tag_value);
 #define OTS_TAG_VMTX OTS_TAG('v','m','t','x')
 #define OTS_TAG_VORG OTS_TAG('V','O','R','G')
 
+// Extended-repertoire counterparts of the legacy TrueType tables.
+#define OTS_TAG_MAXP_EXT OTS_TAG('M','A','X','P')
+#define OTS_TAG_GLYF_EXT OTS_TAG('G','L','Y','F')
+#define OTS_TAG_LOCA_EXT OTS_TAG('L','O','C','A')
+#define OTS_TAG_HHEA_EXT OTS_TAG('H','H','E','A')
+#define OTS_TAG_HMTX_EXT OTS_TAG('H','M','T','X')
+#define OTS_TAG_VHEA_EXT OTS_TAG('V','H','E','A')
+#define OTS_TAG_VMTX_EXT OTS_TAG('V','M','T','X')
+#define OTS_TAG_GVAR_EXT OTS_TAG('G','V','A','R')
+
 #define OTS_TAG_AVAR OTS_TAG('a','v','a','r')
 #define OTS_TAG_CVAR OTS_TAG('c','v','a','r')
 #define OTS_TAG_FVAR OTS_TAG('f','v','a','r')
@@ -235,6 +245,8 @@ bool CheckTag(uint32_t tag_value);
 // See https://github.com/khaledhosny/ots/issues/219
 #define OTS_MAX_DECOMPRESSED_FILE_SIZE 300 * 1024 * 1024
 #define OTS_MAX_DECOMPRESSED_TABLE_SIZE 150 * 1024 * 1024
+
+class OpenTypeMAXP;
 
 struct Font;
 struct FontFile;
@@ -318,6 +330,10 @@ struct Font {
   // for |tag|, so it can safely be downcast to the corresponding OpenTypeXXXX;
   // if not (i.e. if the table was treated as Passthru), it will return NULL.
   Table* GetTypedTable(uint32_t tag) const;
+
+  // Shared tables use MAXP in preference to maxp. Outline-specific tables
+  // select their matching profile explicitly, preserving hybrid fonts.
+  OpenTypeMAXP* GetMaxp() const;
 
   // Insert a new table. Asserts if a table with the same tag already exists.
   void AddTable(TableEntry entry, Table* table);

@@ -49,7 +49,7 @@ const uint32_t kAnyTupleLength = 0xFFFFFFFFu;
 // State collected while parsing, used to validate cross-references between the
 // various sub-tables.
 struct varcState {
-  uint16_t numGlyphs = 0;      // from maxp
+  uint32_t numGlyphs = 0;      // from maxp
   uint16_t axisCount = 0;      // from fvar or the base outline variation data
 
   // MultiItemVariationStore tuple lengths. Multiple outer indices may use the
@@ -920,7 +920,7 @@ bool OpenTypeVARC::Parse(const uint8_t* data, size_t length) {
 
   varcState state;
 
-  auto* maxp = static_cast<OpenTypeMAXP*>(font->GetTypedTable(OTS_TAG_MAXP));
+  auto* maxp = font->GetMaxp();
   if (!maxp) {
     return Error("Required maxp table missing");
   }
@@ -989,13 +989,9 @@ bool OpenTypeVARC::Parse(const uint8_t* data, size_t length) {
     return Error("Failed to parse glyphRecords");
   }
 
-  // The coverage table's glyphs index the glyphRecords sequentially, so their
-  // counts must agree. Coverage cannot express more than 0xFFFF glyphs.
-  if (glyphRecordCount > 0xFFFF) {
-    return Error("Too many glyph records: %u", glyphRecordCount);
-  }
+  // Covered glyphs index glyphRecords sequentially, including 24-bit coverage.
   uint32_t coverageGlyphCount = 0;
-  uint16_t lastCoveredGlyph = 0;
+  uint32_t lastCoveredGlyph = 0;
   if (!ParseCoverageTable(font, data + coverageOffset,
                           length - coverageOffset, state.numGlyphs, 0,
                           &coverageGlyphCount, &lastCoveredGlyph)) {

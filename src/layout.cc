@@ -175,10 +175,18 @@ bool ParseFeatureTable(const ots::Font *font,
   return true;
 }
 
+bool ReadGlyph(ots::Buffer& table, uint32_t* value, bool wide) {
+  if (wide) return table.ReadU24(value);
+  uint16_t v;
+  if (!table.ReadU16(&v)) return false;
+  *value = v;
+  return true;
+}
+
 bool ParseClassDefFormat1(const ots::Font *font,
                           const uint8_t *data, size_t length,
-                          const uint16_t num_glyphs,
-                          const uint16_t num_classes) {
+                          const uint32_t num_glyphs,
+                          const uint32_t num_classes, bool wide) {
   ots::Buffer subtable(data, length);
 
   // Skip format field.
@@ -186,24 +194,24 @@ bool ParseClassDefFormat1(const ots::Font *font,
     return OTS_FAILURE_MSG("Failed to skip class definition header");
   }
 
-  uint16_t start_glyph = 0;
-  if (!subtable.ReadU16(&start_glyph)) {
+  uint32_t start_glyph = 0;
+  if (!ReadGlyph(subtable, &start_glyph, wide)) {
     return OTS_FAILURE_MSG("Failed to read starting glyph of class definition");
   }
   if (start_glyph >= num_glyphs) {
     return OTS_FAILURE_MSG("Bad starting glyph %d in class definition", start_glyph);
   }
 
-  uint16_t glyph_count = 0;
-  if (!subtable.ReadU16(&glyph_count)) {
+  uint32_t glyph_count = 0;
+  if (!ReadGlyph(subtable, &glyph_count, wide)) {
     return OTS_FAILURE_MSG("Failed to read glyph count in class definition");
   }
-  if (glyph_count > num_glyphs) {
+  if (glyph_count > num_glyphs || (wide && glyph_count > num_glyphs - start_glyph)) {
     return OTS_FAILURE_MSG("bad glyph count: %u", glyph_count);
   }
   for (unsigned i = 0; i < glyph_count; ++i) {
-    uint16_t class_value = 0;
-    if (!subtable.ReadU16(&class_value)) {
+    uint32_t class_value = 0;
+    if (!ReadGlyph(subtable, &class_value, wide)) {
       return OTS_FAILURE_MSG("Failed to read class value for glyph %d in class definition", i);
     }
     if (class_value > num_classes) {
@@ -216,8 +224,8 @@ bool ParseClassDefFormat1(const ots::Font *font,
 
 bool ParseClassDefFormat2(const ots::Font *font,
                           const uint8_t *data, size_t length,
-                          const uint16_t num_glyphs,
-                          const uint16_t num_classes) {
+                          const uint32_t num_glyphs,
+                          const uint32_t num_classes, bool wide) {
   ots::Buffer subtable(data, length);
 
   // Skip format field.
@@ -225,28 +233,28 @@ bool ParseClassDefFormat2(const ots::Font *font,
     return OTS_FAILURE_MSG("Failed to read class definition format");
   }
 
-  uint16_t range_count = 0;
-  if (!subtable.ReadU16(&range_count)) {
+  uint32_t range_count = 0;
+  if (!ReadGlyph(subtable, &range_count, wide)) {
     return OTS_FAILURE_MSG("Failed to read classRangeCount");
   }
   if (range_count > num_glyphs) {
     return OTS_FAILURE_MSG("classRangeCount > glyph count: %u > %u", range_count, num_glyphs);
   }
 
-  uint16_t last_end = 0;
+  uint32_t last_end = 0;
   for (unsigned i = 0; i < range_count; ++i) {
-    uint16_t start = 0;
-    uint16_t end = 0;
+    uint32_t start = 0;
+    uint32_t end = 0;
     uint16_t class_value = 0;
-    if (!subtable.ReadU16(&start) ||
-        !subtable.ReadU16(&end) ||
+    if (!ReadGlyph(subtable, &start, wide) ||
+        !ReadGlyph(subtable, &end, wide) ||
         !subtable.ReadU16(&class_value)) {
       return OTS_FAILURE_MSG("Failed to read ClassRangeRecord %d", i);
     }
-    if (start > end) {
+    if (start > end || (wide && end >= num_glyphs)) {
       return OTS_FAILURE_MSG("ClassRangeRecord %d, start > end: %u > %u", i, start, end);
     }
-    if (last_end && start <= last_end) {
+    if ((wide ? i > 0 : last_end != 0) && start <= last_end) {
       return OTS_FAILURE_MSG("ClassRangeRecord %d start overlaps with end of the previous one: %u <= %u", i, start, last_end);
     }
     if (class_value > num_classes) {
@@ -260,10 +268,10 @@ bool ParseClassDefFormat2(const ots::Font *font,
 
 bool ParseCoverageFormat1(const ots::Font *font,
                           const uint8_t *data, size_t length,
-                          const uint16_t num_glyphs,
-                          const uint16_t expected_num_glyphs,
+                          const uint32_t num_glyphs,
+                          const uint32_t expected_num_glyphs,
                           uint32_t *out_num_glyphs,
-                          uint16_t *out_last_glyph) {
+                          uint32_t *out_last_glyph, bool wide) {
   ots::Buffer subtable(data, length);
 
   // Skip format field.
@@ -271,21 +279,23 @@ bool ParseCoverageFormat1(const ots::Font *font,
     return OTS_FAILURE_MSG("Failed to skip coverage format");
   }
 
-  uint16_t glyph_count = 0;
-  if (!subtable.ReadU16(&glyph_count)) {
+  uint32_t glyph_count = 0;
+  if (!ReadGlyph(subtable, &glyph_count, wide)) {
     return OTS_FAILURE_MSG("Failed to read glyph count in coverage");
   }
   if (glyph_count > num_glyphs) {
     return OTS_FAILURE_MSG("bad glyph count: %u", glyph_count);
   }
+  uint32_t previous = 0;
   for (unsigned i = 0; i < glyph_count; ++i) {
-    uint16_t glyph = 0;
-    if (!subtable.ReadU16(&glyph)) {
+    uint32_t glyph = 0;
+    if (!ReadGlyph(subtable, &glyph, wide)) {
       return OTS_FAILURE_MSG("Failed to read glyph %d in coverage", i);
     }
-    if (glyph >= num_glyphs) {
+    if (glyph >= num_glyphs || (wide && i && glyph <= previous)) {
       return OTS_FAILURE_MSG("bad glyph ID: %u", glyph);
     }
+    previous = glyph;
     if (out_last_glyph) {
       *out_last_glyph = glyph;
     }
@@ -303,10 +313,10 @@ bool ParseCoverageFormat1(const ots::Font *font,
 
 bool ParseCoverageFormat2(const ots::Font *font,
                           const uint8_t *data, size_t length,
-                          const uint16_t num_glyphs,
-                          const uint16_t expected_num_glyphs,
+                          const uint32_t num_glyphs,
+                          const uint32_t expected_num_glyphs,
                           uint32_t *out_num_glyphs,
-                          uint16_t *out_last_glyph) {
+                          uint32_t *out_last_glyph, bool wide) {
   ots::Buffer subtable(data, length);
 
   // Skip format field.
@@ -314,22 +324,22 @@ bool ParseCoverageFormat2(const ots::Font *font,
     return OTS_FAILURE_MSG("Failed to skip format of coverage type 2");
   }
 
-  uint16_t range_count = 0;
-  if (!subtable.ReadU16(&range_count)) {
+  uint32_t range_count = 0;
+  if (!ReadGlyph(subtable, &range_count, wide)) {
     return OTS_FAILURE_MSG("Failed to read range count in coverage");
   }
   if (range_count > num_glyphs) {
     return OTS_FAILURE_MSG("bad range count: %u", range_count);
   }
-  uint16_t last_end = 0;
+  uint32_t last_end = 0;
   uint32_t last_start_coverage_index = 0;
   for (unsigned i = 0; i < range_count; ++i) {
-    uint16_t start = 0;
-    uint16_t end = 0;
-    uint16_t start_coverage_index = 0;
-    if (!subtable.ReadU16(&start) ||
-        !subtable.ReadU16(&end) ||
-        !subtable.ReadU16(&start_coverage_index)) {
+    uint32_t start = 0;
+    uint32_t end = 0;
+    uint32_t start_coverage_index = 0;
+    if (!ReadGlyph(subtable, &start, wide) ||
+        !ReadGlyph(subtable, &end, wide) ||
+        !ReadGlyph(subtable, &start_coverage_index, wide)) {
       return OTS_FAILURE_MSG("Failed to read range %d in coverage", i);
     }
 
@@ -337,7 +347,8 @@ bool ParseCoverageFormat2(const ots::Font *font,
     // start of one range is equal to the end of the previous range. Therefore
     // the < in the following condition should be <= were it not for this.
     // See crbug.com/134135.
-    if (start > end || (last_end && start < last_end)) {
+    if (start > end || (wide ? (end >= num_glyphs || (i && start <= last_end))
+                            : (last_end && start < last_end))) {
       return OTS_FAILURE_MSG("glyph range is overlapping.");
     }
     if (start_coverage_index != last_start_coverage_index) {
@@ -364,7 +375,7 @@ bool ParseCoverageFormat2(const ots::Font *font,
 // Parsers for Contextual subtables in GSUB/GPOS tables.
 
 bool ParseLookupRecord(const ots::Font *font,
-                       ots::Buffer *subtable, const uint16_t num_glyphs,
+                       ots::Buffer *subtable, const uint32_t num_glyphs,
                        const uint16_t num_lookups) {
   uint16_t sequence_index = 0;
   uint16_t lookup_list_index = 0;
@@ -383,7 +394,7 @@ bool ParseLookupRecord(const ots::Font *font,
 
 bool ParseRuleSubtable(const ots::Font *font,
                        const uint8_t *data, const size_t length,
-                       const uint16_t num_glyphs,
+                       const uint32_t num_glyphs,
                        const uint16_t num_lookups) {
   ots::Buffer subtable(data, length);
 
@@ -417,7 +428,7 @@ bool ParseRuleSubtable(const ots::Font *font,
 
 bool ParseRuleSetTable(const ots::Font *font,
                        const uint8_t *data, const size_t length,
-                       const uint16_t num_glyphs,
+                       const uint32_t num_glyphs,
                        const uint16_t num_lookups) {
   ots::Buffer subtable(data, length);
 
@@ -449,7 +460,7 @@ bool ParseRuleSetTable(const ots::Font *font,
 
 bool ParseContextFormat1(const ots::Font *font,
                          const uint8_t *data, const size_t length,
-                         const uint16_t num_glyphs,
+                         const uint32_t num_glyphs,
                          const uint16_t num_lookups) {
   ots::Buffer subtable(data, length);
 
@@ -494,7 +505,7 @@ bool ParseContextFormat1(const ots::Font *font,
 
 bool ParseClassRuleTable(const ots::Font *font,
                          const uint8_t *data, const size_t length,
-                         const uint16_t num_glyphs,
+                         const uint32_t num_glyphs,
                          const uint16_t num_lookups) {
   ots::Buffer subtable(data, length);
 
@@ -526,7 +537,7 @@ bool ParseClassRuleTable(const ots::Font *font,
 
 bool ParseClassSetTable(const ots::Font *font,
                         const uint8_t *data, const size_t length,
-                        const uint16_t num_glyphs,
+                        const uint32_t num_glyphs,
                         const uint16_t num_lookups) {
   ots::Buffer subtable(data, length);
 
@@ -559,7 +570,7 @@ bool ParseClassSetTable(const ots::Font *font,
 
 bool ParseContextFormat2(const ots::Font *font,
                          const uint8_t *data, const size_t length,
-                         const uint16_t num_glyphs,
+                         const uint32_t num_glyphs,
                          const uint16_t num_lookups) {
   ots::Buffer subtable(data, length);
 
@@ -617,7 +628,7 @@ bool ParseContextFormat2(const ots::Font *font,
 
 bool ParseContextFormat3(const ots::Font *font,
                          const uint8_t *data, const size_t length,
-                         const uint16_t num_glyphs,
+                         const uint32_t num_glyphs,
                          const uint16_t num_lookups) {
   ots::Buffer subtable(data, length);
 
@@ -662,7 +673,7 @@ bool ParseContextFormat3(const ots::Font *font,
 
 bool ParseChainRuleSubtable(const ots::Font *font,
                             const uint8_t *data, const size_t length,
-                            const uint16_t num_glyphs,
+                            const uint32_t num_glyphs,
                             const uint16_t num_lookups) {
   ots::Buffer subtable(data, length);
 
@@ -726,7 +737,7 @@ bool ParseChainRuleSubtable(const ots::Font *font,
 
 bool ParseChainRuleSetTable(const ots::Font *font,
                             const uint8_t *data, const size_t length,
-                            const uint16_t num_glyphs,
+                            const uint32_t num_glyphs,
                             const uint16_t num_lookups) {
   ots::Buffer subtable(data, length);
 
@@ -759,7 +770,7 @@ bool ParseChainRuleSetTable(const ots::Font *font,
 
 bool ParseChainContextFormat1(const ots::Font *font,
                               const uint8_t *data, const size_t length,
-                              const uint16_t num_glyphs,
+                              const uint32_t num_glyphs,
                               const uint16_t num_lookups) {
   ots::Buffer subtable(data, length);
 
@@ -806,7 +817,7 @@ bool ParseChainContextFormat1(const ots::Font *font,
 
 bool ParseChainClassRuleSubtable(const ots::Font *font,
                                  const uint8_t *data, const size_t length,
-                                 const uint16_t num_glyphs,
+                                 const uint32_t num_glyphs,
                                  const uint16_t num_lookups) {
   ots::Buffer subtable(data, length);
 
@@ -855,7 +866,7 @@ bool ParseChainClassRuleSubtable(const ots::Font *font,
 
 bool ParseChainClassSetTable(const ots::Font *font,
                              const uint8_t *data, const size_t length,
-                             const uint16_t num_glyphs,
+                             const uint32_t num_glyphs,
                              const uint16_t num_lookups) {
   ots::Buffer subtable(data, length);
 
@@ -889,7 +900,7 @@ bool ParseChainClassSetTable(const ots::Font *font,
 
 bool ParseChainContextFormat2(const ots::Font *font,
                               const uint8_t *data, const size_t length,
-                              const uint16_t num_glyphs,
+                              const uint32_t num_glyphs,
                               const uint16_t num_lookups) {
   ots::Buffer subtable(data, length);
 
@@ -980,7 +991,7 @@ bool ParseChainContextFormat2(const ots::Font *font,
 
 bool ParseChainContextFormat3(const ots::Font *font,
                               const uint8_t *data, const size_t length,
-                              const uint16_t num_glyphs,
+                              const uint32_t num_glyphs,
                               const uint16_t num_lookups) {
   ots::Buffer subtable(data, length);
 
@@ -1417,18 +1428,18 @@ bool OpenTypeLayoutTable::ParseLookupListTable(const uint8_t *data,
 
 bool ParseClassDefTable(const ots::Font *font,
                         const uint8_t *data, size_t length,
-                        const uint16_t num_glyphs,
-                        const uint16_t num_classes) {
+                        const uint32_t num_glyphs,
+                        const uint32_t num_classes) {
   Buffer subtable(data, length);
 
   uint16_t format = 0;
   if (!subtable.ReadU16(&format)) {
     return OTS_FAILURE_MSG("Failed to read class defn format");
   }
-  if (format == 1) {
-    return ParseClassDefFormat1(font, data, length, num_glyphs, num_classes);
-  } else if (format == 2) {
-    return ParseClassDefFormat2(font, data, length, num_glyphs, num_classes);
+  if (format == 1 || format == 3) {
+    return ParseClassDefFormat1(font, data, length, num_glyphs, num_classes, format > 2);
+  } else if (format == 2 || format == 4) {
+    return ParseClassDefFormat2(font, data, length, num_glyphs, num_classes, format > 2);
   }
 
   return OTS_FAILURE_MSG("Bad class defn format %d", format);
@@ -1436,24 +1447,24 @@ bool ParseClassDefTable(const ots::Font *font,
 
 bool ParseCoverageTable(const ots::Font *font,
                         const uint8_t *data, size_t length,
-                        const uint16_t num_glyphs,
-                        const uint16_t expected_num_glyphs,
+                        const uint32_t num_glyphs,
+                        const uint32_t expected_num_glyphs,
                         uint32_t *out_num_glyphs,
-                        uint16_t *out_last_glyph) {
+                        uint32_t *out_last_glyph) {
   Buffer subtable(data, length);
 
   uint16_t format = 0;
   if (!subtable.ReadU16(&format)) {
     return OTS_FAILURE_MSG("Failed to read coverage table format");
   }
-  if (format == 1) {
+  if (format == 1 || format == 3) {
     return ParseCoverageFormat1(font, data, length, num_glyphs,
                                 expected_num_glyphs, out_num_glyphs,
-                                out_last_glyph);
-  } else if (format == 2) {
+                                out_last_glyph, format > 2);
+  } else if (format == 2 || format == 4) {
     return ParseCoverageFormat2(font, data, length, num_glyphs,
                                 expected_num_glyphs, out_num_glyphs,
-                                out_last_glyph);
+                                out_last_glyph, format > 2);
   }
 
   return OTS_FAILURE_MSG("Bad coverage table format %d", format);
@@ -1505,8 +1516,7 @@ bool OpenTypeLayoutTable::ParseContextSubtable(const uint8_t *data,
     return Error("Failed to read context subtable format");
   }
 
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = font->GetMaxp();
   if (!maxp) {
     return Error("Required maxp table missing");
   }
@@ -1540,8 +1550,7 @@ bool OpenTypeLayoutTable::ParseChainingContextSubtable(const uint8_t *data,
     return Error("Failed to read chaining context subtable format");
   }
 
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = font->GetMaxp();
   if (!maxp) {
     return Error("Required maxp table missing");
   }

@@ -1090,6 +1090,12 @@ Table* Font::GetTypedTable(uint32_t tag) const {
   return NULL;
 }
 
+OpenTypeMAXP* Font::GetMaxp() const {
+  auto* table = GetTypedTable(OTS_TAG_MAXP_EXT);
+  if (!table) table = GetTypedTable(OTS_TAG_MAXP);
+  return static_cast<OpenTypeMAXP*>(table);
+}
+
 void Font::AddTable(TableEntry entry, Table* table) {
   // Attempting to add a duplicate table would be an error; this should only
   // be used to add a table that does not already exist.
