@@ -496,6 +496,16 @@ bool OpenTypeGSUB::ValidLookupSubtableType(const uint16_t lookup_type,
 
 bool OpenTypeGSUB::ParseLookupSubtable(const uint8_t *data, const size_t length,
                                        const uint16_t lookup_type) {
+  Buffer header(data, length);
+  uint16_t format;
+  if (!header.ReadU16(&format)) return Error("Missing lookup format");
+  const uint16_t legacy_formats[] = {0, 2, 1, 1, 1, 3, 3, 1, 1};
+  if (lookup_type < arraysize(legacy_formats) && format > legacy_formats[lookup_type]) {
+    if (!ParseExtendedLayoutSubtable(GetFont(), data, length, lookup_type, NumLookups(), false)) {
+      return Error("Invalid extended substitution format %u for lookup type %u", format, lookup_type);
+    }
+    return true;
+  }
   switch (lookup_type) {
     case GSUB_TYPE_SINGLE:
       return ParseSingleSubstitution(data, length);

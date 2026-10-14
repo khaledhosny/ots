@@ -68,6 +68,7 @@ ots_sources = [
   'src/cvar.h',
   'src/cvt.cc',
   'src/cvt.h',
+  'src/extended-layout.cc',
   'src/fpgm.cc',
   'src/fpgm.h',
   'src/fvar.cc',

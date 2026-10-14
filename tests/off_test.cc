@@ -96,6 +96,29 @@ class OFFTest : public ::testing::Test {
     return varc.Parse(b.data(), b.size());
   }
 
+  void AddExtendedProfile() {
+    auto* maxp = new ots::OpenTypeMAXP(&font, OTS_TAG_MAXP_EXT);
+    maxp->num_glyphs = 70001; maxp->version_1 = false; Add(maxp);
+  }
+
+  bool ParseLookup(uint16_t type, const Bytes& subtable, bool positioning = false) {
+    Bytes b;
+    U32(b, 0x00010000); U16(b, 0); U16(b, 0); U16(b, 10);
+    U16(b, 1); U16(b, 4);
+    U16(b, type); U16(b, 0); U16(b, 1); U16(b, 8);
+    b.insert(b.end(), subtable.begin(), subtable.end());
+    if (positioning) {
+      ots::OpenTypeGPOS table(&font, OTS_TAG_GPOS);
+      return table.Parse(b.data(), b.size());
+    }
+    ots::OpenTypeGSUB table(&font, OTS_TAG_GSUB);
+    return table.Parse(b.data(), b.size());
+  }
+
+  void Coverage(Bytes& b, uint32_t glyph = 65536) {
+    U16(b, 3); U24(b, 1); U24(b, glyph);
+  }
+
   QuietContext context;
   ots::FontFile file;
   ots::Font font;
@@ -276,6 +299,75 @@ TEST_F(OFFTest, ExtendedLayoutHeaders) {
       EXPECT_TRUE(table.Parse(layout.data(), layout.size()));
     }
   }
+}
+
+TEST_F(OFFTest, ExtendedSubstitutions) {
+  AddExtendedProfile();
+  Bytes b;
+  U16(b, 3); U32(b, 9); U24(b, 0xffffff); Coverage(b);
+  EXPECT_TRUE(ParseLookup(1, b));
+  b.clear();
+  U16(b, 4); U32(b, 12); U24(b, 1); U24(b, 70000); Coverage(b);
+  EXPECT_TRUE(ParseLookup(1, b));
+  b.pop_back(); EXPECT_FALSE(ParseLookup(1, b));
+  for (uint16_t type : {2, 3}) {
+    b.clear();
+    U16(b, 2); U32(b, 17); U24(b, 1); U24(b, 12);
+    U16(b, 1); U24(b, 70000); Coverage(b);
+    EXPECT_TRUE(ParseLookup(type, b));
+    b.pop_back(); EXPECT_FALSE(ParseLookup(type, b));
+  }
+  b.clear();
+  U16(b, 2); U32(b, 25); U24(b, 1); U24(b, 12);
+  U16(b, 1); U24(b, 5); U24(b, 70000); U16(b, 2); U24(b, 65536);
+  Coverage(b);
+  EXPECT_TRUE(ParseLookup(4, b));
+  b.pop_back(); EXPECT_FALSE(ParseLookup(4, b));
+  b.clear();
+  U16(b, 2); U32(b, 16); U16(b, 0); U16(b, 0);
+  U24(b, 1); U24(b, 70000); Coverage(b);
+  EXPECT_TRUE(ParseLookup(8, b));
+  b.pop_back(); EXPECT_FALSE(ParseLookup(8, b));
+}
+
+TEST_F(OFFTest, ExtendedContexts) {
+  AddExtendedProfile();
+  Bytes b;
+  U16(b, 4); U32(b, 27); U24(b, 1); U24(b, 12);
+  U16(b, 1); U16(b, 4);  // SequenceRuleSet2 uses Offset16.
+  U16(b, 2); U16(b, 1); U24(b, 70000); U16(b, 1); U16(b, 0);
+  Coverage(b);
+  EXPECT_TRUE(ParseLookup(5, b));
+  b.pop_back(); EXPECT_FALSE(ParseLookup(5, b));
+  b.clear();
+  U16(b, 5); U32(b, 42); U32(b, 31); U24(b, 1); U24(b, 16);
+  U16(b, 1); U24(b, 5);
+  U16(b, 2); U16(b, 1); U16(b, 0); U16(b, 1); U16(b, 0);
+  U16(b, 3); U24(b, 65536); U24(b, 1); U24(b, 0);
+  Coverage(b);
+  EXPECT_TRUE(ParseLookup(5, b));
+  b.pop_back(); EXPECT_FALSE(ParseLookup(5, b));
+  b.clear();
+  U16(b, 6); U16(b, 1); U16(b, 1); U24(b, 13); U16(b, 0); U16(b, 0);
+  Coverage(b);
+  EXPECT_TRUE(ParseLookup(5, b));
+  b.pop_back(); EXPECT_FALSE(ParseLookup(5, b));
+  b.clear();
+  U16(b, 4); U32(b, 38); U24(b, 1); U24(b, 12);
+  U16(b, 1); U24(b, 5);
+  U16(b, 1); U24(b, 70000); U16(b, 2); U24(b, 70000);
+  U16(b, 1); U24(b, 70000); U16(b, 1); U16(b, 1); U16(b, 0);
+  Coverage(b);
+  EXPECT_TRUE(ParseLookup(6, b));
+  b.pop_back(); EXPECT_FALSE(ParseLookup(6, b));
+  b.clear();
+  U16(b, 5); U32(b, 41); U32(b, 28); U32(b, 28); U32(b, 28);
+  U16(b, 1); U24(b, 23); U16(b, 1); U24(b, 26);
+  U16(b, 4); U24(b, 1); U24(b, 65536); U24(b, 65536); U16(b, 0);
+  // The rule follows the coverage: no backtrack, one input, no lookahead.
+  Coverage(b);
+  U16(b, 0); U16(b, 1); U16(b, 0); U16(b, 1); U16(b, 0); U16(b, 0);
+  EXPECT_TRUE(ParseLookup(6, b));
 }
 
 TEST_F(OFFTest, VarcIndirectVariationStore) {

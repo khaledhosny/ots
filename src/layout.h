@@ -24,6 +24,7 @@ class OpenTypeLayoutTable : public Table {
     bool Serialize(OTSStream *out);
 
   protected:
+    uint16_t NumLookups() const { return m_num_lookups; }
     bool ParseContextSubtable(const uint8_t *data, const size_t length);
     bool ParseChainingContextSubtable(const uint8_t *data, const size_t length);
     bool ParseExtensionSubtable(const uint8_t *data, const size_t length);
@@ -45,6 +46,11 @@ class OpenTypeLayoutTable : public Table {
     uint16_t m_num_features = 0;
     uint16_t m_num_lookups = 0;
 };
+
+// Extended GSUB/GPOS lookup formats from OFF 2026.
+bool ParseExtendedLayoutSubtable(const Font* font, const uint8_t* data,
+                                 size_t length, uint16_t type,
+                                 uint16_t num_lookups, bool positioning);
 
 bool ParseClassDefTable(const ots::Font *font,
                         const uint8_t *data, size_t length,
