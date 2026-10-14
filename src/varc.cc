@@ -314,13 +314,23 @@ bool ParseSparseVariationRegion(const ots::Font* font, const uint8_t* data,
     return OTS_FAILURE_MSG("Failed to read sparse region axis count");
   }
 
+  const size_t headerEnd = 2 + static_cast<size_t>(regionAxisCount) * 4;
+  if (headerEnd > length) {
+    return OTS_FAILURE_MSG("Sparse region axis offsets out of bounds");
+  }
+
   for (unsigned i = 0; i < regionAxisCount; ++i) {
+    uint32_t offset;
+    if (!subtable.ReadU32(&offset) || offset < headerEnd || offset >= length) {
+      return OTS_FAILURE_MSG("Bad sparse region axis offset");
+    }
+    ots::Buffer coordinates(data + offset, length - offset);
     uint16_t axisIndex;
     int16_t startCoord, peakCoord, endCoord;
-    if (!subtable.ReadU16(&axisIndex) ||
-        !subtable.ReadS16(&startCoord) ||
-        !subtable.ReadS16(&peakCoord) ||
-        !subtable.ReadS16(&endCoord)) {
+    if (!coordinates.ReadU16(&axisIndex) ||
+        !coordinates.ReadS16(&startCoord) ||
+        !coordinates.ReadS16(&peakCoord) ||
+        !coordinates.ReadS16(&endCoord)) {
       return OTS_FAILURE_MSG("Failed to read sparse region axis coordinates");
     }
 
@@ -344,21 +354,26 @@ bool ParseSparseVariationRegion(const ots::Font* font, const uint8_t* data,
 
 bool ParseSparseVariationRegionList(const ots::Font* font, const uint8_t* data,
                                     size_t length, const varcState& state,
-                                    uint16_t* out_regionCount) {
+                                    uint32_t* out_regionCount) {
   ots::Buffer subtable(data, length);
 
-  uint16_t regionCount;
-  if (!subtable.ReadU16(&regionCount)) {
+  uint32_t regionCount;
+  if (!subtable.ReadU32(&regionCount)) {
     return OTS_FAILURE_MSG("Failed to read sparse region list count");
   }
   *out_regionCount = regionCount;
+
+  const uint64_t headerEnd = 4 + static_cast<uint64_t>(regionCount) * 4;
+  if (headerEnd > length) {
+    return OTS_FAILURE_MSG("Sparse region offsets out of bounds");
+  }
 
   for (unsigned i = 0; i < regionCount; ++i) {
     uint32_t offset;
     if (!subtable.ReadU32(&offset)) {
       return OTS_FAILURE_MSG("Failed to read sparse region offset");
     }
-    if (offset < 2u || offset >= length) {
+    if (offset < headerEnd || offset >= length) {
       return OTS_FAILURE_MSG("Bad sparse region offset");
     }
     if (!ParseSparseVariationRegion(font, data + offset, length - offset, state)) {
@@ -372,7 +387,7 @@ bool ParseSparseVariationRegionList(const ots::Font* font, const uint8_t* data,
 // A single MultiItemVariationData sub-table. *out_tupleLengths receives the
 // tuple length of each delta set it stores (indexed by "inner" index).
 bool ParseMultiItemVariationData(const ots::Font* font, const uint8_t* data,
-                                 size_t length, uint16_t regionCount,
+                                 size_t length, uint32_t regionCount,
                                  std::vector<uint32_t>* out_tupleLengths) {
   ots::Buffer subtable(data, length);
 
@@ -395,8 +410,12 @@ bool ParseMultiItemVariationData(const ots::Font* font, const uint8_t* data,
     }
   }
 
-  // The remaining bytes are a CFF2-style Index of TupleValues (the delta sets).
-  const size_t indexStart = subtable.offset();
+  // The delta-set INDEX is addressed relative to MultiItemVariationData.
+  uint32_t indexStart;
+  if (!subtable.ReadU32(&indexStart) || indexStart < subtable.offset() ||
+      indexStart >= length) {
+    return OTS_FAILURE_MSG("Bad delta sets Index offset");
+  }
   uint32_t deltaSetCount = 0;
   std::vector<IndexObject> deltaSets;
   if (!ParseCFF2Index(font, data + indexStart, length - indexStart,
@@ -463,7 +482,7 @@ bool ParseMultiItemVariationStore(const ots::Font* font, const uint8_t* data,
     return OTS_FAILURE_MSG("Bad region list offset");
   }
 
-  uint16_t regionCount = 0;
+  uint32_t regionCount = 0;
   if (!ParseSparseVariationRegionList(font, data + regionListOffset,
                                       length - regionListOffset, *state,
                                       &regionCount)) {

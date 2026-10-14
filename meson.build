@@ -272,6 +272,16 @@ cff_charstring = executable('cff_charstring',
 
 test('cff_charstring', cff_charstring)
 
+off_test = executable('off_test',
+  'tests/off_test.cc',
+  include_directories: include_directories(['include', 'src']),
+  link_with: libots,
+  dependencies: gtest,
+  override_options: ['cpp_std=c++17'],
+)
+
+test('off_test', off_test)
+
 
 passthru_test = executable('passthru_test',
   'tests/passthru_test.cc',
