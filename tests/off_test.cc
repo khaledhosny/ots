@@ -491,11 +491,12 @@ TEST_F(OFFTest, FeatureVariationConditionFormats) {
   U16(axis, 0); U16(axis, 256);
   auto* fvar = new ots::OpenTypeFVAR(&font, OTS_TAG_FVAR);
   ASSERT_TRUE(fvar->Parse(axis.data(), axis.size())); Add(fvar);
-  auto parse = [this](const Bytes& condition) {
+  auto parse = [this](const Bytes& condition, std::vector<uint32_t> roots = {0}) {
     Bytes b;
     U32(b, 0x00010001); U16(b, 0); U16(b, 0); U16(b, 0); U32(b, 14);
     U32(b, 0x00010000); U32(b, 1); U32(b, 16); U32(b, 0);
-    U16(b, 1); U32(b, 6);
+    U16(b, roots.size());
+    for (uint32_t offset : roots) U32(b, 2 + roots.size() * 4 + offset);
     b.insert(b.end(), condition.begin(), condition.end());
     ots::OpenTypeGSUB table(&font, OTS_TAG_GSUB);
     return table.Parse(b.data(), b.size());
@@ -515,6 +516,18 @@ TEST_F(OFFTest, FeatureVariationConditionFormats) {
   for (unsigned i = 0; i < 66; ++i) { U16(c, 5); U24(c, 5); }
   U16(c, 2); U16(c, 10); U16(c, 0); U16(c, 0);
   EXPECT_FALSE(parse(c));
+  c.clear();
+  for (unsigned i = 0; i < 32; ++i) {
+    U16(c, 3); c.push_back(2); U24(c, 9); U24(c, 9);
+  }
+  U16(c, 2); U16(c, 10); U16(c, 0); U16(c, 0);
+  EXPECT_TRUE(parse(c));  // An exponentially shared DAG validates once per offset.
+  c.clear();
+  for (unsigned i = 0; i < 70; ++i) { U16(c, 5); U24(c, 5); }
+  U16(c, 2); U16(c, 10); U16(c, 0); U16(c, 0);
+  // Cache the 40-edge subtree first, then reach it through a 30-edge parent.
+  EXPECT_FALSE(parse(c, {150, 0}));
+
 }
 
 TEST_F(OFFTest, PaintGlyph2WithoutPalette) {
