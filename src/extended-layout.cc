@@ -70,9 +70,10 @@ class ExtendedLookup {
   }
 
   bool Classes(const Reader& r, uint32_t offset, uint32_t count) {
-    return count && r.Offset(offset, r.offset()) &&
+    // A null ClassDef assigns every glyph to class zero.
+    return count && (!offset || (r.Offset(offset, r.offset()) &&
         ots::ParseClassDefTable(font_, r.buffer() + offset, r.length() - offset,
-                                glyph_count_, count - 1);
+                                glyph_count_, count - 1)));
   }
 
   bool Glyphs(Reader& r, uint32_t count, bool classes = false,
@@ -231,13 +232,15 @@ bool ExtendedLookup::Context(Reader& r, uint32_t format, bool chained) {
   std::vector<uint32_t> offsets;
   if (!r.Offsets(count, 3, offsets, true) ||
       !Coverage(r, coverage, classes ? UINT32_MAX : count)) return false;
-  if (classes && (!Classes(r, input, count) ||
-      (chained && (!Classes(r, back, 65536) || !Classes(r, ahead, 65536))))) return false;
+  // The rule-set count bounds classes of the *first* input glyph only.
+  // Other input glyphs can use higher classes with no rule set of their own.
+  if (classes && (!Classes(r, input, 0x1000000) ||
+      (chained && (!Classes(r, back, 0x1000000) || !Classes(r, ahead, 0x1000000))))) return false;
   for (uint32_t offset : offsets) {
     if (!offset) continue;
     if (!Work()) return false;
     Reader rules(r.buffer() + offset, r.length() - offset);
-    if (!RuleSet(rules, chained, classes, count)) return false;
+    if (!RuleSet(rules, chained, classes, 65536)) return false;
   }
   return true;
 }

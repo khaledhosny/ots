@@ -343,8 +343,8 @@ TEST_F(OFFTest, ExtendedContexts) {
   b.clear();
   U16(b, 5); U32(b, 42); U32(b, 31); U24(b, 1); U24(b, 16);
   U16(b, 1); U24(b, 5);
-  U16(b, 2); U16(b, 1); U16(b, 0); U16(b, 1); U16(b, 0);
-  U16(b, 3); U24(b, 65536); U24(b, 1); U24(b, 0);
+  U16(b, 2); U16(b, 1); U16(b, 7); U16(b, 1); U16(b, 0);
+  U16(b, 3); U24(b, 65536); U24(b, 1); U24(b, 7);
   Coverage(b);
   EXPECT_TRUE(ParseLookup(5, b));
   EXPECT_TRUE(ParseLookup(7, b, true));
@@ -365,7 +365,7 @@ TEST_F(OFFTest, ExtendedContexts) {
   EXPECT_TRUE(ParseLookup(8, b, true));
   b.pop_back(); EXPECT_FALSE(ParseLookup(6, b));
   b.clear();
-  U16(b, 5); U32(b, 41); U32(b, 28); U32(b, 28); U32(b, 28);
+  U16(b, 5); U32(b, 41); U32(b, 0); U32(b, 28); U32(b, 28);
   U16(b, 1); U24(b, 23); U16(b, 1); U24(b, 26);
   U16(b, 4); U24(b, 1); U24(b, 65536); U24(b, 65536); U16(b, 0);
   // The rule follows the coverage: no backtrack, one input, no lookahead.
