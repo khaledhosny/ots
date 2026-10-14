@@ -7,6 +7,9 @@
 #include <gtest/gtest.h>
 
 #include "cmap.h"
+#include "gdef.h"
+#include "gsub.h"
+#include "gpos.h"
 #include "gvar.h"
 #include "glyf.h"
 #include "head.h"
@@ -232,6 +235,47 @@ TEST_F(OFFTest, DmapAndFormat15) {
   ASSERT_TRUE(base.Parse(cmap.data(), cmap.size()));
   ots::ExpandingMemoryStream out_base(64, 1024);
   EXPECT_TRUE(base.Serialize(&out_base));
+}
+
+TEST_F(OFFTest, ExtendedGdefHeaderAndCaretList) {
+  auto* maxp = new ots::OpenTypeMAXP(&font, OTS_TAG_MAXP_EXT);
+  maxp->num_glyphs = 70001; maxp->version_1 = false; Add(maxp);
+  Bytes gdef(38, 0);
+  Set32(gdef, 0, 0x00010004);
+  // A nonzero extended offset overrides even an unusable legacy offset.
+  gdef[8] = gdef[9] = 0xff;
+  Set32(gdef, 26, 65536);
+  gdef.resize(65536);
+  U32(gdef, 10); U24(gdef, 1); U24(gdef, 18);
+  U16(gdef, 3); U24(gdef, 1); U24(gdef, 70000);
+  U16(gdef, 1); U16(gdef, 4); U16(gdef, 1); U16(gdef, 100);
+  ots::OpenTypeGDEF table(&font, OTS_TAG_GDEF);
+  EXPECT_TRUE(table.Parse(gdef.data(), gdef.size()));
+  gdef.pop_back();
+  ots::OpenTypeGDEF bad(&font, OTS_TAG_GDEF);
+  EXPECT_FALSE(bad.Parse(gdef.data(), gdef.size()));
+}
+
+TEST_F(OFFTest, ExtendedLayoutHeaders) {
+  for (uint32_t tag : {OTS_TAG_GSUB, OTS_TAG_GPOS}) {
+    Bytes layout(26, 0);
+    Set32(layout, 0, 0x00010002);
+    layout[8] = layout[9] = 0xff;
+    Set32(layout, 22, 65536);
+    layout.resize(65536);
+    U16(layout, 1); U32(layout, 65536);
+    layout.resize(131072);
+    U16(layout, 1); U16(layout, 0); U16(layout, 1); U16(layout, 8);
+    U16(layout, 1); U16(layout, 6); U16(layout, 0);
+    U16(layout, 1); U16(layout, 1); U16(layout, 0);
+    if (tag == OTS_TAG_GSUB) {
+      ots::OpenTypeGSUB table(&font, tag);
+      EXPECT_TRUE(table.Parse(layout.data(), layout.size()));
+    } else {
+      ots::OpenTypeGPOS table(&font, tag);
+      EXPECT_TRUE(table.Parse(layout.data(), layout.size()));
+    }
+  }
 }
 
 TEST_F(OFFTest, VarcIndirectVariationStore) {

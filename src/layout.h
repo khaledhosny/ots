@@ -31,7 +31,7 @@ class OpenTypeLayoutTable : public Table {
   private:
     bool ParseScriptListTable(const uint8_t *data, const size_t length);
     bool ParseFeatureListTable(const uint8_t *data, const size_t length);
-    bool ParseLookupListTable(const uint8_t *data, const size_t length);
+    bool ParseLookupListTable(const uint8_t *data, const size_t length, bool extended);
     bool ParseFeatureVariationsTable(const uint8_t *data, const size_t length);
     bool ParseLookupTable(const uint8_t *data, const size_t length);
 

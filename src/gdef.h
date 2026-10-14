@@ -26,7 +26,7 @@ class OpenTypeGDEF : public Table {
 
  private:
   bool ParseAttachListTable(const uint8_t *data, size_t length);
-  bool ParseLigCaretListTable(const uint8_t *data, size_t length);
+  bool ParseLigCaretListTable(const uint8_t *data, size_t length, bool extended);
   bool ParseMarkGlyphSetsDefTable(const uint8_t *data, size_t length);
 
   const uint8_t *m_data;

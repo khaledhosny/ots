@@ -1389,25 +1389,27 @@ bool OpenTypeLayoutTable::ParseLookupTable(const uint8_t *data,
 // obtain the number of lookups because parsing FeatureTableList requires
 // the number.
 bool OpenTypeLayoutTable::ParseLookupListTable(const uint8_t *data,
-                                               const size_t length) {
+                                               const size_t length, bool extended) {
   Buffer subtable(data, length);
 
   if (!subtable.ReadU16(&m_num_lookups)) {
     return Error("Failed to read number of lookups");
   }
 
-  std::vector<uint16_t> lookups;
+  std::vector<uint32_t> lookups;
   lookups.reserve(m_num_lookups);
   const unsigned lookup_end =
-      2 * static_cast<unsigned>(m_num_lookups) + 2;
-  if (lookup_end > std::numeric_limits<uint16_t>::max()) {
+      (extended ? 4 : 2) * static_cast<unsigned>(m_num_lookups) + 2;
+  if (lookup_end > length) {
     return Error("Bad end of lookups %d", lookup_end);
   }
   for (unsigned i = 0; i < m_num_lookups; ++i) {
-    uint16_t offset = 0;
-    if (!subtable.ReadU16(&offset)) {
+    uint32_t offset = 0;
+    uint16_t short_offset = 0;
+    if (!(extended ? subtable.ReadU32(&offset) : subtable.ReadU16(&short_offset))) {
       return Error("Failed to read lookup offset %d", i);
     }
+    if (!extended) offset = short_offset;
     if (offset < lookup_end || offset >= length) {
       return Error("Bad lookup offset %d for lookup %d", offset, i);
     }
@@ -1671,11 +1673,6 @@ bool OpenTypeLayoutTable::ParseFeatureVariationsTable(const uint8_t *data, const
   return true;
 }
 
-// GSUB/GPOS header size for table version 1.0
-const size_t kHeaderSize_1_0 = 4 + 3 * 2;
-// GSUB/GPOS header size for table versio 1.1
-const size_t kHeaderSize_1_1 = 4 + 3 * 2 + 4;
-
 bool OpenTypeLayoutTable::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
@@ -1692,7 +1689,7 @@ bool OpenTypeLayoutTable::Parse(const uint8_t *data, size_t length) {
     return Error("Incomplete table");
   }
 
-  if (version_major != 1 || version_minor > 1) {
+  if (version_major != 1 || version_minor > 2) {
     return Error("Bad version");
   }
 
@@ -1702,38 +1699,49 @@ bool OpenTypeLayoutTable::Parse(const uint8_t *data, size_t length) {
     }
   }
 
-  const size_t header_size =
-    (version_minor == 0) ? kHeaderSize_1_0 : kHeaderSize_1_1;
+  uint32_t script_offset = offset_script_list;
+  uint32_t feature_offset = offset_feature_list;
+  uint32_t lookup_offset = offset_lookup_list;
+  bool extended_lookups = false;
+  if (version_minor >= 2) {
+    uint32_t script2, feature2, lookup2;
+    if (!table.ReadU32(&script2) || !table.ReadU32(&feature2) ||
+        !table.ReadU32(&lookup2)) return Error("Incomplete table");
+    if (script2) script_offset = script2;
+    if (feature2) feature_offset = feature2;
+    if (lookup2) { lookup_offset = lookup2; extended_lookups = true; }
+  }
+  const size_t header_size = table.offset();
 
-  if (offset_lookup_list) {
-    if (offset_lookup_list < header_size || offset_lookup_list >= length) {
+  if (lookup_offset) {
+    if (lookup_offset < header_size || lookup_offset >= length) {
       return Error("Bad lookup list offset in table header");
     }
 
-    if (!ParseLookupListTable(data + offset_lookup_list,
-                              length - offset_lookup_list)) {
+    if (!ParseLookupListTable(data + lookup_offset,
+                              length - lookup_offset, extended_lookups)) {
       return Error("Failed to parse lookup list table");
     }
   }
 
-  if (offset_feature_list) {
-    if (offset_feature_list < header_size || offset_feature_list >= length) {
+  if (feature_offset) {
+    if (feature_offset < header_size || feature_offset >= length) {
       return Error("Bad feature list offset in table header");
     }
 
-    if (!ParseFeatureListTable(data + offset_feature_list,
-                               length - offset_feature_list)) {
+    if (!ParseFeatureListTable(data + feature_offset,
+                               length - feature_offset)) {
       return Error("Failed to parse feature list table");
     }
   }
 
-  if (offset_script_list) {
-    if (offset_script_list < header_size || offset_script_list >= length) {
+  if (script_offset) {
+    if (script_offset < header_size || script_offset >= length) {
       return Error("Bad script list offset in table header");
     }
 
-    if (!ParseScriptListTable(data + offset_script_list,
-                              length - offset_script_list)) {
+    if (!ParseScriptListTable(data + script_offset,
+                              length - script_offset)) {
       return Error("Failed to parse script list table");
     }
   }
