@@ -1143,7 +1143,10 @@ bool ParseFeatureTableSubstitutionTable(const ots::Font *font,
 
 bool ParseConditionTable(const ots::Font *font,
                          const uint8_t *data, const size_t length,
-                         const uint16_t axis_count) {
+                         const uint16_t axis_count,
+                         unsigned depth, std::map<const uint8_t*, bool>& parsed) {
+  if (depth > 64) return OTS_FAILURE_MSG("Condition nesting is too deep");
+  if (parsed.count(data)) return true;
   ots::Buffer subtable(data, length);
 
   uint16_t format = 0;
@@ -1151,6 +1154,32 @@ bool ParseConditionTable(const ots::Font *font,
     return OTS_FAILURE_MSG("Failed to read condition table format");
   }
 
+  if (format == 2) {
+    // Default value and GDEF ItemVariationStore outer/inner indices.
+    if (!subtable.Skip(6)) return OTS_FAILURE_MSG("Incomplete value condition");
+    parsed[data] = true;
+    return true;
+  }
+  if (format >= 3 && format <= 5) {
+    uint8_t count = 1;
+    if (format != 5 && !subtable.ReadU8(&count)) {
+      return OTS_FAILURE_MSG("Incomplete composite condition");
+    }
+    const size_t end = subtable.offset() + static_cast<size_t>(count) * 3;
+    if (end > length) return OTS_FAILURE_MSG("Truncated condition offsets");
+    for (unsigned i = 0; i < count; ++i) {
+      uint32_t offset;
+      if (!subtable.ReadU24(&offset)) return false;
+      if (!offset) continue;  // A null condition evaluates to true.
+      if (offset < end || offset >= length ||
+          !ParseConditionTable(font, data + offset, length - offset,
+                                axis_count, depth + 1, parsed)) {
+        return OTS_FAILURE_MSG("Invalid nested condition");
+      }
+    }
+    parsed[data] = true;
+    return true;
+  }
   if (format != 1) {
     // An unknown format is not an error, but should be ignored per spec.
     return true;
@@ -1180,6 +1209,7 @@ bool ParseConditionTable(const ots::Font *font,
     OTS_WARNING("Misordered filter range in condition table");
   }
 
+  parsed[data] = true;
   return true;
 }
 
@@ -1193,16 +1223,20 @@ bool ParseConditionSetTable(const ots::Font *font,
     return OTS_FAILURE_MSG("Failed to read condition count");
   }
 
+  const size_t end = 2 + static_cast<size_t>(condition_count) * 4;
+  if (end > length) return OTS_FAILURE_MSG("Truncated condition set");
+  std::map<const uint8_t*, bool> parsed;
   for (uint16_t i = 0; i < condition_count; i++) {
     uint32_t condition_offset = 0;
     if (!subtable.ReadU32(&condition_offset)) {
       return OTS_FAILURE_MSG("Failed to read condition offset");
     }
-    if (condition_offset < subtable.offset() || condition_offset >= length) {
+    if (!condition_offset) continue;
+    if (condition_offset < end || condition_offset >= length) {
       return OTS_FAILURE_MSG("Offset out of range");
     }
     if (!ParseConditionTable(font, data + condition_offset, length - condition_offset,
-                             axis_count)) {
+                             axis_count, 0, parsed)) {
       return OTS_FAILURE_MSG("Failed to parse condition table");
     }
   }

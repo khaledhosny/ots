@@ -11,6 +11,7 @@
 #include "gsub.h"
 #include "gpos.h"
 #include "gvar.h"
+#include "fvar.h"
 #include "glyf.h"
 #include "head.h"
 #include "hhea.h"
@@ -425,6 +426,40 @@ TEST_F(OFFTest, ExtendedMarkAttachments) {
     b.pop_back();
     EXPECT_FALSE(ParseLookup(type, b, true));
   }
+}
+
+TEST_F(OFFTest, FeatureVariationConditionFormats) {
+  Bytes axis;
+  U32(axis, 0x00010000); U16(axis, 16); U16(axis, 2);
+  U16(axis, 1); U16(axis, 20); U16(axis, 0); U16(axis, 8);
+  U32(axis, OTS_TAG('w','g','h','t')); U32(axis, 0); U32(axis, 0); U32(axis, 65536);
+  U16(axis, 0); U16(axis, 256);
+  auto* fvar = new ots::OpenTypeFVAR(&font, OTS_TAG_FVAR);
+  ASSERT_TRUE(fvar->Parse(axis.data(), axis.size())); Add(fvar);
+  auto parse = [this](const Bytes& condition) {
+    Bytes b;
+    U32(b, 0x00010001); U16(b, 0); U16(b, 0); U16(b, 0); U32(b, 14);
+    U32(b, 0x00010000); U32(b, 1); U32(b, 16); U32(b, 0);
+    U16(b, 1); U32(b, 6);
+    b.insert(b.end(), condition.begin(), condition.end());
+    ots::OpenTypeGSUB table(&font, OTS_TAG_GSUB);
+    return table.Parse(b.data(), b.size());
+  };
+  for (uint16_t format : {3, 4}) {
+    Bytes c;
+    U16(c, format); c.push_back(2); U24(c, 9); U24(c, 17);
+    U16(c, 2); U16(c, 10); U16(c, 0); U16(c, 0);
+    U16(c, 5); U24(c, 5);
+    U16(c, 1); U16(c, 0); U16(c, 0xc000); U16(c, 0x4000);
+    EXPECT_TRUE(parse(c));
+    c.pop_back(); EXPECT_FALSE(parse(c));
+  }
+  Bytes c;
+  U16(c, 5); U24(c, 0); EXPECT_TRUE(parse(c));
+  c.clear();
+  for (unsigned i = 0; i < 66; ++i) { U16(c, 5); U24(c, 5); }
+  U16(c, 2); U16(c, 10); U16(c, 0); U16(c, 0);
+  EXPECT_FALSE(parse(c));
 }
 
 TEST_F(OFFTest, VarcIndirectVariationStore) {
