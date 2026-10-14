@@ -1248,7 +1248,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
 
 namespace ots {
 
-bool OpenTypeCFF::ValidateFDSelect(uint16_t num_glyphs) {
+bool OpenTypeCFF::ValidateFDSelect(uint32_t num_glyphs) {
   for (const auto& fd_select : this->fd_select) {
     if (fd_select.first >= num_glyphs) {
       return Error("Invalid glyph index in FDSelect: %d >= %d\n",

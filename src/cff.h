@@ -72,7 +72,7 @@ class OpenTypeCFF : public Table {
   std::vector<int32_t> vsindex_per_font;
 
  protected:
-  bool ValidateFDSelect(uint16_t num_glyphs);
+  bool ValidateFDSelect(uint32_t num_glyphs);
 
  private:
   const uint8_t *m_data;

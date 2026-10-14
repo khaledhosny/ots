@@ -50,7 +50,7 @@ struct colrState
   // and hence a potential cycle.
   std::set<const uint8_t*> visited;
 
-  uint16_t numGlyphs;  // from maxp
+  uint32_t numGlyphs;  // from maxp
   uint16_t numPaletteEntries;  // from CPAL
 };
 
@@ -371,20 +371,21 @@ bool ParsePaintSweepGradient(const ots::Font* font,
 
 bool ParsePaintGlyph(const ots::Font* font,
                      const uint8_t* data, size_t length,
-                     colrState& state, uint32_t depth)
+                     colrState& state, uint32_t depth, bool extended)
 {
   ots::Buffer subtable(data, length);
 
-  uint32_t paintOffset;
-  uint16_t glyphID;
+  uint32_t paintOffset, glyphID = 0;
+  uint16_t shortGlyphID = 0;
 
   if (!subtable.Skip(1) ||
       !subtable.ReadU24(&paintOffset) ||
-      !subtable.ReadU16(&glyphID)) {
+      !(extended ? subtable.ReadU24(&glyphID) : subtable.ReadU16(&shortGlyphID))) {
     return OTS_FAILURE_MSG("Failed to read PaintGlyph");
   }
 
-  if (!paintOffset || paintOffset >= length) {
+  if (!extended) glyphID = shortGlyphID;
+  if (paintOffset < subtable.offset() || paintOffset >= length) {
     return OTS_FAILURE_MSG("Invalid paint offset in PaintGlyph");
   }
 
@@ -664,7 +665,7 @@ bool ParsePaint(const ots::Font* font,
     case 7: ok = ParsePaintRadialGradient(font, data, length, state, true); break;
     case 8: ok = ParsePaintSweepGradient(font, data, length, state, false); break;
     case 9: ok = ParsePaintSweepGradient(font, data, length, state, true); break;
-    case 10: ok = ParsePaintGlyph(font, data, length, state, depth); break;
+    case 10: ok = ParsePaintGlyph(font, data, length, state, depth, false); break;
     case 11: ok = ParsePaintColrGlyph(font, data, length, state, depth); break;
     case 12: ok = ParsePaintTransform(font, data, length, state, depth, false); break;
     case 13: ok = ParsePaintTransform(font, data, length, state, depth, true); break;
@@ -687,6 +688,7 @@ bool ParsePaint(const ots::Font* font,
     case 30: ok = ParsePaintSkew(font, data, length, state, depth, false, true); break; // SkewAroundCenter
     case 31: ok = ParsePaintSkew(font, data, length, state, depth, true, true); break; // VarSkewAroundCenter
     case 32: ok = ParsePaintComposite(font, data, length, state, depth); break;
+    case 33: ok = ParsePaintGlyph(font, data, length, state, depth, true); break;
     default:
       // Clients are supposed to ignore unknown paint types.
       OTS_WARNING("Unknown paint type %u", format);
@@ -1010,10 +1012,8 @@ bool OpenTypeCOLR::Parse(const uint8_t *data, size_t length) {
   state.numGlyphs = maxp->num_glyphs;
 
   auto *cpal = static_cast<ots::OpenTypeCPAL*>(font->GetTypedTable(OTS_TAG_CPAL));
-  if (!cpal) {
-    return OTS_FAILURE_MSG("Required cpal table missing");
-  }
-  state.numPaletteEntries = cpal->num_palette_entries;
+  // Without CPAL, OFF permits monochrome paints using foreground color.
+  state.numPaletteEntries = cpal ? cpal->num_palette_entries : 0;
 
   if (numBaseGlyphRecords) {
     if (offsetBaseGlyphRecords < headerSize || offsetBaseGlyphRecords >= length) {

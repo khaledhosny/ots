@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include "cmap.h"
+#include "colr.h"
 #include "gdef.h"
 #include "gsub.h"
 #include "gpos.h"
@@ -460,6 +461,21 @@ TEST_F(OFFTest, FeatureVariationConditionFormats) {
   for (unsigned i = 0; i < 66; ++i) { U16(c, 5); U24(c, 5); }
   U16(c, 2); U16(c, 10); U16(c, 0); U16(c, 0);
   EXPECT_FALSE(parse(c));
+}
+
+TEST_F(OFFTest, PaintGlyph2WithoutPalette) {
+  AddExtendedProfile();
+  Bytes colr;
+  U16(colr, 1); U16(colr, 0); U32(colr, 0); U32(colr, 0); U16(colr, 0);
+  U32(colr, 34); U32(colr, 0); U32(colr, 0); U32(colr, 0); U32(colr, 0);
+  U32(colr, 1); U16(colr, 1); U32(colr, 10);
+  colr.push_back(33); U24(colr, 7); U24(colr, 70000);
+  colr.push_back(2); U16(colr, 0xffff); U16(colr, 0x4000);
+  ots::OpenTypeCOLR table(&font, OTS_TAG_COLR);
+  EXPECT_TRUE(table.Parse(colr.data(), colr.size()));
+  colr[50]++;
+  ots::OpenTypeCOLR bad(&font, OTS_TAG_COLR);
+  EXPECT_FALSE(bad.Parse(colr.data(), colr.size()));
 }
 
 TEST_F(OFFTest, VarcIndirectVariationStore) {
