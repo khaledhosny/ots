@@ -34,6 +34,7 @@ typedef unsigned __int64 uint64_t;
 #include <cassert>
 #include <cstddef>
 #include <cstring>
+#include <limits>
 
 #define OTS_TAG(c1,c2,c3,c4) ((uint32_t)((((uint8_t)(c1))<<24)|(((uint8_t)(c2))<<16)|(((uint8_t)(c3))<<8)|((uint8_t)(c4))))
 #define OTS_UNTAG(tag)       ((char)((tag)>>24)), ((char)((tag)>>16)), ((char)((tag)>>8)), ((char)(tag))
@@ -162,6 +163,95 @@ class OTSStream {
   uint32_t chksum_;
 };
 
+class ExpandingMemoryStream : public OTSStream {
+ public:
+  ExpandingMemoryStream() {}
+
+  ExpandingMemoryStream(size_t initial, size_t limit)
+      : length_(initial), limit_(limit), off_(0) {
+    ptr_ = new uint8_t[length_];
+  }
+
+  ~ExpandingMemoryStream() {
+    if (ptr_) {
+      delete[] static_cast<uint8_t*>(ptr_);
+    }
+  }
+
+  ExpandingMemoryStream(const ExpandingMemoryStream&) = delete;
+  ExpandingMemoryStream& operator=(const ExpandingMemoryStream& other) = delete;
+
+  ExpandingMemoryStream(ExpandingMemoryStream&& other) {
+    *this = std::move(other);
+  }
+
+  ExpandingMemoryStream& operator=(ExpandingMemoryStream&& other) {
+    if (ptr_) {
+      delete[] static_cast<uint8_t*>(ptr_);
+    }
+
+    this->ptr_ = other.ptr_;
+    this->length_ = other.length_;
+    this->limit_ = other.limit_;
+    this->off_ = other.off_;
+
+    other.ptr_ = nullptr;
+    other.length_ = 0u;
+    other.limit_ = 0u;
+    other.off_ = 0u;
+    return *this;
+  }
+
+  operator bool() const { return ptr_ != nullptr; }
+
+  const uint8_t* data() { return static_cast<uint8_t*>(ptr_); }
+
+  void* get() const {
+    return ptr_;
+  }
+
+  size_t size() override { return limit_; }
+
+  bool WriteRaw(const void *data, size_t length) override {
+    if ((off_ + length > length_) ||
+        (length > std::numeric_limits<size_t>::max() - off_)) {
+      if (length_ == limit_)
+        return false;
+      size_t new_length = (length_ + 1) * 2;
+      if (new_length < length_)
+        return false;
+      if (new_length > limit_)
+        new_length = limit_;
+      uint8_t* new_buf = new uint8_t[new_length];
+      std::memcpy(new_buf, ptr_, length_);
+      length_ = new_length;
+      delete[] static_cast<uint8_t*>(ptr_);
+      ptr_ = new_buf;
+      return WriteRaw(data, length);
+    }
+    std::memcpy(static_cast<char*>(ptr_) + off_, data, length);
+    off_ += static_cast<off_t>(length);
+    return true;
+  }
+
+  bool Seek(off_t position) override {
+    if (position < 0) return false;
+    if (static_cast<size_t>(position) > length_) return false;
+    off_ = position;
+    return true;
+  }
+
+  off_t Tell() const override {
+    return off_;
+  }
+
+ private:
+  void* ptr_ = nullptr;
+  size_t length_ = 0;
+  size_t limit_ = 0;
+  off_t off_ = 0;
+};
+
 #ifdef __GCC__
 #define MSGFUNC_FMT_ATTR __attribute__((format(printf, 2, 3)))
 #else
@@ -192,6 +282,21 @@ class OTSContext {
     //     the corresponding font will be returned, otherwise the whole
     //     collection. Ignored for non-collection fonts.
     bool Process(OTSStream *output, const uint8_t *input, size_t length, uint32_t index = -1);
+
+    // Process a given OpenType file and write out a sanitized version
+    //   output: a pointer to an object implementing the OTSStream interface. The
+    //     sanitisied output will be written to this. In the even of a failure,
+    //     partial output may have been written.
+    //   input: the OpenType file as ExpandingMemoryStream
+    //   index: if the input is a font collection and index is specified, then
+    //     the corresponding font will be returned, otherwise the whole
+    //     collection. Ignored for non-collection fonts.
+    //   return value: ots::ExpandingMemoryStream containing the sanitized
+    //   version as value if processing succeeded. Default-constructed
+    //   ots::ExpandingMemoryStream is returned on failure.
+    ots::ExpandingMemoryStream Process(
+        ots::ExpandingMemoryStream&& input,
+        uint32_t index = -1);
 
     // This function will be called when OTS is reporting an error.
     //   level: the severity of the generated message:
