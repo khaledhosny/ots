@@ -303,7 +303,7 @@ bool OpenTypeCMAP::Parse31012(const uint8_t *data, size_t length,
 
     if (groups[i].start_range > kUnicodeUpperLimit ||
         groups[i].end_range > kUnicodeUpperLimit ||
-        groups[i].start_glyph_id > 0xFFFF) {
+        groups[i].start_glyph_id >= num_glyphs) {
       return Error("bad format 12 subtable group (startCharCode=0x%4X, endCharCode=0x%4X, startGlyphID=%d)",
                              groups[i].start_range, groups[i].end_range, groups[i].start_glyph_id);
     }
@@ -378,7 +378,7 @@ bool OpenTypeCMAP::Parse31013(const uint8_t *data, size_t length,
     // overflows
     if (groups[i].start_range > kUnicodeUpperLimit ||
         groups[i].end_range > kUnicodeUpperLimit ||
-        groups[i].start_glyph_id > 0xFFFF) {
+        groups[i].start_glyph_id >= num_glyphs) {
       return Error("Bad subrange with start_range=%d, end_range=%d, start_glyph_id=%d", groups[i].start_range, groups[i].end_range, groups[i].start_glyph_id);
     }
 
@@ -400,7 +400,11 @@ bool OpenTypeCMAP::Parse31013(const uint8_t *data, size_t length,
   return true;
 }
 
-bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length) {
+bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length, uint16_t format) {
+  const bool extended = format == 15;
+  const auto* maxp = GetFont()->GetMaxp();
+  if (!maxp) return Error("Missing glyph profile for UVS mapping");
+  this->uvs_format = format;
   // Unicode Variation Selector table
   ots::Buffer subtable(data, length);
 
@@ -500,7 +504,7 @@ bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length) {
       if (!subtable.ReadU32(&num_mappings)) {
         return Error("Can't read number of mappings in variation selector record %d", i);
       }
-      if (num_mappings == 0 || subtable.remaining() / 5 < num_mappings) {
+      if (num_mappings == 0 || subtable.remaining() / (extended ? 6 : 5) < num_mappings) {
         return Error("Bad number of mappings (%d) in variation selector record %d", num_mappings, i);
       }
 
@@ -510,11 +514,15 @@ bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length) {
       mappings.resize(num_mappings);
 
       for (unsigned j = 0; j < num_mappings; ++j) {
+        uint16_t glyph_id = 0;
         if (!subtable.ReadU24(&mappings[j].unicode_value) ||
-            !subtable.ReadU16(&mappings[j].glyph_id)) {
+            !(extended ? subtable.ReadU24(&mappings[j].glyph_id)
+                       : subtable.ReadU16(&glyph_id))) {
           return Error("Can't read mapping %d in variation selector record %d", j, i);
         }
-        if (mappings[j].glyph_id == 0 || mappings[j].unicode_value == 0) {
+        if (!extended) mappings[j].glyph_id = glyph_id;
+        if (mappings[j].glyph_id >= maxp->num_glyphs ||
+            mappings[j].glyph_id == 0 || mappings[j].unicode_value == 0) {
           return Error("Bad mapping (%04X -> %d) in mapping %d of variation selector %d", mappings[j].unicode_value, mappings[j].glyph_id, j, i);
         }
         if (mappings[j].unicode_value > kUnicodeUpperLimit) {
@@ -645,6 +653,7 @@ bool OpenTypeCMAP::Parse(const uint8_t *data, size_t length) {
         }
         break;
       case 14:
+      case 15:
         if (!table.ReadU32(&subtable_headers[i].length)) {
           return Error("Can't read cmap subtable %d length", i);
         }
@@ -773,7 +782,7 @@ bool OpenTypeCMAP::Parse(const uint8_t *data, size_t length) {
           return Error("Failed to parse format 4 cmap subtable %d", i);
         }
       } else if ((subtable_headers[i].encoding == 3 ||
-                  subtable_headers[i].encoding == 4) &&
+                  subtable_headers[i].encoding == 4 || subtable_headers[i].encoding == 6) &&
                  (subtable_headers[i].format == 12)) {
         // parse and output the 0-3-12 or 0-4-12 tables as 3-10-12 table.
         if (!Parse31012(data + subtable_headers[i].offset,
@@ -781,9 +790,9 @@ bool OpenTypeCMAP::Parse(const uint8_t *data, size_t length) {
           return Error("Failed to parse format 12 cmap subtable %d", i);
         }
       } else if ((subtable_headers[i].encoding == 5) &&
-                 (subtable_headers[i].format == 14)) {
+                 (subtable_headers[i].format == 14 || subtable_headers[i].format == 15)) {
         if (!Parse0514(data + subtable_headers[i].offset,
-                       subtable_headers[i].length)) {
+                       subtable_headers[i].length, subtable_headers[i].format)) {
           return Error("Failed to parse format 14 cmap subtable %d", i);
         }
       }
@@ -857,7 +866,8 @@ bool OpenTypeCMAP::Serialize(OTSStream *out) {
 
   // Some fonts don't have 3-0-4 MS Symbol nor 3-1-4 Unicode BMP tables
   // (e.g., old fonts for Mac). We don't support them.
-  if (!have_304 && !have_314 && !have_034 && !have_31012 && !have_31013) {
+  if (!num_subtables || (Tag() != OTS_TAG_DMAP &&
+      !have_304 && !have_314 && !have_034 && !have_31012 && !have_31013)) {
     return Error("no supported subtables were found");
   }
 
@@ -884,7 +894,7 @@ bool OpenTypeCMAP::Serialize(OTSStream *out) {
     const std::vector<ots::OpenTypeCMAPSubtableVSRecord> &records
         = this->subtable_0_5_14;
     const unsigned num_records = records.size();
-    if (!out->WriteU16(14) ||
+    if (!out->WriteU16(this->uvs_format) ||
         !out->WriteU32(this->subtable_0_5_14_length) ||
         !out->WriteU32(num_records)) {
       return OTS_FAILURE();
@@ -922,7 +932,8 @@ bool OpenTypeCMAP::Serialize(OTSStream *out) {
         }
         for (unsigned j = 0; j < num_mappings; ++j) {
           if (!out->WriteU24(mappings[j].unicode_value) ||
-              !out->WriteU16(mappings[j].glyph_id)) {
+              !(this->uvs_format == 15 ? out->WriteU24(mappings[j].glyph_id)
+                                       : out->WriteU16(mappings[j].glyph_id))) {
             return OTS_FAILURE();
           }
         }

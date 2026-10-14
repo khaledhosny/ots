@@ -128,6 +128,7 @@ const struct {
   { OTS_TAG_HEAD, true },
   { OTS_TAG_OS2,  true },
   { OTS_TAG_CMAP, true },
+  { OTS_TAG_DMAP, false },
   { OTS_TAG_HHEA_EXT, false },
   { OTS_TAG_HHEA, true },
   { OTS_TAG_HMTX_EXT, false },
@@ -1029,6 +1030,7 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       case OTS_TAG_AVAR: table = new OpenTypeAVAR(this, tag); break;
       case OTS_TAG_CFF:  table = new OpenTypeCFF(this,  tag); break;
       case OTS_TAG_CFF2: table = new OpenTypeCFF2(this, tag); break;
+      case OTS_TAG_DMAP:
       case OTS_TAG_CMAP: table = new OpenTypeCMAP(this, tag); break;
       case OTS_TAG_COLR: table = new OpenTypeCOLR(this, tag); break;
       case OTS_TAG_CPAL: table = new OpenTypeCPAL(this, tag); break;

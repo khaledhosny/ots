@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 
+#include "cmap.h"
 #include "gvar.h"
 #include "glyf.h"
 #include "head.h"
@@ -203,6 +204,34 @@ TEST_F(OFFTest, ExtendedGlyphVariations) {
   ots::OpenTypeGVAR truncated(&font, OTS_TAG_GVAR_EXT);
   EXPECT_TRUE(truncated.Parse(gvar.data(), gvar.size()));
   EXPECT_FALSE(truncated.ShouldSerialize());
+}
+
+TEST_F(OFFTest, DmapAndFormat15) {
+  auto* maxp = new ots::OpenTypeMAXP(&font, OTS_TAG_MAXP_EXT);
+  maxp->num_glyphs = 70001; maxp->version_1 = false; Add(maxp);
+  Bytes dmap;
+  U16(dmap, 0); U16(dmap, 1); U16(dmap, 0); U16(dmap, 5); U32(dmap, 12);
+  U16(dmap, 15); U32(dmap, 31); U32(dmap, 1);
+  U24(dmap, 0xfe0f); U32(dmap, 0); U32(dmap, 21);
+  U32(dmap, 1); U24(dmap, 0x41); U24(dmap, 70000);
+  ots::OpenTypeCMAP table(&font, OTS_TAG_DMAP);
+  ASSERT_TRUE(table.Parse(dmap.data(), dmap.size()));
+  ots::ExpandingMemoryStream out(64, 1024);
+  ASSERT_TRUE(table.Serialize(&out));
+  EXPECT_EQ(dmap.size(), static_cast<size_t>(out.Tell()));
+  EXPECT_EQ(0, memcmp(dmap.data(), out.get(), dmap.size()));
+  dmap.back()++;
+  ots::OpenTypeCMAP bad(&font, OTS_TAG_DMAP);
+  EXPECT_FALSE(bad.Parse(dmap.data(), dmap.size()));
+
+  Bytes cmap;
+  U16(cmap, 0); U16(cmap, 1); U16(cmap, 3); U16(cmap, 10); U32(cmap, 12);
+  U16(cmap, 12); U16(cmap, 0); U32(cmap, 28); U32(cmap, 0); U32(cmap, 1);
+  U32(cmap, 0x41); U32(cmap, 0x41); U32(cmap, 70000);
+  ots::OpenTypeCMAP base(&font, OTS_TAG_CMAP);
+  ASSERT_TRUE(base.Parse(cmap.data(), cmap.size()));
+  ots::ExpandingMemoryStream out_base(64, 1024);
+  EXPECT_TRUE(base.Serialize(&out_base));
 }
 
 TEST_F(OFFTest, VarcIndirectVariationStore) {

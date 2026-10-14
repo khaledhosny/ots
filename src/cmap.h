@@ -24,7 +24,7 @@ struct OpenTypeCMAPSubtableVSRange {
 
 struct OpenTypeCMAPSubtableVSMapping {
   uint32_t unicode_value;
-  uint16_t glyph_id;
+  uint32_t glyph_id;
 };
 
 struct OpenTypeCMAPSubtableVSRecord {
@@ -57,6 +57,7 @@ class OpenTypeCMAP : public Table {
   size_t subtable_0_3_4_length;
 
   // Platform 0, Encoding 5, Format 14, Unicode Variation Sequence table.
+  uint16_t uvs_format = 14;
   size_t subtable_0_5_14_length;
   std::vector<OpenTypeCMAPSubtableVSRecord> subtable_0_5_14;
 
@@ -78,7 +79,7 @@ class OpenTypeCMAP : public Table {
                     size_t length, uint32_t num_glyphs);
   bool Parse31012(const uint8_t *data, size_t length, uint32_t num_glyphs);
   bool Parse31013(const uint8_t *data, size_t length, uint32_t num_glyphs);
-  bool Parse0514(const uint8_t *data, size_t length);
+  bool Parse0514(const uint8_t *data, size_t length, uint16_t format);
   bool Parse100(const uint8_t *data, size_t length);
 };
 
