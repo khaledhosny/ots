@@ -281,7 +281,9 @@ off_test = executable('off_test',
   override_options: ['cpp_std=c++17'],
 )
 
-test('off_test', off_test)
+test('off_test', off_test,
+  env: ['OTS_TEST_FONT=' + meson.current_source_dir() / 'tests/fonts/good/00ae3c2b1b7718361fc76ee31da97253057b15b7.ttf'],
+)
 
 
 passthru_test = executable('passthru_test',

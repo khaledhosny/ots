@@ -320,7 +320,8 @@ bool ProcessTTC(ots::FontFile *header,
   if (!file.ReadU32(&ttc_version)) {
     return OTS_FAILURE_MSG_HDR("Error reading TTC version");
   }
-  if (ttc_version != 0x00010000 && ttc_version != 0x00020000) {
+  if (ttc_version != 0x00010000 && ttc_version != 0x00020000 &&
+      ttc_version != 0x00010001 && ttc_version != 0x00020001) {
     return OTS_FAILURE_MSG_HDR("Invalid TTC version");
   }
 
@@ -340,7 +341,7 @@ bool ProcessTTC(ots::FontFile *header,
     }
   }
 
-  if (ttc_version == 0x00020000) {
+  if (ttc_version >> 16 == 2) {
     // We don't care about these fields of the header:
     // uint32_t dsig_tag, dsig_length, dsig_offset
     if (!file.Skip(3 * 4)) {
@@ -348,12 +349,34 @@ bool ProcessTTC(ots::FontFile *header,
     }
   }
 
+  const bool extended = (ttc_version & 0xffff) == 1;
+  const uint32_t legacy_count = num_fonts;
+  uint32_t extended_count = 0;
+  if (extended) {
+    if (!file.ReadU32(&extended_count) || extended_count > 0x10000 ||
+        extended_count > file.remaining() / 4) {
+      return OTS_FAILURE_MSG_HDR("Invalid extended TTC font count");
+    }
+    offsets.resize(legacy_count + extended_count);
+    for (uint32_t i = legacy_count; i < offsets.size(); ++i) {
+      if (!file.ReadU32(&offsets[i])) return OTS_FAILURE_MSG_HDR("Truncated extended TTC offsets");
+    }
+  }
+  for (uint32_t offset : offsets) {
+    if (offset < file.offset() || offset > length || length - offset < 12) {
+      return OTS_FAILURE_MSG_HDR("Invalid TTC table directory offset");
+    }
+  }
+  num_fonts = offsets.size();
+
   if (index == static_cast<uint32_t>(-1)) {
     if (!output->WriteU32(ttc_tag) ||
-        !output->WriteU32(0x00010000) ||
-        !output->WriteU32(num_fonts) ||
-        !output->Seek((3 + num_fonts) * 4)) {
+        !output->WriteU32(extended ? 0x00010001 : 0x00010000) ||
+        !output->WriteU32(legacy_count) || !output->Pad(legacy_count * 4)) {
       return OTS_FAILURE_MSG_HDR("Error writing output");
+    }
+    if (extended && (!output->WriteU32(extended_count) || !output->Pad(extended_count * 4))) {
+      return OTS_FAILURE_MSG_HDR("Error writing extended TTC offsets");
     }
 
     // Keep references to the fonts processed in the loop below, as we need
@@ -362,7 +385,8 @@ bool ProcessTTC(ots::FontFile *header,
 
     for (unsigned i = 0; i < num_fonts; i++) {
       uint32_t out_offset = output->Tell();
-      if (!output->Seek((3 + i) * 4) ||
+      const uint32_t record = (3 + i + (extended && i >= legacy_count ? 1 : 0)) * 4;
+      if (!output->Seek(record) ||
           !output->WriteU32(out_offset) ||
           !output->Seek(out_offset)) {
         return OTS_FAILURE_MSG_HDR("Error writing output");
@@ -374,12 +398,13 @@ bool ProcessTTC(ots::FontFile *header,
 
     return true;
   } else {
-    if (index >= num_fonts) {
+    const uint32_t selected_count = extended ? extended_count : legacy_count;
+    if (index >= selected_count) {
       return OTS_FAILURE_MSG_HDR("Requested font index is bigger than the number of fonts in the TTC file");
     }
 
     ots::Font font(header);
-    return ProcessTTF(header, &font, output, data, length, offsets[index]);
+    return ProcessTTF(header, &font, output, data, length, offsets[index + (extended ? legacy_count : 0)]);
   }
 }
 

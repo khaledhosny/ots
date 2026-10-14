@@ -3,6 +3,9 @@
 // found in the LICENSE file.
 
 #include <vector>
+#include <fstream>
+#include <iterator>
+#include <map>
 
 #include <gtest/gtest.h>
 
@@ -51,6 +54,57 @@ class QuietContext : public ots::OTSContext {
  public:
   void Message(int, const char*, ...) override {}
 };
+
+uint32_t Get32(const Bytes& b, size_t at) {
+  return (uint32_t(b[at]) << 24) | (uint32_t(b[at + 1]) << 16) |
+         (uint32_t(b[at + 2]) << 8) | b[at + 3];
+}
+
+std::map<uint32_t, Bytes> FontTables(const Bytes& b) {
+  std::map<uint32_t, Bytes> tables;
+  if (b.size() < 12) return tables;
+  const unsigned count = (b[4] << 8) | b[5];
+  for (unsigned i = 0; i < count; ++i) {
+    const size_t at = 12 + i * 16;
+    const uint32_t tag = Get32(b, at), offset = Get32(b, at + 8), length = Get32(b, at + 12);
+    tables[tag] = Bytes(b.begin() + offset, b.begin() + offset + length);
+  }
+  return tables;
+}
+
+Bytes MakeFont(const std::map<uint32_t, Bytes>& tables) {
+  Bytes b;
+  unsigned log2 = 0;
+  while ((1u << (log2 + 1)) <= tables.size()) ++log2;
+  U32(b, 0x00010000); U16(b, tables.size()); U16(b, 16u << log2);
+  U16(b, log2); U16(b, tables.size() * 16 - (16u << log2));
+  size_t offset = 12 + tables.size() * 16;
+  for (const auto& entry : tables) {
+    U32(b, entry.first); U32(b, 0); U32(b, offset); U32(b, entry.second.size());
+    offset = ots::Round4(offset + entry.second.size());
+  }
+  for (const auto& entry : tables) {
+    b.insert(b.end(), entry.second.begin(), entry.second.end());
+    b.resize(ots::Round4(b.size()));
+  }
+  return b;
+}
+
+Bytes SeedFont() {
+  const char* path = std::getenv("OTS_TEST_FONT");
+  if (!path) return {};
+  std::ifstream file(path, std::ios::binary);
+  return Bytes(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+}
+
+bool Sanitize(const Bytes& input, Bytes& output, uint32_t index = -1) {
+  QuietContext context;
+  ots::ExpandingMemoryStream stream(input.size() + 1, input.size() * 4 + 1024);
+  if (!context.Process(&stream, input.data(), input.size(), index)) return false;
+  const auto* data = static_cast<const uint8_t*>(stream.get());
+  output.assign(data, data + stream.Tell());
+  return true;
+}
 
 class OFFTest : public ::testing::Test {
  protected:
@@ -476,6 +530,59 @@ TEST_F(OFFTest, PaintGlyph2WithoutPalette) {
   colr[50]++;
   ots::OpenTypeCOLR bad(&font, OTS_TAG_COLR);
   EXPECT_FALSE(bad.Parse(colr.data(), colr.size()));
+}
+
+TEST(OFFIntegration, UppercaseAndHybridFonts) {
+  const Bytes seed = SeedFont(); ASSERT_FALSE(seed.empty());
+  for (bool hybrid : {false, true}) {
+    auto tables = FontTables(seed);
+    for (uint32_t tag : {OTS_TAG_MAXP, OTS_TAG_GLYF, OTS_TAG_LOCA,
+                         OTS_TAG_HHEA, OTS_TAG_HMTX, OTS_TAG_VHEA, OTS_TAG_VMTX}) {
+      if (!tables.count(tag)) continue;
+      Bytes extended = tables[tag];
+      if (tag == OTS_TAG_MAXP) extended.insert(extended.begin() + 4, 0);
+      if (tag == OTS_TAG_HHEA || tag == OTS_TAG_VHEA) extended.insert(extended.begin() + 34, 2, 0);
+      tables[tag & ~0x20202020u] = extended;
+      if (!hybrid) tables.erase(tag);
+    }
+    Bytes output, twice;
+    ASSERT_TRUE(Sanitize(MakeFont(tables), output)) << "hybrid=" << hybrid;
+    auto sanitized = FontTables(output);
+    for (uint32_t tag : {OTS_TAG_MAXP_EXT, OTS_TAG_GLYF_EXT, OTS_TAG_LOCA_EXT,
+                         OTS_TAG_HHEA_EXT, OTS_TAG_HMTX_EXT}) EXPECT_EQ(1u, sanitized.count(tag));
+    EXPECT_EQ(hybrid ? 1u : 0u, sanitized.count(OTS_TAG_MAXP));
+    ASSERT_TRUE(Sanitize(output, twice));
+    EXPECT_EQ(output, twice);
+  }
+}
+
+TEST(OFFIntegration, ExtendedCollectionHeaders) {
+  const Bytes seed = SeedFont(); ASSERT_FALSE(seed.empty());
+  for (uint32_t version : {0x00010001u, 0x00020001u}) {
+    const uint32_t header_size = version >> 16 == 2 ? 36 : 24;
+    Bytes ttc;
+    U32(ttc, OTS_TAG('t','t','c','f')); U32(ttc, version); U32(ttc, 1); U32(ttc, header_size);
+    if (version >> 16 == 2) { U32(ttc, 0); U32(ttc, 0); U32(ttc, 0); }
+    U32(ttc, 1); U32(ttc, header_size);
+    ttc.insert(ttc.end(), seed.begin(), seed.end());
+    const unsigned count = (seed[4] << 8) | seed[5];
+    for (unsigned i = 0; i < count; ++i) {
+      const size_t at = header_size + 12 + i * 16 + 8;
+      Set32(ttc, at, Get32(ttc, at) + header_size);
+    }
+    Bytes selected, collection, twice;
+    ASSERT_TRUE(Sanitize(ttc, selected, 0));
+    EXPECT_EQ(0x00010000u, Get32(selected, 0));
+    EXPECT_FALSE(Sanitize(ttc, selected, 1));
+    ASSERT_TRUE(Sanitize(ttc, collection));
+    EXPECT_EQ(0x00010001u, Get32(collection, 4));
+    EXPECT_EQ(1u, Get32(collection, 8));
+    EXPECT_EQ(1u, Get32(collection, 16));
+    ASSERT_TRUE(Sanitize(collection, twice));
+    EXPECT_EQ(collection, twice);
+    Set32(ttc, header_size - 4, 0xffffffff);
+    EXPECT_FALSE(Sanitize(ttc, selected, 0));
+  }
 }
 
 TEST_F(OFFTest, VarcIndirectVariationStore) {
