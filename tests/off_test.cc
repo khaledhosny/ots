@@ -338,6 +338,7 @@ TEST_F(OFFTest, ExtendedContexts) {
   U16(b, 2); U16(b, 1); U24(b, 70000); U16(b, 1); U16(b, 0);
   Coverage(b);
   EXPECT_TRUE(ParseLookup(5, b));
+  EXPECT_TRUE(ParseLookup(7, b, true));
   b.pop_back(); EXPECT_FALSE(ParseLookup(5, b));
   b.clear();
   U16(b, 5); U32(b, 42); U32(b, 31); U24(b, 1); U24(b, 16);
@@ -346,11 +347,13 @@ TEST_F(OFFTest, ExtendedContexts) {
   U16(b, 3); U24(b, 65536); U24(b, 1); U24(b, 0);
   Coverage(b);
   EXPECT_TRUE(ParseLookup(5, b));
+  EXPECT_TRUE(ParseLookup(7, b, true));
   b.pop_back(); EXPECT_FALSE(ParseLookup(5, b));
   b.clear();
   U16(b, 6); U16(b, 1); U16(b, 1); U24(b, 13); U16(b, 0); U16(b, 0);
   Coverage(b);
   EXPECT_TRUE(ParseLookup(5, b));
+  EXPECT_TRUE(ParseLookup(7, b, true));
   b.pop_back(); EXPECT_FALSE(ParseLookup(5, b));
   b.clear();
   U16(b, 4); U32(b, 38); U24(b, 1); U24(b, 12);
@@ -359,6 +362,7 @@ TEST_F(OFFTest, ExtendedContexts) {
   U16(b, 1); U24(b, 70000); U16(b, 1); U16(b, 1); U16(b, 0);
   Coverage(b);
   EXPECT_TRUE(ParseLookup(6, b));
+  EXPECT_TRUE(ParseLookup(8, b, true));
   b.pop_back(); EXPECT_FALSE(ParseLookup(6, b));
   b.clear();
   U16(b, 5); U32(b, 41); U32(b, 28); U32(b, 28); U32(b, 28);
@@ -368,6 +372,59 @@ TEST_F(OFFTest, ExtendedContexts) {
   Coverage(b);
   U16(b, 0); U16(b, 1); U16(b, 0); U16(b, 1); U16(b, 0); U16(b, 0);
   EXPECT_TRUE(ParseLookup(6, b));
+  EXPECT_TRUE(ParseLookup(8, b, true));
+}
+
+TEST_F(OFFTest, ExtendedPositioning) {
+  AddExtendedProfile();
+  auto check = [this](uint16_t type, Bytes b) {
+    EXPECT_TRUE(ParseLookup(type, b, true)) << "lookup type " << type;
+    b.pop_back();
+    EXPECT_FALSE(ParseLookup(type, b, true)) << "truncated lookup type " << type;
+  };
+  Bytes b;
+  U16(b, 3); U32(b, 10); U16(b, 1); U16(b, 10); Coverage(b);
+  check(1, b);
+  b.clear();
+  U16(b, 4); U32(b, 13); U16(b, 1); U24(b, 1); U16(b, 10); Coverage(b);
+  check(1, b);
+  b.clear();
+  U16(b, 3); U32(b, 24); U16(b, 1); U16(b, 0); U24(b, 1); U24(b, 16);
+  U24(b, 1); U24(b, 70000); U16(b, 10); Coverage(b);
+  check(2, b);
+  b.clear();
+  U16(b, 4); U32(b, 35); U16(b, 1); U16(b, 0);
+  U32(b, 24); U32(b, 24); U16(b, 1); U16(b, 1); U16(b, 10);
+  U16(b, 3); U24(b, 65536); U24(b, 1); U24(b, 0); Coverage(b);
+  check(2, b);
+  b.clear();
+  U16(b, 2); U32(b, 21); U24(b, 1); U24(b, 15); U24(b, 0);
+  U16(b, 1); U16(b, 0); U16(b, 0); Coverage(b);
+  check(3, b);
+  b.clear();
+  U16(b, 3); U32(b, 18); U16(b, 0x10); U16(b, 10);
+  U16(b, 1); U16(b, 1); U16(b, 1); U16(b, 0); Coverage(b);
+  check(1, b);
+}
+
+TEST_F(OFFTest, ExtendedMarkAttachments) {
+  AddExtendedProfile();
+  for (uint16_t type : {4, 5, 6}) {
+    Bytes b;
+    const uint32_t coverage = type == 4 ? 46 : type == 5 ? 51 : 45;
+    U16(b, 2); U32(b, coverage); U32(b, coverage + 8); U16(b, 1);
+    U32(b, 20); U32(b, 34);
+    U24(b, 1); U16(b, 0); U24(b, 8);
+    U16(b, 1); U16(b, 0); U16(b, 0);
+    if (type == 6) { U16(b, 1); U24(b, 5); }
+    else { U24(b, 1); U24(b, 6); }
+    if (type == 5) { U16(b, 1); U24(b, 5); }
+    U16(b, 1); U16(b, 0); U16(b, 0);
+    Coverage(b); Coverage(b, 70000);
+    EXPECT_TRUE(ParseLookup(type, b, true)) << "lookup type " << type;
+    b.pop_back();
+    EXPECT_FALSE(ParseLookup(type, b, true));
+  }
 }
 
 TEST_F(OFFTest, VarcIndirectVariationStore) {
