@@ -21,12 +21,13 @@ bool OpenTypeMAXP::Parse(const uint8_t *data, size_t length) {
     return Error("Unsupported table version 0x%x", version);
   }
 
-  uint16_t num_glyphs;
-  if (!table.ReadU16(&num_glyphs)) {
+  const bool extended = Tag() == OTS_TAG_MAXP_EXT;
+  uint16_t num_glyphs = 0;
+  if (!(extended ? table.ReadU24(&this->num_glyphs) : table.ReadU16(&num_glyphs))) {
     return Error("Failed to read numGlyphs");
   }
 
-  this->num_glyphs = num_glyphs;
+  if (!extended) this->num_glyphs = num_glyphs;
   if (!this->num_glyphs) {
     return Error("numGlyphs is 0");
   }
@@ -60,6 +61,7 @@ bool OpenTypeMAXP::Parse(const uint8_t *data, size_t length) {
       !table.ReadU16(&this->max_size_glyf_instructions) ||
       !table.ReadU16(&this->max_c_components) ||
       !table.ReadU16(&this->max_c_depth)) {
+    if (extended) return Error("Incomplete MAXP version 1.0 fields");
     Warning("Failed to read version 1.0 fields, downgrading to version 0.5");
     return true;
   }
@@ -81,7 +83,8 @@ bool OpenTypeMAXP::Parse(const uint8_t *data, size_t length) {
 
 bool OpenTypeMAXP::Serialize(OTSStream *out) {
   if (!out->WriteU32(this->version_1 ? 0x00010000 : 0x00005000) ||
-      !out->WriteU16(this->num_glyphs)) {
+      !(Tag() == OTS_TAG_MAXP_EXT ? out->WriteU24(this->num_glyphs)
+                                  : out->WriteU16(this->num_glyphs))) {
     return Error("Failed to write version or numGlyphs");
   }
 

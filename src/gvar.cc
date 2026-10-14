@@ -54,12 +54,15 @@ static bool ParseGlyphVariationDataArray(const Font* font, const uint8_t* data, 
       offset = halfOffset * 2;
     }
 
+    if (offset < prevOffset || offset > glyphVariationDataLength) {
+      return OTS_FAILURE_MSG("Invalid GlyphVariationData offset");
+    }
     if (i > 0 && offset > prevOffset) {
       if (prevOffset > glyphVariationDataLength) {
         return OTS_FAILURE_MSG("Invalid GlyphVariationData offset");
       }
       if (!ParseVariationData(font, glyphVariationData + prevOffset,
-                              glyphVariationDataLength - prevOffset,
+                              offset - prevOffset,
                               axisCount, sharedTupleCount)) {
         return OTS_FAILURE_MSG("Failed to parse GlyphVariationData");
       }
@@ -78,7 +81,9 @@ bool OpenTypeGVAR::Parse(const uint8_t* data, size_t length) {
   uint16_t axisCount;
   uint16_t sharedTupleCount;
   uint32_t sharedTuplesOffset;
-  uint16_t glyphCount;
+  uint32_t glyphCount;
+  uint16_t shortGlyphCount = 0;
+  const bool extended = Tag() == OTS_TAG_GVAR_EXT;
   uint16_t flags;
   uint32_t glyphVariationDataArrayOffset;
 
@@ -87,11 +92,12 @@ bool OpenTypeGVAR::Parse(const uint8_t* data, size_t length) {
       !table.ReadU16(&axisCount) ||
       !table.ReadU16(&sharedTupleCount) ||
       !table.ReadU32(&sharedTuplesOffset) ||
-      !table.ReadU16(&glyphCount) ||
+      !(extended ? table.ReadU24(&glyphCount) : table.ReadU16(&shortGlyphCount)) ||
       !table.ReadU16(&flags) ||
       !table.ReadU32(&glyphVariationDataArrayOffset)) {
     return DropVariations("Failed to read table header");
   }
+  if (!extended) glyphCount = shortGlyphCount;
   if (majorVersion != 1) {
     return DropVariations("Unknown table version");
   }
@@ -111,7 +117,7 @@ bool OpenTypeGVAR::Parse(const uint8_t* data, size_t length) {
 
   // check glyphCount == maxp->num_glyphs
   OpenTypeMAXP* maxp = static_cast<OpenTypeMAXP*>(
-      GetFont()->GetTypedTable(OTS_TAG_MAXP));
+      GetFont()->GetTypedTable(extended ? OTS_TAG_MAXP_EXT : OTS_TAG_MAXP));
   if (!maxp) {
     return DropVariations("Required maxp table is missing");
   }
@@ -119,8 +125,12 @@ bool OpenTypeGVAR::Parse(const uint8_t* data, size_t length) {
     return DropVariations("Glyph count mismatch");
   }
 
+  const uint64_t headerEnd = table.offset() +
+      (static_cast<uint64_t>(glyphCount) + 1) * ((flags & 1) ? 4 : 2);
+  if (headerEnd > length) return DropVariations("Truncated glyph offset array");
+
   if (sharedTupleCount > 0) {
-    if (sharedTuplesOffset < table.offset() || sharedTuplesOffset > length) {
+    if (sharedTuplesOffset < headerEnd || sharedTuplesOffset > length) {
       return DropVariations("Invalid sharedTuplesOffset");
     }
     if (!ParseSharedTuples(GetFont(),
@@ -131,7 +141,7 @@ bool OpenTypeGVAR::Parse(const uint8_t* data, size_t length) {
   }
 
   if (glyphVariationDataArrayOffset) {
-    if (glyphVariationDataArrayOffset > length) {
+    if (glyphVariationDataArrayOffset < headerEnd || glyphVariationDataArrayOffset > length) {
       return DropVariations("Invalid glyphVariationDataArrayOffset");
     }
     if (!ParseGlyphVariationDataArray(GetFont(),
@@ -159,7 +169,7 @@ bool OpenTypeGVAR::InitEmpty() {
     return DropVariations("Required fvar table missing");
   }
 
-  OpenTypeMAXP* maxp = static_cast<OpenTypeMAXP*>(font->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP* maxp = static_cast<OpenTypeMAXP*>(font->GetTypedTable(Tag() == OTS_TAG_GVAR_EXT ? OTS_TAG_MAXP_EXT : OTS_TAG_MAXP));
   if (!maxp) {
     return DropVariations("Required maxp table missing");
   }
@@ -170,12 +180,13 @@ bool OpenTypeGVAR::InitEmpty() {
   this->m_axisCount = axisCount;
   uint16_t sharedTupleCount = 0;
   uint32_t sharedTuplesOffset = 0;
-  uint16_t glyphCount = maxp->num_glyphs;
+  const bool extended = Tag() == OTS_TAG_GVAR_EXT;
+  uint32_t glyphCount = maxp->num_glyphs;
   uint16_t flags = 0;
   uint32_t glyphVariationDataArrayOffset = 0;
 
   size_t length = 6 * sizeof(uint16_t) + 2 * sizeof(uint32_t)  // basic header fields
-      + (glyphCount + 1) * sizeof(uint16_t);  // glyphVariationDataOffsets[] array
+      + (extended ? 1 : 0) + (glyphCount + 1) * sizeof(uint16_t);  // glyphVariationDataOffsets[] array
 
   uint8_t* data = new uint8_t[length];
   MemoryStream stream(data, length);
@@ -184,7 +195,7 @@ bool OpenTypeGVAR::InitEmpty() {
       !stream.WriteU16(axisCount) ||
       !stream.WriteU16(sharedTupleCount) ||
       !stream.WriteU32(sharedTuplesOffset) ||
-      !stream.WriteU16(glyphCount) ||
+      !(extended ? stream.WriteU24(glyphCount) : stream.WriteU16(glyphCount)) ||
       !stream.WriteU16(flags) ||
       !stream.WriteU32(glyphVariationDataArrayOffset) ||
       !stream.Pad((glyphCount + 1) * sizeof(uint16_t))) {

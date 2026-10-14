@@ -31,7 +31,7 @@ class OpenTypeGLYF : public Table {
 
  private:
   struct GidAtLevel {
-    uint16_t gid;
+    uint32_t gid;
     uint32_t level;
   };
 
@@ -65,7 +65,7 @@ class OpenTypeGLYF : public Table {
 
   bool TraverseComponentsCountingPoints(
       Buffer& glyph,
-      uint16_t base_glyph_id,
+      uint32_t base_glyph_id,
       uint32_t level,
       ComponentPointCount* component_point_count);
 

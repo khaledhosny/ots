@@ -7,6 +7,12 @@
 #include <gtest/gtest.h>
 
 #include "gvar.h"
+#include "glyf.h"
+#include "head.h"
+#include "hhea.h"
+#include "hmtx.h"
+#include "loca.h"
+#include "name.h"
 #include "maxp.h"
 #include "layout.h"
 #include "ots-memory-stream.h"
@@ -122,6 +128,81 @@ TEST_F(OFFTest, ExtendedCoverageAndClasses) {
   U24(classes, 65536); U24(classes, 70000); U16(classes, 4);
   EXPECT_TRUE(ots::ParseClassDefTable(&font, classes.data(), classes.size(), 70001, 4));
   EXPECT_FALSE(ots::ParseClassDefTable(&font, classes.data(), classes.size(), 70000, 4));
+}
+
+TEST_F(OFFTest, ExtendedProfileAndMetrics) {
+  Bytes profile;
+  U32(profile, 0x00010000); U24(profile, 65537);
+  for (unsigned i = 0; i < 13; ++i) U16(profile, 1);
+  auto* maxp = new ots::OpenTypeMAXP(&font, OTS_TAG_MAXP_EXT);
+  ASSERT_TRUE(maxp->Parse(profile.data(), profile.size()));
+  EXPECT_EQ(65537u, maxp->num_glyphs);
+  Add(maxp);
+  EXPECT_EQ(maxp, font.GetMaxp());
+  ots::ExpandingMemoryStream out(64, 1024);
+  ASSERT_TRUE(maxp->Serialize(&out));
+  EXPECT_EQ(profile.size(), static_cast<size_t>(out.Tell()));
+  EXPECT_EQ(0, memcmp(profile.data(), out.get(), profile.size()));
+
+  Bytes header(34, 0);
+  Set32(header, 0, 0x00010000); U32(header, 65537);
+  auto* hhea = new ots::OpenTypeHHEA(&font, OTS_TAG_HHEA_EXT);
+  ASSERT_TRUE(hhea->Parse(header.data(), header.size()));
+  EXPECT_EQ(65537u, hhea->num_metrics);
+  Add(hhea);
+  Bytes metrics(65537 * 4, 0);
+  ots::OpenTypeHMTX hmtx(&font, OTS_TAG_HMTX_EXT);
+  EXPECT_TRUE(hmtx.Parse(metrics.data(), metrics.size()));
+  metrics.pop_back();
+  ots::OpenTypeHMTX truncated(&font, OTS_TAG_HMTX_EXT);
+  EXPECT_FALSE(truncated.Parse(metrics.data(), metrics.size()));
+}
+
+TEST_F(OFFTest, ExtendedOutlinesAndCompositeGlyphIDs) {
+  auto* maxp = new ots::OpenTypeMAXP(&font, OTS_TAG_MAXP_EXT);
+  maxp->num_glyphs = 65537; maxp->version_1 = false;
+  Add(maxp);
+  auto* head = new ots::OpenTypeHEAD(&font, OTS_TAG_HEAD);
+  head->index_to_loc_format = 1;
+  Add(head);
+  Add(new ots::OpenTypeNAME(&font, OTS_TAG_NAME));
+  Bytes offsets;
+  // Glyph zero is a composite of glyph 65536, a simple cubic outline.
+  U32(offsets, 0);
+  for (unsigned i = 1; i <= 65536; ++i) U32(offsets, 20);
+  U32(offsets, 40);
+  auto* loca = new ots::OpenTypeLOCA(&font, OTS_TAG_LOCA_EXT);
+  ASSERT_TRUE(loca->Parse(offsets.data(), offsets.size()));
+  Add(loca);
+  Bytes outlines;
+  U16(outlines, 0xffff);
+  for (unsigned i = 0; i < 4; ++i) U16(outlines, 0);
+  U16(outlines, 0x2002); U24(outlines, 65536);
+  U16(outlines, 0); outlines.resize(20);
+  U16(outlines, 1);
+  for (unsigned i = 0; i < 4; ++i) U16(outlines, 0);
+  U16(outlines, 3); U16(outlines, 0);
+  outlines.insert(outlines.end(), {0xb1, 0xb0, 0xb0, 0xb1});
+  outlines.resize(40);
+  ots::OpenTypeGLYF glyf(&font, OTS_TAG_GLYF_EXT);
+  EXPECT_TRUE(glyf.Parse(outlines.data(), outlines.size()));
+}
+
+TEST_F(OFFTest, ExtendedGlyphVariations) {
+  auto* maxp = new ots::OpenTypeMAXP(&font, OTS_TAG_MAXP_EXT);
+  maxp->num_glyphs = 65537; maxp->version_1 = false; Add(maxp);
+  font.has_varc = true;
+  Bytes gvar;
+  U16(gvar, 1); U16(gvar, 0); U16(gvar, 1); U16(gvar, 0);
+  U32(gvar, 0); U24(gvar, 65537); U16(gvar, 0);
+  U32(gvar, 21 + 65538 * 2); gvar.resize(21 + 65538 * 2);
+  ots::OpenTypeGVAR table(&font, OTS_TAG_GVAR_EXT);
+  EXPECT_TRUE(table.Parse(gvar.data(), gvar.size()));
+  EXPECT_TRUE(table.ShouldSerialize());
+  gvar.pop_back();
+  ots::OpenTypeGVAR truncated(&font, OTS_TAG_GVAR_EXT);
+  EXPECT_TRUE(truncated.Parse(gvar.data(), gvar.size()));
+  EXPECT_FALSE(truncated.ShouldSerialize());
 }
 
 TEST_F(OFFTest, VarcIndirectVariationStore) {

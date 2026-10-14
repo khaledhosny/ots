@@ -19,7 +19,7 @@ bool OpenTypeLOCA::Parse(const uint8_t *data, size_t length) {
   // the values are monotonically increasing.
 
   OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      GetFont()->GetTypedTable(OTS_TAG_MAXP));
+      GetFont()->GetTypedTable(Tag() == OTS_TAG_LOCA_EXT ? OTS_TAG_MAXP_EXT : OTS_TAG_MAXP));
   OpenTypeHEAD *head = static_cast<OpenTypeHEAD*>(
       GetFont()->GetTypedTable(OTS_TAG_HEAD));
   if (!maxp || !head) {
@@ -28,8 +28,11 @@ bool OpenTypeLOCA::Parse(const uint8_t *data, size_t length) {
 
   const unsigned num_glyphs = maxp->num_glyphs;
   unsigned last_offset = 0;
+  const unsigned offset_size = head->index_to_loc_format == 0 ? 2 : 4;
+  if (static_cast<uint64_t>(num_glyphs + 1) * offset_size > length) {
+    return Error("Glyph offset array exceeds table length");
+  }
   this->offsets.resize(num_glyphs + 1);
-  // maxp->num_glyphs is uint16_t, thus the addition never overflows.
 
   if (head->index_to_loc_format == 0) {
     // Note that the <= here (and below) is correct. There is one more offset

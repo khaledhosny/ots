@@ -32,7 +32,7 @@ class OpenTypeMetricsHeader : public Table {
   int16_t caret_slope_rise;
   int16_t caret_slope_run;
   int16_t caret_offset;
-  uint16_t num_metrics;
+  uint32_t num_metrics;
 };
 
 struct OpenTypeMetricsTable : public Table {

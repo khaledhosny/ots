@@ -932,7 +932,7 @@ bool OpenTypeVARC::Parse(const uint8_t* data, size_t length) {
   if (fvar) {
     state.axisCount = fvar->AxisCount();
   } else if (auto* gvar = static_cast<OpenTypeGVAR*>(
-                 font->GetTypedTable(OTS_TAG_GVAR))) {
+                 font->GetTypedTable(font->GetTable(OTS_TAG_GVAR_EXT) ? OTS_TAG_GVAR_EXT : OTS_TAG_GVAR))) {
     state.axisCount = gvar->AxisCount();
   } else if (auto* cff2 = static_cast<OpenTypeCFF2*>(
                  font->GetTypedTable(OTS_TAG_CFF2))) {

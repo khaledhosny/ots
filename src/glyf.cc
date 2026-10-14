@@ -76,7 +76,7 @@ bool OpenTypeGLYF::ParseFlagsForSimpleGlyph(Buffer &glyph,
     }
   }
 
-  if (flag & (1u << 7)) {  // reserved flag
+  if ((flag & (1u << 7)) && Tag() != OTS_TAG_GLYF_EXT) {
     return Error("Bad glyph flag (%d), reserved bit 7 must be set to zero", flag);
   }
 
@@ -265,7 +265,7 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
     ComponentPointCount* component_point_count,
     unsigned* skip_count) {
   uint16_t flags = 0;
-  uint16_t gid = 0;
+  uint32_t gid = 0;
   enum class edit_t : uint8_t {
     skip_bytes,  // param is number of bytes to skip from offset
     set_flag,    // param is flag to be set (in the 16-bit field at offset)
@@ -280,10 +280,16 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
   do {
     unsigned start = glyph.offset();
 
-    if (!glyph.ReadU16(&flags) || !glyph.ReadU16(&gid)) {
+    if (!glyph.ReadU16(&flags)) {
+      return Error("Cannot read composite flags");
+    }
+    uint16_t short_gid = 0;
+    const bool wide_gid = (flags & 0x2000) && Tag() == OTS_TAG_GLYF_EXT;
+    if (!(wide_gid ? glyph.ReadU24(&gid) : glyph.ReadU16(&short_gid))) {
       return Error("Can't read composite glyph flags or glyphIndex");
     }
 
+    if (!wide_gid) gid = short_gid;
     if (gid >= this->maxp->num_glyphs) {
       return Error("Invalid glyph id used in composite glyph: %d", gid);
     }
@@ -457,9 +463,9 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
 
 bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
   OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      GetFont()->GetTypedTable(OTS_TAG_MAXP));
+      GetFont()->GetTypedTable(Tag() == OTS_TAG_GLYF_EXT ? OTS_TAG_MAXP_EXT : OTS_TAG_MAXP));
   OpenTypeLOCA *loca = static_cast<OpenTypeLOCA*>(
-      GetFont()->GetTypedTable(OTS_TAG_LOCA));
+      GetFont()->GetTypedTable(Tag() == OTS_TAG_GLYF_EXT ? OTS_TAG_LOCA_EXT : OTS_TAG_LOCA));
   OpenTypeHEAD *head = static_cast<OpenTypeHEAD*>(
       GetFont()->GetTypedTable(OTS_TAG_HEAD));
   OpenTypeNAME *name = static_cast<OpenTypeNAME*>(
@@ -625,7 +631,7 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
 
 bool OpenTypeGLYF::TraverseComponentsCountingPoints(
     Buffer &glyph,
-    uint16_t base_glyph_id,
+    uint32_t base_glyph_id,
     uint32_t level,
     ComponentPointCount* component_point_count) {
 
@@ -675,9 +681,14 @@ bool OpenTypeGLYF::TraverseComponentsCountingPoints(
 
     // Composite glyph, add gid's to stack.
     uint16_t flags = 0;
-    uint16_t gid = 0;
+    uint32_t gid = 0;
     do {
-      if (!glyph.ReadU16(&flags) || !glyph.ReadU16(&gid)) {
+      if (!glyph.ReadU16(&flags)) {
+        return Error("Cannot read composite flags");
+      }
+      uint16_t short_gid = 0;
+      const bool wide_gid = (flags & 0x2000) && Tag() == OTS_TAG_GLYF_EXT;
+      if (!(wide_gid ? glyph.ReadU24(&gid) : glyph.ReadU16(&short_gid))) {
         return Error("Can't read composite glyph flags or glyphIndex");
       }
 
@@ -696,6 +707,7 @@ bool OpenTypeGLYF::TraverseComponentsCountingPoints(
         return Error("Failed to parse component glyph.");
       }
 
+      if (!wide_gid) gid = short_gid;
       if (gid >= this->maxp->num_glyphs) {
         return Error("Invalid glyph id used in composite glyph: %d", gid);
       }
@@ -717,6 +729,10 @@ Buffer OpenTypeGLYF::GetGlyphBufferSection(
   const unsigned gly_offset = loca_offsets[glyph_id];
   // The LOCA parser checks that these values are monotonic
   const unsigned gly_length = loca_offsets[glyph_id + 1] - loca_offsets[glyph_id];
+  if (gly_offset > length) {
+    Error("Glyph offset exceeds table length");
+    return null_buffer;
+  }
   if (!gly_length) {
     // this glyph has no outline (e.g. the space character)
     return Buffer(data + gly_offset, 0);

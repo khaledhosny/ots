@@ -123,15 +123,20 @@ const struct {
   uint32_t tag;
   bool required;
 } supported_tables[] = {
+  { OTS_TAG_MAXP_EXT, false },
   { OTS_TAG_MAXP, true },
   { OTS_TAG_HEAD, true },
   { OTS_TAG_OS2,  true },
   { OTS_TAG_CMAP, true },
+  { OTS_TAG_HHEA_EXT, false },
   { OTS_TAG_HHEA, true },
+  { OTS_TAG_HMTX_EXT, false },
   { OTS_TAG_HMTX, true },
   { OTS_TAG_NAME, true },
   { OTS_TAG_POST, true },
+  { OTS_TAG_LOCA_EXT, false },
   { OTS_TAG_LOCA, false },
+  { OTS_TAG_GLYF_EXT, false },
   { OTS_TAG_GLYF, false },
   { OTS_TAG_CFF,  false },
   { OTS_TAG_VDMX, false },
@@ -148,6 +153,7 @@ const struct {
   { OTS_TAG_FVAR, false },
   { OTS_TAG_AVAR, false },
   { OTS_TAG_CVAR, false },
+  { OTS_TAG_GVAR_EXT, false },
   { OTS_TAG_GVAR, false },
   { OTS_TAG_HVAR, false },
   { OTS_TAG_MVAR, false },
@@ -167,7 +173,9 @@ const struct {
   { OTS_TAG_GDEF, false },
   { OTS_TAG_GPOS, false },
   { OTS_TAG_GSUB, false },
+  { OTS_TAG_VHEA_EXT, false },
   { OTS_TAG_VHEA, false },
+  { OTS_TAG_VMTX_EXT, false },
   { OTS_TAG_VMTX, false },
   { OTS_TAG_MATH, false },
   // Graphite tables
@@ -731,7 +739,11 @@ bool ProcessGeneric(ots::FontFile *header,
     uint32_t tag = supported_tables[i].tag;
     const auto &it = table_map.find(tag);
     if (it == table_map.cend()) {
-      if (supported_tables[i].required) {
+      uint32_t alternative = 0;
+      if (tag == OTS_TAG_MAXP) alternative = OTS_TAG_MAXP_EXT;
+      if (tag == OTS_TAG_HHEA) alternative = OTS_TAG_HHEA_EXT;
+      if (tag == OTS_TAG_HMTX) alternative = OTS_TAG_HMTX_EXT;
+      if (supported_tables[i].required && !font->GetTable(alternative)) {
         return OTS_FAILURE_MSG_TAG("missing required table", tag);
       }
     } else {
@@ -776,9 +788,22 @@ bool ProcessGeneric(ots::FontFile *header,
   ots::Table *cff  = font->GetTable(OTS_TAG_CFF);
   ots::Table *cff2 = font->GetTable(OTS_TAG_CFF2);
 
-  if (glyf && loca) {
+  ots::Table *extended_glyf = font->GetTable(OTS_TAG_GLYF_EXT);
+  ots::Table *extended_loca = font->GetTable(OTS_TAG_LOCA_EXT);
+  if (extended_glyf || extended_loca) {
+    if (!extended_glyf || !extended_loca ||
+        !font->GetTable(OTS_TAG_HHEA_EXT) || !font->GetTable(OTS_TAG_HMTX_EXT)) {
+      return OTS_FAILURE_MSG_HDR("GLYF requires LOCA, HHEA and HMTX");
+    }
+    auto* maxp = static_cast<ots::OpenTypeMAXP*>(font->GetTypedTable(OTS_TAG_MAXP_EXT));
+    if (!maxp || !maxp->version_1) {
+      return OTS_FAILURE_MSG_HDR("GLYF requires MAXP version 1.0");
+    }
+  }
+
+  if ((glyf && loca) || extended_glyf) {
     ots::OpenTypeMAXP *maxp = static_cast<ots::OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
+      font->GetTypedTable(extended_glyf ? OTS_TAG_MAXP_EXT : OTS_TAG_MAXP));
     if (!maxp) {
       return OTS_FAILURE_MSG_TAG("missing maxp table", OTS_TAG_MAXP);
     }
@@ -795,8 +820,7 @@ bool ProcessGeneric(ots::FontFile *header,
     if (cff2)
        cff2->Drop("font contains both CFF and glyf/loca tables");
   } else if (cff || cff2) {
-    ots::OpenTypeMAXP *maxp = static_cast<ots::OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
+    ots::OpenTypeMAXP *maxp = font->GetMaxp();
     if (!maxp) {
       return OTS_FAILURE_MSG_TAG("missing maxp table", OTS_TAG_MAXP);
     }
@@ -960,6 +984,7 @@ bool IsVariationsTag(uint32_t tag) {
       tag == OTS_TAG_CVAR ||
       tag == OTS_TAG_FVAR ||
       tag == OTS_TAG_GVAR ||
+      tag == OTS_TAG_GVAR_EXT ||
       tag == OTS_TAG_HVAR ||
       tag == OTS_TAG_MVAR ||
       tag == OTS_TAG_STAT ||
@@ -1013,19 +1038,25 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       case OTS_TAG_FVAR: table = new OpenTypeFVAR(this, tag); break;
       case OTS_TAG_GASP: table = new OpenTypeGASP(this, tag); break;
       case OTS_TAG_GDEF: table = new OpenTypeGDEF(this, tag); break;
+      case OTS_TAG_GLYF_EXT:
       case OTS_TAG_GLYF: table = new OpenTypeGLYF(this, tag); break;
       case OTS_TAG_GPOS: table = new OpenTypeGPOS(this, tag); break;
       case OTS_TAG_GSUB: table = new OpenTypeGSUB(this, tag); break;
+      case OTS_TAG_GVAR_EXT:
       case OTS_TAG_GVAR: table = new OpenTypeGVAR(this, tag); break;
       case OTS_TAG_HDMX: table = new OpenTypeHDMX(this, tag); break;
       case OTS_TAG_HEAD: table = new OpenTypeHEAD(this, tag); break;
+      case OTS_TAG_HHEA_EXT:
       case OTS_TAG_HHEA: table = new OpenTypeHHEA(this, tag); break;
+      case OTS_TAG_HMTX_EXT:
       case OTS_TAG_HMTX: table = new OpenTypeHMTX(this, tag); break;
       case OTS_TAG_HVAR: table = new OpenTypeHVAR(this, tag); break;
       case OTS_TAG_KERN: table = new OpenTypeKERN(this, tag); break;
+      case OTS_TAG_LOCA_EXT:
       case OTS_TAG_LOCA: table = new OpenTypeLOCA(this, tag); break;
       case OTS_TAG_LTSH: table = new OpenTypeLTSH(this, tag); break;
       case OTS_TAG_MATH: table = new OpenTypeMATH(this, tag); break;
+      case OTS_TAG_MAXP_EXT:
       case OTS_TAG_MAXP: table = new OpenTypeMAXP(this, tag); break;
       case OTS_TAG_MVAR: table = new OpenTypeMVAR(this, tag); break;
       case OTS_TAG_NAME: table = new OpenTypeNAME(this, tag); break;
@@ -1034,7 +1065,9 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       case OTS_TAG_PREP: table = new OpenTypePREP(this, tag); break;
       case OTS_TAG_STAT: table = new OpenTypeSTAT(this, tag); break;
       case OTS_TAG_VDMX: table = new OpenTypeVDMX(this, tag); break;
+      case OTS_TAG_VHEA_EXT:
       case OTS_TAG_VHEA: table = new OpenTypeVHEA(this, tag); break;
+      case OTS_TAG_VMTX_EXT:
       case OTS_TAG_VMTX: table = new OpenTypeVMTX(this, tag); break;
       case OTS_TAG_VORG: table = new OpenTypeVORG(this, tag); break;
       case OTS_TAG_VARC: table = new OpenTypeVARC(this, tag); break;
