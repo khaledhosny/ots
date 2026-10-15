@@ -189,6 +189,7 @@ bool CheckTag(uint32_t tag_value);
 #define OTS_TAG_CFF  OTS_TAG('C','F','F',' ')
 #define OTS_TAG_CFF2 OTS_TAG('C','F','F','2')
 #define OTS_TAG_CMAP OTS_TAG('c','m','a','p')
+#define OTS_TAG_DMAP OTS_TAG('D','M','A','P')
 #define OTS_TAG_COLR OTS_TAG('C','O','L','R')
 #define OTS_TAG_CPAL OTS_TAG('C','P','A','L')
 #define OTS_TAG_CVT  OTS_TAG('c','v','t',' ')
@@ -222,6 +223,16 @@ bool CheckTag(uint32_t tag_value);
 #define OTS_TAG_VMTX OTS_TAG('v','m','t','x')
 #define OTS_TAG_VORG OTS_TAG('V','O','R','G')
 
+// Extended-repertoire counterparts of the legacy TrueType tables.
+#define OTS_TAG_MAXP_EXT OTS_TAG('M','A','X','P')
+#define OTS_TAG_GLYF_EXT OTS_TAG('G','L','Y','F')
+#define OTS_TAG_LOCA_EXT OTS_TAG('L','O','C','A')
+#define OTS_TAG_HHEA_EXT OTS_TAG('H','H','E','A')
+#define OTS_TAG_HMTX_EXT OTS_TAG('H','M','T','X')
+#define OTS_TAG_VHEA_EXT OTS_TAG('V','H','E','A')
+#define OTS_TAG_VMTX_EXT OTS_TAG('V','M','T','X')
+#define OTS_TAG_GVAR_EXT OTS_TAG('G','V','A','R')
+
 #define OTS_TAG_AVAR OTS_TAG('a','v','a','r')
 #define OTS_TAG_CVAR OTS_TAG('c','v','a','r')
 #define OTS_TAG_FVAR OTS_TAG('f','v','a','r')
@@ -230,10 +241,13 @@ bool CheckTag(uint32_t tag_value);
 #define OTS_TAG_MVAR OTS_TAG('M','V','A','R')
 #define OTS_TAG_VVAR OTS_TAG('V','V','A','R')
 #define OTS_TAG_STAT OTS_TAG('S','T','A','T')
+#define OTS_TAG_VARC OTS_TAG('V','A','R','C')
 
 // See https://github.com/khaledhosny/ots/issues/219
 #define OTS_MAX_DECOMPRESSED_FILE_SIZE 300 * 1024 * 1024
 #define OTS_MAX_DECOMPRESSED_TABLE_SIZE 150 * 1024 * 1024
+
+class OpenTypeMAXP;
 
 struct Font;
 struct FontFile;
@@ -305,7 +319,8 @@ struct Font {
         num_tables(0),
         search_range(0),
         entry_selector(0),
-        range_shift(0) {
+        range_shift(0),
+        has_varc(false) {
   }
 
   bool ParseTable(const TableEntry& tableinfo, const uint8_t* data,
@@ -316,6 +331,10 @@ struct Font {
   // for |tag|, so it can safely be downcast to the corresponding OpenTypeXXXX;
   // if not (i.e. if the table was treated as Passthru), it will return NULL.
   Table* GetTypedTable(uint32_t tag) const;
+
+  // Shared tables use MAXP in preference to maxp. Outline-specific tables
+  // select their matching profile explicitly, preserving hybrid fonts.
+  OpenTypeMAXP* GetMaxp() const;
 
   // Insert a new table. Asserts if a table with the same tag already exists.
   void AddTable(TableEntry entry, Table* table);
@@ -334,6 +353,11 @@ struct Font {
   uint16_t entry_selector;
   uint16_t range_shift;
 
+  // Whether the input directory contains a VARC table.  This is known before
+  // dependent tables are parsed and permits the static-VARC exceptions for
+  // gvar and CFF2 fonts without fvar.
+  bool has_varc;
+
  private:
   std::map<uint32_t, Table*> m_tables;
 };
@@ -346,7 +370,10 @@ struct TableEntry {
   uint32_t chksum;
 
   bool operator<(const TableEntry& other) const {
-    return tag < other.tag;
+    if (tag != other.tag) return tag < other.tag;
+    if (offset != other.offset) return offset < other.offset;
+    if (length != other.length) return length < other.length;
+    return uncompressed_length < other.uncompressed_length;
   }
 };
 
@@ -354,6 +381,9 @@ struct FontFile {
   ~FontFile();
 
   OTSContext *context;
+  // Synthetic tables need distinct cache identities outside the input range
+  // (input files are limited to 1 GiB). They have no physical file offset.
+  uint32_t next_synthetic_offset = 0x80000000u;
   std::map<TableEntry, Table*> tables;
   std::map<uint32_t, TableEntry> table_entries;
 };

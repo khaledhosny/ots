@@ -24,6 +24,7 @@ class OpenTypeLayoutTable : public Table {
     bool Serialize(OTSStream *out);
 
   protected:
+    uint16_t NumLookups() const { return m_num_lookups; }
     bool ParseContextSubtable(const uint8_t *data, const size_t length);
     bool ParseChainingContextSubtable(const uint8_t *data, const size_t length);
     bool ParseExtensionSubtable(const uint8_t *data, const size_t length);
@@ -31,7 +32,7 @@ class OpenTypeLayoutTable : public Table {
   private:
     bool ParseScriptListTable(const uint8_t *data, const size_t length);
     bool ParseFeatureListTable(const uint8_t *data, const size_t length);
-    bool ParseLookupListTable(const uint8_t *data, const size_t length);
+    bool ParseLookupListTable(const uint8_t *data, const size_t length, bool extended);
     bool ParseFeatureVariationsTable(const uint8_t *data, const size_t length);
     bool ParseLookupTable(const uint8_t *data, const size_t length);
 
@@ -46,15 +47,22 @@ class OpenTypeLayoutTable : public Table {
     uint16_t m_num_lookups = 0;
 };
 
+// Extended GSUB/GPOS lookup formats from OFF 2026.
+bool ParseExtendedLayoutSubtable(const Font* font, const uint8_t* data,
+                                 size_t length, uint16_t type,
+                                 uint16_t num_lookups, bool positioning);
+
 bool ParseClassDefTable(const ots::Font *font,
                         const uint8_t *data, size_t length,
-                        const uint16_t num_glyphs,
-                        const uint16_t num_classes);
+                        const uint32_t num_glyphs,
+                        const uint32_t num_classes);
 
 bool ParseCoverageTable(const ots::Font *font,
                         const uint8_t *data, size_t length,
-                        const uint16_t num_glyphs,
-                        const uint16_t expected_num_glyphs = 0);
+                        const uint32_t num_glyphs,
+                        const uint32_t expected_num_glyphs = 0,
+                        uint32_t *out_num_glyphs = nullptr,
+                        uint32_t *out_last_glyph = nullptr);
 
 bool ParseDeviceTable(const ots::Font *font,
                       const uint8_t *data, size_t length);
@@ -62,4 +70,3 @@ bool ParseDeviceTable(const ots::Font *font,
 }  // namespace ots
 
 #endif  // OTS_LAYOUT_H_
-

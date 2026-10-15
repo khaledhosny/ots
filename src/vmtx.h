@@ -14,7 +14,8 @@ namespace ots {
 struct OpenTypeVMTX : public OpenTypeMetricsTable {
  public:
   explicit OpenTypeVMTX(Font *font, uint32_t tag)
-      : OpenTypeMetricsTable(font, tag, tag, OTS_TAG_VHEA) { }
+      : OpenTypeMetricsTable(font, tag, tag, tag == OTS_TAG_VMTX_EXT
+          ? OTS_TAG_VHEA_EXT : OTS_TAG_VHEA) { }
 };
 
 }  // namespace ots

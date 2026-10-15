@@ -14,7 +14,8 @@ namespace ots {
 class OpenTypeHMTX : public OpenTypeMetricsTable {
  public:
   explicit OpenTypeHMTX(Font *font, uint32_t tag)
-      : OpenTypeMetricsTable(font, tag, tag, OTS_TAG_HHEA) { }
+      : OpenTypeMetricsTable(font, tag, tag, tag == OTS_TAG_HMTX_EXT
+          ? OTS_TAG_HHEA_EXT : OTS_TAG_HHEA) { }
 };
 
 }  // namespace ots
