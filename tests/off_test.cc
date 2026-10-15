@@ -266,7 +266,7 @@ TEST_F(OFFTest, ExtendedOutlinesAndCompositeGlyphIDs) {
   U16(outlines, 1);
   for (unsigned i = 0; i < 4; ++i) U16(outlines, 0);
   U16(outlines, 3); U16(outlines, 0);
-  outlines.insert(outlines.end(), {0xb1, 0xb0, 0xb0, 0xb1});
+  outlines.insert(outlines.end(), {0x31, 0xb0, 0xb0, 0x31});
   outlines.resize(40);
   ots::OpenTypeGLYF glyf(&font, OTS_TAG_GLYF_EXT);
   EXPECT_TRUE(glyf.Parse(outlines.data(), outlines.size()));
@@ -551,11 +551,17 @@ TEST(OFFIntegration, UppercaseAndHybridFonts) {
   for (bool hybrid : {false, true}) {
     auto tables = FontTables(seed);
     for (uint32_t tag : {OTS_TAG_MAXP, OTS_TAG_GLYF, OTS_TAG_LOCA,
-                         OTS_TAG_HHEA, OTS_TAG_HMTX, OTS_TAG_VHEA, OTS_TAG_VMTX}) {
+                         OTS_TAG_HHEA, OTS_TAG_HMTX, OTS_TAG_VHEA, OTS_TAG_VMTX, OTS_TAG_GVAR}) {
       if (!tables.count(tag)) continue;
       Bytes extended = tables[tag];
       if (tag == OTS_TAG_MAXP) extended.insert(extended.begin() + 4, 0);
       if (tag == OTS_TAG_HHEA || tag == OTS_TAG_VHEA) extended.insert(extended.begin() + 34, 2, 0);
+      if (tag == OTS_TAG_GVAR) {
+        const uint32_t shared = Get32(extended, 8), variations = Get32(extended, 16);
+        extended.insert(extended.begin() + 12, 0);
+        if (shared) Set32(extended, 8, shared + 1);
+        if (variations) Set32(extended, 17, variations + 1);
+      }
       tables[tag & ~0x20202020u] = extended;
       if (!hybrid) tables.erase(tag);
     }
@@ -565,6 +571,26 @@ TEST(OFFIntegration, UppercaseAndHybridFonts) {
     for (uint32_t tag : {OTS_TAG_MAXP_EXT, OTS_TAG_GLYF_EXT, OTS_TAG_LOCA_EXT,
                          OTS_TAG_HHEA_EXT, OTS_TAG_HMTX_EXT}) EXPECT_EQ(1u, sanitized.count(tag));
     EXPECT_EQ(hybrid ? 1u : 0u, sanitized.count(OTS_TAG_MAXP));
+    EXPECT_EQ(1u, sanitized.count(OTS_TAG_FVAR));
+    EXPECT_EQ(1u, sanitized.count(OTS_TAG_GVAR_EXT));
+    ASSERT_TRUE(Sanitize(output, twice));
+    EXPECT_EQ(output, twice);
+    // The default synthesis option must retain fvar and choose GVAR for GLYF.
+    Bytes axis;
+    U32(axis, 0x00010000); U16(axis, 16); U16(axis, 2);
+    U16(axis, 1); U16(axis, 20); U16(axis, 0); U16(axis, 8);
+    U32(axis, OTS_TAG('w','g','h','t')); U32(axis, 0); U32(axis, 0); U32(axis, 65536);
+    U16(axis, 0); U16(axis, 256);
+    tables[OTS_TAG_FVAR] = axis;
+    tables.erase(OTS_TAG_GVAR);
+    tables.erase(OTS_TAG_GVAR_EXT);
+    ASSERT_TRUE(Sanitize(MakeFont(tables), output));
+    sanitized = FontTables(output);
+    EXPECT_EQ(1u, sanitized.count(OTS_TAG_FVAR));
+#ifdef OTS_SYNTHESIZE_MISSING_GVAR
+    EXPECT_EQ(1u, sanitized.count(OTS_TAG_GVAR_EXT));
+    EXPECT_EQ(hybrid ? 1u : 0u, sanitized.count(OTS_TAG_GVAR));
+#endif
     ASSERT_TRUE(Sanitize(output, twice));
     EXPECT_EQ(output, twice);
   }

@@ -381,6 +381,9 @@ struct FontFile {
   ~FontFile();
 
   OTSContext *context;
+  // Synthetic tables need distinct cache identities outside the input range
+  // (input files are limited to 1 GiB). They have no physical file offset.
+  uint32_t next_synthetic_offset = 0x80000000u;
   std::map<TableEntry, Table*> tables;
   std::map<uint32_t, TableEntry> table_entries;
 };

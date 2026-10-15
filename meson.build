@@ -275,6 +275,7 @@ test('cff_charstring', cff_charstring)
 
 off_test = executable('off_test',
   'tests/off_test.cc',
+  cpp_args: '-DHAVE_CONFIG_H',
   include_directories: include_directories(['include', 'src']),
   link_with: libots,
   dependencies: gtest,

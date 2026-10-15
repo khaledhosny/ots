@@ -789,22 +789,18 @@ bool ProcessGeneric(ots::FontFile *header,
   }
 
 #ifdef OTS_SYNTHESIZE_MISSING_GVAR
-  // If there was an fvar table but no gvar, synthesize an empty gvar to avoid
-  // issues with rasterizers (e.g. Core Text) that assume it must be present.
-  if (font->GetTable(OTS_TAG_FVAR) && !font->GetTable(OTS_TAG_GVAR)) {
-    ots::TableEntry table_entry{ OTS_TAG_GVAR, 0, 0, 0, 0 };
-    const auto &it = font->file->tables.find(table_entry);
-    if (it != font->file->tables.end()) {
-      table_map[OTS_TAG_GVAR] = table_entry;
-      font->AddTable(table_entry, it->second);
+  // Rasterizers may assume that each TrueType outline repertoire in a
+  // variable font has a matching variation table, even when it is empty.
+  for (uint32_t tag : {OTS_TAG_GVAR, OTS_TAG_GVAR_EXT}) {
+    const uint32_t outline_tag = tag == OTS_TAG_GVAR ? OTS_TAG_GLYF : OTS_TAG_GLYF_EXT;
+    if (!font->GetTable(OTS_TAG_FVAR) || !font->GetTable(outline_tag) || font->GetTable(tag)) continue;
+    ots::OpenTypeGVAR *gvar = new ots::OpenTypeGVAR(font, tag);
+    if (gvar->InitEmpty()) {
+      ots::TableEntry table_entry{ tag, font->file->next_synthetic_offset++, 0, 0, 0 };
+      table_map[tag] = table_entry;
+      font->AddTable(table_entry, gvar);
     } else {
-      ots::OpenTypeGVAR *gvar = new ots::OpenTypeGVAR(font, OTS_TAG_GVAR);
-      if (gvar->InitEmpty()) {
-        table_map[OTS_TAG_GVAR] = table_entry;
-        font->AddTable(table_entry, gvar);
-      } else {
-        delete gvar;
-      }
+      delete gvar;
     }
   }
 #endif
