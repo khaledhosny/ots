@@ -370,7 +370,10 @@ struct TableEntry {
   uint32_t chksum;
 
   bool operator<(const TableEntry& other) const {
-    return tag < other.tag;
+    if (tag != other.tag) return tag < other.tag;
+    if (offset != other.offset) return offset < other.offset;
+    if (length != other.length) return length < other.length;
+    return uncompressed_length < other.uncompressed_length;
   }
 };
 

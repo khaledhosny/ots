@@ -61,12 +61,12 @@ uint32_t Get32(const Bytes& b, size_t at) {
          (uint32_t(b[at + 2]) << 8) | b[at + 3];
 }
 
-std::map<uint32_t, Bytes> FontTables(const Bytes& b) {
+std::map<uint32_t, Bytes> FontTables(const Bytes& b, size_t directory = 0) {
   std::map<uint32_t, Bytes> tables;
   if (b.size() < 12) return tables;
-  const unsigned count = (b[4] << 8) | b[5];
+  const unsigned count = (b[directory + 4] << 8) | b[directory + 5];
   for (unsigned i = 0; i < count; ++i) {
-    const size_t at = 12 + i * 16;
+    const size_t at = directory + 12 + i * 16;
     const uint32_t tag = Get32(b, at), offset = Get32(b, at + 8), length = Get32(b, at + 12);
     tables[tag] = Bytes(b.begin() + offset, b.begin() + offset + length);
   }
@@ -572,26 +572,34 @@ TEST(OFFIntegration, UppercaseAndHybridFonts) {
 
 TEST(OFFIntegration, ExtendedCollectionHeaders) {
   const Bytes seed = SeedFont(); ASSERT_FALSE(seed.empty());
+  auto changed_tables = FontTables(seed);
+  Set32(changed_tables[OTS_TAG_POST], 4, 0x00010000);
+  const Bytes changed = MakeFont(changed_tables);
   for (uint32_t version : {0x00010001u, 0x00020001u}) {
     const uint32_t header_size = version >> 16 == 2 ? 36 : 24;
     Bytes ttc;
     U32(ttc, OTS_TAG('t','t','c','f')); U32(ttc, version); U32(ttc, 1); U32(ttc, header_size);
     if (version >> 16 == 2) { U32(ttc, 0); U32(ttc, 0); U32(ttc, 0); }
-    U32(ttc, 1); U32(ttc, header_size);
+    U32(ttc, 1); U32(ttc, header_size + seed.size());
     ttc.insert(ttc.end(), seed.begin(), seed.end());
-    const unsigned count = (seed[4] << 8) | seed[5];
-    for (unsigned i = 0; i < count; ++i) {
-      const size_t at = header_size + 12 + i * 16 + 8;
-      Set32(ttc, at, Get32(ttc, at) + header_size);
+    ttc.insert(ttc.end(), changed.begin(), changed.end());
+    for (size_t directory : {size_t(header_size), header_size + seed.size()}) {
+      const unsigned count = (ttc[directory + 4] << 8) | ttc[directory + 5];
+      for (unsigned i = 0; i < count; ++i) {
+        const size_t at = directory + 12 + i * 16 + 8;
+        Set32(ttc, at, Get32(ttc, at) + directory);
+      }
     }
     Bytes selected, collection, twice;
     ASSERT_TRUE(Sanitize(ttc, selected, 0));
     EXPECT_EQ(0x00010000u, Get32(selected, 0));
+    EXPECT_EQ(0x00010000u, Get32(FontTables(selected)[OTS_TAG_POST], 4));
     EXPECT_FALSE(Sanitize(ttc, selected, 1));
     ASSERT_TRUE(Sanitize(ttc, collection));
     EXPECT_EQ(0x00010001u, Get32(collection, 4));
     EXPECT_EQ(1u, Get32(collection, 8));
     EXPECT_EQ(1u, Get32(collection, 16));
+    EXPECT_EQ(0x00010000u, Get32(FontTables(collection, Get32(collection, 20))[OTS_TAG_POST], 4));
     ASSERT_TRUE(Sanitize(collection, twice));
     EXPECT_EQ(collection, twice);
     Set32(ttc, header_size - 4, 0xffffffff);
