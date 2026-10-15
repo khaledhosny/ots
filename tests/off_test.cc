@@ -9,6 +9,7 @@
 
 #include <gtest/gtest.h>
 
+#include "cff.h"
 #include "cmap.h"
 #include "colr.h"
 #include "gdef.h"
@@ -596,6 +597,33 @@ TEST(OFFIntegration, ExtendedCollectionHeaders) {
     Set32(ttc, header_size - 4, 0xffffffff);
     EXPECT_FALSE(Sanitize(ttc, selected, 0));
   }
+}
+
+TEST_F(OFFTest, ExtendedCff2GlyphCount) {
+  auto* maxp = new ots::OpenTypeMAXP(&font, OTS_TAG_MAXP_EXT);
+  maxp->num_glyphs = 65537; maxp->version_1 = false; Add(maxp);
+  Bytes cff = {2, 0, 5}; U16(cff, 20);
+  // Top DICT: CharStrings, FDArray and FDSelect offsets as long integers.
+  cff.push_back(29); U32(cff, 29); cff.push_back(17);
+  cff.push_back(29); U32(cff, 65572); cff.insert(cff.end(), {12, 36});
+  cff.push_back(29); U32(cff, 65582); cff.insert(cff.end(), {12, 37});
+  U32(cff, 0);  // Global Subrs.
+  U32(cff, 65537); cff.push_back(1); cff.insert(cff.end(), 65538, 1);
+  U32(cff, 1); cff.insert(cff.end(), {1, 1, 4, 139, 139, 18});
+  cff.push_back(4); U32(cff, 1); U32(cff, 0); U16(cff, 0); U32(cff, 65537);
+  ots::OpenTypeCFF2 table(&font, OTS_TAG_CFF2);
+  EXPECT_TRUE(table.Parse(cff.data(), cff.size()));
+  EXPECT_EQ(65537u, table.fd_select.size());
+  Set32(cff, 29, 65536);
+  ots::OpenTypeCFF2 incomplete(&font, OTS_TAG_CFF2);
+  EXPECT_FALSE(incomplete.Parse(cff.data(), cff.size()));
+  font.has_varc = true;
+  ots::OpenTypeCFF2 varc_outlines(&font, OTS_TAG_CFF2);
+  EXPECT_TRUE(varc_outlines.Parse(cff.data(), cff.size()));
+  Set32(cff, 29, 0xffffffff);
+  ots::OpenTypeCFF2 overflow(&font, OTS_TAG_CFF2);
+  EXPECT_FALSE(overflow.Parse(cff.data(), cff.size()));
+
 }
 
 TEST_F(OFFTest, VarcIndirectVariationStore) {

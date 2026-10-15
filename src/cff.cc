@@ -126,14 +126,9 @@ bool ParseIndex(ots::Buffer &table, ots::CFFIndex &index, bool cff2 = false) {
     return OTS_FAILURE();
   }
 
-  const size_t array_size = (index.count + 1) * index.off_size;
-  // less than ((64k + 1) * 4), thus does not overflow.
-  const size_t object_data_offset = table.offset() + array_size;
-  // does not overflow too, since offset() <= 1GB.
-
-  if (object_data_offset >= table.length()) {
-    return OTS_FAILURE();
-  }
+  const uint64_t array_size = (static_cast<uint64_t>(index.count) + 1) * index.off_size;
+  if (array_size > table.remaining()) return OTS_FAILURE();
+  const size_t object_data_offset = table.offset() + static_cast<size_t>(array_size);
 
   for (unsigned i = 0; i <= index.count; ++i) {  // '<=' is not a typo.
     uint32_t rel_offset = 0;
@@ -679,11 +674,11 @@ bool ParseVariationStore(ots::OpenTypeCFF& out_cff, ots::Buffer& table) {
 }
 
 bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
-                   uint16_t glyphs, size_t sid_max, DICT_DATA_TYPE type,
+                   uint32_t glyphs, size_t sid_max, DICT_DATA_TYPE type,
                    ots::OpenTypeCFF *out_cff);
 
 bool ParseDictData(ots::Buffer& table, const ots::CFFIndex &index,
-                   uint16_t glyphs, size_t sid_max, DICT_DATA_TYPE type,
+                   uint32_t glyphs, size_t sid_max, DICT_DATA_TYPE type,
                    ots::OpenTypeCFF *out_cff) {
   for (unsigned i = 1; i < index.offsets.size(); ++i) {
     size_t dict_length = index.offsets[i] - index.offsets[i - 1];
@@ -697,7 +692,7 @@ bool ParseDictData(ots::Buffer& table, const ots::CFFIndex &index,
 }
 
 bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
-                   uint16_t glyphs, size_t sid_max, DICT_DATA_TYPE type,
+                   uint32_t glyphs, size_t sid_max, DICT_DATA_TYPE type,
                    ots::OpenTypeCFF *out_cff) {
   bool cff2 = (out_cff->major == 2);
   std::vector<Operand> operands;
@@ -920,7 +915,8 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
           return OTS_FAILURE();  // multiple charstring tables?
         }
         have_charstrings = true;
-        if (charstring_index->count != glyphs) {
+        if (charstring_index->count != glyphs &&
+            !(cff2 && out_cff->GetFont()->has_varc && charstring_index->count < glyphs)) {
           return OTS_FAILURE();  // CFF and maxp have different number of glyphs?
         }
         break;
@@ -990,7 +986,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
           return OTS_FAILURE();
         }
         if (format == 0) {
-          for (uint16_t j = 0; j < glyphs; ++j) {
+          for (uint32_t j = 0; j < glyphs; ++j) {
             uint8_t fd_index = 0;
             if (!table.ReadU8(&fd_index)) {
               return OTS_FAILURE();
@@ -1195,7 +1191,7 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
     }
     switch (format) {
       case 0:
-        for (uint16_t j = 1 /* .notdef is omitted */; j < glyphs; ++j) {
+        for (uint32_t j = 1 /* .notdef is omitted */; j < glyphs; ++j) {
           uint16_t sid = 0;
           if (!table.ReadU16(&sid)) {
             return OTS_FAILURE();
@@ -1249,6 +1245,9 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
 namespace ots {
 
 bool OpenTypeCFF::ValidateFDSelect(uint32_t num_glyphs) {
+  if (major == 2 && !fd_select.empty() && fd_select.size() < charstrings_index->count) {
+    return Error("FDSelect does not cover all CharStrings");
+  }
   for (const auto& fd_select : this->fd_select) {
     if (fd_select.first >= num_glyphs) {
       return Error("Invalid glyph index in FDSelect: %d >= %d\n",

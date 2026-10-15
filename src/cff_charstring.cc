@@ -918,7 +918,7 @@ bool ExecuteCharString(ots::OpenTypeCFF& cff,
 // Selects a set of subroutines for |glyph_index| from |cff| and sets it on
 // |out_local_subrs_to_use|. Returns true on success.
 bool SelectLocalSubr(const ots::OpenTypeCFF& cff,
-                     uint16_t glyph_index,  // 0-origin
+                     uint32_t glyph_index,  // 0-origin
                      const ots::CFFIndex **out_local_subrs_to_use) {
   bool cff2 = (cff.major == 2);
   *out_local_subrs_to_use = NULL;
