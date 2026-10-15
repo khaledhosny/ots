@@ -368,6 +368,7 @@ bool ParseSparseVariationRegionList(const ots::Font* font, const uint8_t* data,
     return OTS_FAILURE_MSG("Sparse region offsets out of bounds");
   }
 
+  std::vector<bool> parsedRegions(length);
   for (unsigned i = 0; i < regionCount; ++i) {
     uint32_t offset;
     if (!subtable.ReadU32(&offset)) {
@@ -376,9 +377,11 @@ bool ParseSparseVariationRegionList(const ots::Font* font, const uint8_t* data,
     if (offset < headerEnd || offset >= length) {
       return OTS_FAILURE_MSG("Bad sparse region offset");
     }
+    if (parsedRegions[offset]) continue;
     if (!ParseSparseVariationRegion(font, data + offset, length - offset, state)) {
       return OTS_FAILURE_MSG("Failed to parse sparse variation region %u", i);
     }
+    parsedRegions[offset] = true;
   }
 
   return true;
@@ -565,7 +568,7 @@ struct conditionContext {
   size_t length;
   // Zero means unvalidated; other values are one plus the maximum number of
   // child edges below the condition at that byte offset.
-  std::vector<uint16_t> subtreeHeights;
+  std::vector<uint8_t> subtreeHeights;
 };
 
 bool ParseCondition(const ots::Font* font, conditionContext& ctx,
@@ -628,12 +631,15 @@ bool ParseConditionUncached(const ots::Font* font, conditionContext& ctx,
         return OTS_FAILURE_MSG("Failed to read condition format %u count", format);
       }
       uint32_t height = 0;
+      const size_t headerEnd = 3 + static_cast<size_t>(conditionCount) * 3;
+      if (headerEnd > length) return OTS_FAILURE_MSG("Truncated condition offsets");
       for (unsigned i = 0; i < conditionCount; ++i) {
         uint32_t childOffset;
         if (!subtable.ReadU24(&childOffset)) {
           return OTS_FAILURE_MSG("Failed to read child condition offset");
         }
-        if (childOffset < 2u || childOffset >= length) {
+        if (!childOffset) continue;
+        if (childOffset < headerEnd || childOffset >= length) {
           return OTS_FAILURE_MSG("Bad child condition offset");
         }
         uint32_t childHeight = 0;
@@ -654,7 +660,8 @@ bool ParseConditionUncached(const ots::Font* font, conditionContext& ctx,
       if (!subtable.ReadU24(&childOffset)) {
         return OTS_FAILURE_MSG("Failed to read negated condition offset");
       }
-      if (childOffset < 2u || childOffset >= length) {
+      if (!childOffset) { *outHeight = 0; return true; }
+      if (childOffset < 5u || childOffset >= length) {
         return OTS_FAILURE_MSG("Bad negated condition offset");
       }
       uint32_t childHeight = 0;
@@ -689,7 +696,7 @@ bool ParseCondition(const ots::Font* font, conditionContext& ctx,
   if (!ParseConditionUncached(font, ctx, offset, state, depth, &height)) {
     return false;
   }
-  ctx.subtreeHeights[offset] = static_cast<uint16_t>(height + 1);
+  ctx.subtreeHeights[offset] = static_cast<uint8_t>(height + 1);
   *outHeight = height;
   return true;
 }
@@ -707,6 +714,8 @@ bool ParseConditionList(const ots::Font* font, const uint8_t* data,
   conditionContext ctx;
   ctx.data = data;
   ctx.length = length;
+  const uint64_t headerEnd = 4 + static_cast<uint64_t>(conditionCount) * 4;
+  if (headerEnd > length) return OTS_FAILURE_MSG("Truncated condition list");
   ctx.subtreeHeights.resize(length);
 
   for (unsigned i = 0; i < conditionCount; ++i) {
@@ -714,7 +723,8 @@ bool ParseConditionList(const ots::Font* font, const uint8_t* data,
     if (!subtable.ReadU32(&offset)) {
       return OTS_FAILURE_MSG("Failed to read condition offset");
     }
-    if (offset < 4u || offset >= length) {
+    if (!offset) continue;
+    if (offset < headerEnd || offset >= length) {
       return OTS_FAILURE_MSG("Bad condition offset");
     }
     uint32_t height = 0;

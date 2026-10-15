@@ -662,6 +662,33 @@ TEST_F(OFFTest, VarcIndirectVariationStore) {
   EXPECT_FALSE(ParseVarc(Varc(store)));
 }
 
+TEST_F(OFFTest, VarcSharedAndNullConditions) {
+  Bytes store;
+  U16(store, 1); U32(store, 8); U16(store, 0); U32(store, 0);
+  auto parse = [this, &store](const Bytes& condition) {
+    Bytes b = Varc(store);
+    Set32(b, 12, b.size());
+    b.insert(b.end(), condition.begin(), condition.end());
+    return ParseVarc(b);
+  };
+  Bytes c;
+  U32(c, 2); U32(c, 0); U32(c, 12);
+  U16(c, 5); U24(c, 0);
+  EXPECT_TRUE(parse(c));
+  c.clear();
+  U32(c, 1); U32(c, 8);
+  for (unsigned i = 0; i < 32; ++i) {
+    U16(c, 3); c.push_back(2); U24(c, 9); U24(c, 9);
+  }
+  U16(c, 2); U16(c, 10); U32(c, 0xffffffff);
+  EXPECT_TRUE(parse(c));
+  c.clear();
+  U32(c, 2); U32(c, 162); U32(c, 12);
+  for (unsigned i = 0; i < 70; ++i) { U16(c, 5); U24(c, 5); }
+  U16(c, 2); U16(c, 10); U32(c, 0xffffffff);
+  EXPECT_FALSE(parse(c));
+}
+
 TEST_F(OFFTest, VarcUint32RegionCount) {
   Bytes store;
   U16(store, 1); U32(store, 8); U16(store, 0);
