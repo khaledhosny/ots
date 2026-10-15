@@ -596,6 +596,24 @@ TEST(OFFIntegration, UppercaseAndHybridFonts) {
   }
 }
 
+TEST(OFFIntegration, DuplicateTableTags) {
+  const Bytes seed = SeedFont(); ASSERT_FALSE(seed.empty());
+  auto tables = FontTables(seed);
+  const uint32_t duplicate = OTS_TAG('g','a','s','q');
+  tables[OTS_TAG_GASP] = {0, 1, 0, 1, 255, 255, 0, 3};
+  for (uint8_t version : {1, 2}) {
+    // Version 2 is dropped during parsing. Retrying the other directory
+    // entry used to add a second table with the same tag and assert.
+    tables[duplicate] = {0, version, 0, 1, 255, 255, 0, 3};
+    Bytes input = MakeFont(tables), output;
+    ASSERT_TRUE(Sanitize(input, output));
+    for (size_t at = 12; at < 12 + tables.size() * 16; at += 16) {
+      if (Get32(input, at) == duplicate) Set32(input, at, OTS_TAG_GASP);
+    }
+    EXPECT_FALSE(Sanitize(input, output)) << "version=" << unsigned(version);
+  }
+}
+
 TEST(OFFIntegration, ExtendedCollectionHeaders) {
   const Bytes seed = SeedFont(); ASSERT_FALSE(seed.empty());
   auto changed_tables = FontTables(seed);

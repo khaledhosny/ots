@@ -659,8 +659,8 @@ bool ProcessGeneric(ots::FontFile *header,
   uint32_t uncompressed_sum = 0;
 
   for (unsigned i = 0; i < font->num_tables; ++i) {
-    // the tables must be sorted by tag (when taken as big-endian numbers).
-    // This also remove the possibility of duplicate tables.
+    // The tables must be sorted by tag (when taken as big-endian numbers).
+    // Duplicate tags are checked separately below.
     if (i) {
       const uint32_t this_tag = tables[i].tag;
       const uint32_t prev_tag = tables[i - 1].tag;
@@ -753,7 +753,9 @@ bool ProcessGeneric(ots::FontFile *header,
 
   std::map<uint32_t, ots::TableEntry> table_map;
   for (unsigned i = 0; i < font->num_tables; ++i) {
-    table_map[tables[i].tag] = tables[i];
+    if (!table_map.emplace(tables[i].tag, tables[i]).second) {
+      return OTS_FAILURE_MSG_TAG("duplicate table tag", tables[i].tag);
+    }
   }
   font->has_varc = table_map.find(OTS_TAG_VARC) != table_map.end();
 
