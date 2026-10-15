@@ -92,6 +92,7 @@ bool VerifyTranscodedFont(uint8_t *result, const size_t len) {
   FT_Face dummy;
   error = ::FT_New_Memory_Face(library, result, len, 0, &dummy);
   if (error) {
+    ::FT_Done_FreeType(library);
     return false;
   }
   ::FT_Done_Face(dummy);
