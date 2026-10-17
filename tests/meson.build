@@ -180,6 +180,7 @@ bad_fonts = [
   'fonts/bad/5733cd9ca76aead50df6240b6b42d466e78240b2.woff',
   'fonts/bad/58b7bd1ebd3396d226c5a777098d115a2fc9f56f.ttf',
   'fonts/bad/58c575a08b375e51c9776275c5f877396ddf552b.otf',
+  'fonts/bad/59c504e01a2b56070eb0bb6858b00e98e764abaa.otf',
   'fonts/bad/5c67809a0d4b9a16d9eba881282f920153b761eb.otf',
   'fonts/bad/65932a3c0a5ebcbc1ac55267e98506e9dedf41a5.ttf',
   'fonts/bad/66803a29a4e2dc941921d82abf376857583b49db.ttf',

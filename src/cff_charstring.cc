@@ -13,6 +13,7 @@
 #include <stack>
 #include <string>
 #include <utility>
+#include <vector>
 
 #define TABLE_NAME "CFF"
 
@@ -948,39 +949,44 @@ bool ExecuteCharString(ots::OpenTypeCFF& cff,
   return OTS_FAILURE();
 }
 
-// Selects a set of subroutines for |glyph_index| from |cff| and sets it on
-// |out_local_subrs_to_use|. Returns true on success.
-bool SelectLocalSubr(const ots::OpenTypeCFF& cff,
-                     uint16_t glyph_index,  // 0-origin
-                     const ots::CFFIndex **out_local_subrs_to_use) {
+// Selects the Local Subrs a renderer may use for |glyph_index| from |cff| and
+// adds them to |out_local_subrs_to_use|, a NULL entry for none. Returns true
+// on success.
+bool SelectLocalSubrs(
+    const ots::OpenTypeCFF& cff,
+    uint16_t glyph_index,  // 0-origin
+    std::vector<const ots::CFFIndex *> *out_local_subrs_to_use) {
   bool cff2 = (cff.major == 2);
-  *out_local_subrs_to_use = NULL;
 
   // First, find local subrs from |local_subrs_per_font|.
-  if ((cff.fd_select.size() > 0) &&
-      (!cff.local_subrs_per_font.empty())) {
-    // Look up FDArray index for the glyph.
-    const auto& iter = cff.fd_select.find(glyph_index);
-    if (iter == cff.fd_select.end()) {
-      return OTS_FAILURE();
+  if (!cff.local_subrs_per_font.empty()) {
+    // Look up FDArray index for the glyph. Without FDSelect, renderers that
+    // accept the font use Font DICT 0.
+    uint16_t fd_index = 0;
+    if (cff.fd_select.size() > 0) {
+      const auto& iter = cff.fd_select.find(glyph_index);
+      if (iter == cff.fd_select.end()) {
+        return OTS_FAILURE();
+      }
+      fd_index = iter->second;
     }
-    const auto fd_index = iter->second;
     if (fd_index >= cff.local_subrs_per_font.size()) {
       return OTS_FAILURE();
     }
-    *out_local_subrs_to_use = cff.local_subrs_per_font.at(fd_index);
-  } else if (cff.local_subrs) {
-    // Second, try to use |local_subrs|. Most Latin fonts don't have FDSelect
-    // entries. If The font has a local subrs index associated with the Top
-    // DICT (not FDArrays), use it.
-    *out_local_subrs_to_use = cff.local_subrs;
-  } else if (cff2 && cff.local_subrs_per_font.size() == 1) {
-    *out_local_subrs_to_use = cff.local_subrs_per_font.at(0);
-  } else {
-    // Just return NULL.
-    *out_local_subrs_to_use = NULL;
+    out_local_subrs_to_use->push_back(cff.local_subrs_per_font.at(fd_index));
+    // FDArray and FDSelect are meant for CID-keyed fonts. In other fonts,
+    // FreeType and HarfBuzz ignore them and use the Top DICT's Private DICT,
+    // while Skrifa uses the FDArray, so check the glyph with both. Without
+    // Local Subrs in the Top DICT's Private DICT, the former stop at the first
+    // callsubr, so the FDArray check covers what they run.
+    if (cff2 || cff.cid_keyed || !cff.local_subrs) {
+      return true;
+    }
   }
 
+  // Second, use |local_subrs|, the Local Subrs of the Top DICT's Private DICT
+  // (NULL if it has none). Most Latin fonts don't have FDArray entries.
+  out_local_subrs_to_use->push_back(cff.local_subrs);
   return true;
 }
 
@@ -1011,32 +1017,19 @@ bool ValidateCFFCharStrings(
     if (!cff_table->Skip(length)) {
       return OTS_FAILURE();
     }
-    Buffer char_string(cff_table->buffer() + offset, length);
 
-    // Get a local subrs for the glyph.
+    // Get the local subrs a renderer may use for the glyph.
     const unsigned glyph_index = i - 1;  // index in the map is 0-origin.
-    const CFFIndex *local_subrs_to_use = NULL;
-    if (!SelectLocalSubr(cff,
-                         glyph_index,
-                         &local_subrs_to_use)) {
+    std::vector<const CFFIndex *> local_subrs_to_check;
+    if (!SelectLocalSubrs(cff,
+                          glyph_index,
+                          &local_subrs_to_check)) {
       return OTS_FAILURE();
     }
-    // If |local_subrs_to_use| is still NULL, use an empty one.
-    CFFIndex default_empty_subrs;
-    if (!local_subrs_to_use){
-      local_subrs_to_use = &default_empty_subrs;
-    }
 
-    // Check a charstring for the |i|-th glyph.
-    std::stack<int32_t> argument_stack;
-    // Context to store values that must persist across subrs, etc.
-    CharStringContext cs_ctx;
-    cs_ctx.cff2 = (cff.major == 2);
-    // CFF2 CharString has no value for width, so we start with true here to
-    // error out if width is found.
-    cs_ctx.width_seen = cs_ctx.cff2;
     // CFF2 CharStrings' default vsindex comes from the associated PrivateDICT
-    if (cs_ctx.cff2) {
+    int32_t vsindex = 0;
+    if (cff.major == 2) {
       const auto& iter = cff.fd_select.find(glyph_index);
       auto fd_index = 0;
       if (iter != cff.fd_select.end()) {
@@ -1046,22 +1039,40 @@ bool ValidateCFFCharStrings(
         // shouldn't get this far with a font in this condition, but just in case
         return OTS_FAILURE();  // fd_index out-of-range
       }
-      cs_ctx.vsindex = cff.vsindex_per_font.at(fd_index);
+      vsindex = cff.vsindex_per_font.at(fd_index);
     }
+
+    // Check a charstring for the |i|-th glyph with each of them.
+    for (const CFFIndex *local_subrs : local_subrs_to_check) {
+      // If |local_subrs| is NULL, use an empty one.
+      CFFIndex default_empty_subrs;
+      const CFFIndex *local_subrs_to_use =
+          local_subrs ? local_subrs : &default_empty_subrs;
+
+      Buffer char_string(cff_table->buffer() + offset, length);
+      std::stack<int32_t> argument_stack;
+      // Context to store values that must persist across subrs, etc.
+      CharStringContext cs_ctx;
+      cs_ctx.cff2 = (cff.major == 2);
+      // CFF2 CharString has no value for width, so we start with true here to
+      // error out if width is found.
+      cs_ctx.width_seen = cs_ctx.cff2;
+      cs_ctx.vsindex = vsindex;
 
 #ifdef DUMP_T2CHARSTRING
-    fprintf(stderr, "\n---- CharString %*d ----\n", 5, glyph_index);
+      fprintf(stderr, "\n---- CharString %*d ----\n", 5, glyph_index);
 #endif
 
-    if (!ExecuteCharString(cff,
-                           0 /* initial call_depth is zero */,
-                           global_subrs_index, *local_subrs_to_use,
-                           cff_table, &char_string, &argument_stack,
-                           cs_ctx)) {
-      return OTS_FAILURE();
-    }
-    if (!cs_ctx.cff2 && !cs_ctx.endchar_seen) {
-      return OTS_FAILURE();
+      if (!ExecuteCharString(cff,
+                             0 /* initial call_depth is zero */,
+                             global_subrs_index, *local_subrs_to_use,
+                             cff_table, &char_string, &argument_stack,
+                             cs_ctx)) {
+        return OTS_FAILURE();
+      }
+      if (!cs_ctx.cff2 && !cs_ctx.endchar_seen) {
+        return OTS_FAILURE();
+      }
     }
   }
   return true;

@@ -1169,6 +1169,9 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
           return OTS_FAILURE();  // multiple ROS tables?
         }
         have_ros = true;
+        if (type == DICT_DATA_TOPLEVEL) {
+          out_cff->cid_keyed = true;
+        }
         break;
 
       default:
