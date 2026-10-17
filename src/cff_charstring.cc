@@ -478,6 +478,12 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
                ((stack_size % 2) == 0)) {
       // The numbers are vstem definition.
       // See Adobe Technical Note #5177, page 24, hintmask.
+      // Like an explicit vstem, they must come before any other mask or path
+      // operator: renderers size the mask without stems added after that, and
+      // would read the mask bytes we skip as charstring operators.
+      if (cs_ctx.hint_state > ots::kVs) {
+        return OTS_FAILURE();
+      }
       cs_ctx.num_stems += (stack_size / 2);
       if ((cs_ctx.num_stems) > kMaxNumberOfStemHints) {
         return OTS_FAILURE();
@@ -515,6 +521,7 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
       // endchar. For details, see Adobe Technical Note #5177, page 16, note 4.
       return OTS_FAILURE();
     }
+    cs_ctx.hint_state = ots::kHm;
     if (stack_size < 2) {
       return OTS_FAILURE();
     }
@@ -530,6 +537,7 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     if (!(cs_ctx.width_seen)) {
       return OTS_FAILURE();
     }
+    cs_ctx.hint_state = ots::kHm;
     if (stack_size < 1) {
       return OTS_FAILURE();
     }
@@ -541,6 +549,7 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     if (!(cs_ctx.width_seen)) {
       return OTS_FAILURE();
     }
+    cs_ctx.hint_state = ots::kHm;
     if (stack_size < 6) {
       return OTS_FAILURE();
     }
@@ -555,6 +564,7 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     if (!(cs_ctx.width_seen)) {
       return OTS_FAILURE();
     }
+    cs_ctx.hint_state = ots::kHm;
     if (stack_size < 8) {
       return OTS_FAILURE();
     }
@@ -569,6 +579,7 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     if (!(cs_ctx.width_seen)) {
       return OTS_FAILURE();
     }
+    cs_ctx.hint_state = ots::kHm;
     if (stack_size < 8) {
       return OTS_FAILURE();
     }
@@ -583,6 +594,7 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     if (!(cs_ctx.width_seen)) {
       return OTS_FAILURE();
     }
+    cs_ctx.hint_state = ots::kHm;
     if (stack_size < 4) {
       return OTS_FAILURE();
     }
@@ -599,6 +611,7 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     if (!(cs_ctx.width_seen)) {
       return OTS_FAILURE();
     }
+    cs_ctx.hint_state = ots::kHm;
     if (stack_size < 4) {
       return OTS_FAILURE();
     }
@@ -620,6 +633,7 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     if (!(cs_ctx.width_seen)) {
       return OTS_FAILURE();
     }
+    cs_ctx.hint_state = ots::kHm;
     if (stack_size < 4) {
       return OTS_FAILURE();
     }
@@ -783,6 +797,7 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     if (!(cs_ctx.width_seen)) {
       return OTS_FAILURE();
     }
+    cs_ctx.hint_state = ots::kHm;
     if (stack_size != 7) {
       return OTS_FAILURE();
     }
@@ -794,6 +809,7 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     if (!(cs_ctx.width_seen)) {
       return OTS_FAILURE();
     }
+    cs_ctx.hint_state = ots::kHm;
     if (stack_size != 13) {
       return OTS_FAILURE();
     }
@@ -805,6 +821,7 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     if (!(cs_ctx.width_seen)) {
       return OTS_FAILURE();
     }
+    cs_ctx.hint_state = ots::kHm;
     if (stack_size != 9) {
       return OTS_FAILURE();
     }
@@ -816,6 +833,7 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     if (!(cs_ctx.width_seen)) {
       return OTS_FAILURE();
     }
+    cs_ctx.hint_state = ots::kHm;
     if (stack_size != 11) {
       return OTS_FAILURE();
     }

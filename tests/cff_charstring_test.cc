@@ -1007,6 +1007,55 @@ TEST(ValidateTest, TestStemsFirst) {
     };
     EXPECT_FALSE(ValidateCharStrings(char_string, ARRAYSIZE(char_string)));
   }
+  {
+    const int char_string[] = {
+      1, 2, kOpPrefix, ots::kHStemHm,
+      kOpPrefix, ots::kHintMask, 0x00,
+      3, 4, kOpPrefix, ots::kHintMask, 0x00,  // implicit vstem after hintmask
+      kOpPrefix, ots::kEndChar,
+    };
+    EXPECT_FALSE(ValidateCharStrings(char_string, ARRAYSIZE(char_string)));
+  }
+  {
+    const int char_string[] = {
+      1, 2, kOpPrefix, ots::kHStemHm,
+      kOpPrefix, ots::kCntrMask, 0x00,
+      3, 4, kOpPrefix, ots::kHintMask, 0x00,  // implicit vstem after cntrmask
+      kOpPrefix, ots::kEndChar,
+    };
+    EXPECT_FALSE(ValidateCharStrings(char_string, ARRAYSIZE(char_string)));
+  }
+  {
+    const int char_string[] = {
+      1, 2, kOpPrefix, ots::kHStemHm,
+      1, kOpPrefix, ots::kVMoveTo,
+      3, 4, kOpPrefix, ots::kHintMask, 0x00,  // implicit vstem after moveto
+      kOpPrefix, ots::kEndChar,
+    };
+    EXPECT_FALSE(ValidateCharStrings(char_string, ARRAYSIZE(char_string)));
+  }
+  {
+    const int char_string[] = {
+      1, 2, kOpPrefix, ots::kHStemHm,
+      1, 2, kOpPrefix, ots::kRLineTo,
+      3, 4, kOpPrefix, ots::kVStemHm,  // stems after a path operator
+      kOpPrefix, ots::kHintMask, 0x00,
+      kOpPrefix, ots::kEndChar,
+    };
+    EXPECT_FALSE(ValidateCharStrings(char_string, ARRAYSIZE(char_string)));
+  }
+  {
+    const int char_string[] = {
+      1, 2, kOpPrefix, ots::kHStemHm,
+      3, 4, kOpPrefix, ots::kCntrMask, 0x00,  // implicit vstem
+      kOpPrefix, ots::kHintMask, 0x00,
+      1, kOpPrefix, ots::kVMoveTo,
+      kOpPrefix, ots::kHintMask, 0x00,
+      1, 2, kOpPrefix, ots::kRLineTo,
+      kOpPrefix, ots::kEndChar,
+    };
+    EXPECT_TRUE(ValidateCharStrings(char_string, ARRAYSIZE(char_string)));
+  }
 }
 
 TEST(ValidateTest, TestCntrMask) {
