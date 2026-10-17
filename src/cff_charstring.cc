@@ -300,8 +300,8 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     if (subr_number == dummy_result) {
       // For safety, we allow subr calls only with immediate subr numbers for
       // now. For example, we allow "123 callgsubr", but does not allow "100 12
-      // add callgsubr". Please note that arithmetic and conditional operators
-      // always push the |dummy_result| in this implementation.
+      // add callgsubr". Please note that arithmetic, conditional and blend
+      // operators always push the |dummy_result| in this implementation.
       return OTS_FAILURE();
     }
 
@@ -389,15 +389,20 @@ bool ExecuteCharStringOperator(ots::OpenTypeCFF& cff,
     }
     uint16_t k = cff.region_index_count.at(cs_ctx.vsindex);
     uint16_t n = argument_stack->top();
-    if (stack_size < n * (k + 1u) + 1u) {
+    const size_t num_operands = n * (k + 1u) + 1u;
+    if (stack_size < num_operands) {
       return OTS_FAILURE();
     }
 
-    // Keep the 1st n operands on the stack for the next operator to use and
-    // pop the rest. There can be multiple consecutive blend operators, so this
-    // makes sure the operands of all of them are kept on the stack.
-    while (argument_stack->size() > stack_size - ((n * k) + 1))
+    // Pop the operands and push the n results for the next operator to use.
+    // There can be multiple consecutive blend operators, so this makes sure
+    // the results of all of them are kept on the stack. The results depend
+    // on the variation instance, so like the results of arithmetic operators
+    // they are pushed as |dummy_result|.
+    while (argument_stack->size() > stack_size - num_operands)
       argument_stack->pop();
+    for (uint16_t i = 0; i < n; ++i)
+      argument_stack->push(dummy_result);
     cs_ctx.blend_seen = true;
     return true;
   }
