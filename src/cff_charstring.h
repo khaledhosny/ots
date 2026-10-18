@@ -101,7 +101,7 @@ enum HintState {
   kHs,
   kVs,
   kCm,
-  kHm,
+  kHm,  // also once the outline has started (any path operator)
 };
 
 struct CharStringContext {

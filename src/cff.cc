@@ -465,17 +465,6 @@ bool ParsePrivateDictData(
   bool blend_seen = false;
   int32_t vsindex = 0;
 
-  // Since a Private DICT for FDArray might not have a Local Subr (e.g. Hiragino
-  // Kaku Gothic Std W8), we create an empty Local Subr here to match the size
-  // of FDArray the size of |local_subrs_per_font|.
-  // For CFF2, |vsindex_per_font| gets a similar treatment.
-  if (type == DICT_DATA_FDARRAY) {
-    out_cff->local_subrs_per_font.push_back(new ots::CFFIndex);
-    if (cff2) {
-      out_cff->vsindex_per_font.push_back(vsindex);
-    }
-  }
-
   while (dict.offset() < dict.length()) {
     if (!ParseDictDataReadOperands(dict, operands, cff2)) {
       return OTS_FAILURE();
@@ -706,6 +695,18 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
   size_t charset_offset = 0;
   bool have_private = false;
 
+  // Since a Private DICT for FDArray might not have a Local Subr (e.g. Hiragino
+  // Kaku Gothic Std W8), and a Font DICT might not have a Private DICT, we
+  // create an empty Local Subr here so that |local_subrs_per_font| has one
+  // entry per Font DICT, in FDArray order.
+  // For CFF2, |vsindex_per_font| gets a similar treatment.
+  if (type == DICT_DATA_FDARRAY) {
+    out_cff->local_subrs_per_font.push_back(new ots::CFFIndex);
+    if (cff2) {
+      out_cff->vsindex_per_font.push_back(0);
+    }
+  }
+
   if (cff2) {
     // Parse VariationStore first, since it might be referenced in other places
     // (e.g. FDArray) that might be parsed after it.
@@ -719,10 +720,6 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
       // got operator
       const int32_t op = operands.back().as_operator();
       operands.pop_back();
-
-      if (op == 18 && type == DICT_DATA_FDARRAY) {
-        have_private = true;
-      }
 
       if (op == 24) {  // vstore
         if (type != DICT_DATA_TOPLEVEL) {
@@ -745,11 +742,6 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
     }
     operands.clear();
     dict.set_offset(dict_offset);
-
-    if (type == DICT_DATA_FDARRAY && !have_private) {
-      return OTS_FAILURE();  // CFF2 FD must have PrivateDICT entry (even if 0, 0)
-    }
-
   }
 
   while (dict.offset() < dict.length()) {
@@ -1121,6 +1113,12 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
 
       // Private DICT (2 * number)
       case 18: {
+        // Renderers use only one Private DICT per dict (FreeType the last
+        // one); fail if we already encountered one.
+        if (have_private) {
+          return OTS_FAILURE();
+        }
+        have_private = true;
         if (operands.size() != 2) {
           return OTS_FAILURE();
         }
@@ -1171,6 +1169,9 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
           return OTS_FAILURE();  // multiple ROS tables?
         }
         have_ros = true;
+        if (type == DICT_DATA_TOPLEVEL) {
+          out_cff->cid_keyed = true;
+        }
         break;
 
       default:
@@ -1181,6 +1182,10 @@ bool ParseDictData(ots::Buffer& table, ots::Buffer& dict,
     if (font_format == FORMAT_UNKNOWN) {
       font_format = FORMAT_OTHER;
     }
+  }
+
+  if (cff2 && type == DICT_DATA_FDARRAY && !have_private) {
+    return OTS_FAILURE();  // CFF2 FD must have PrivateDICT entry (even if 0, 0)
   }
 
   // parse "13. Charsets"
