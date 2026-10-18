@@ -1,0 +1,747 @@
+// Copyright (c) 2026 The OTS Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#include <vector>
+#include <fstream>
+#include <iterator>
+#include <map>
+
+#include <gtest/gtest.h>
+
+#include "cff.h"
+#include "cmap.h"
+#include "colr.h"
+#include "gdef.h"
+#include "gsub.h"
+#include "gpos.h"
+#include "gvar.h"
+#include "fvar.h"
+#include "glyf.h"
+#include "head.h"
+#include "hhea.h"
+#include "hmtx.h"
+#include "loca.h"
+#include "name.h"
+#include "maxp.h"
+#include "layout.h"
+#include "ots-memory-stream.h"
+#include "varc.h"
+
+namespace {
+
+using Bytes = std::vector<uint8_t>;
+
+void U16(Bytes& b, uint16_t v) {
+  b.push_back(v >> 8);
+  b.push_back(v);
+}
+
+void U24(Bytes& b, uint32_t v) {
+  b.push_back(v >> 16);
+  U16(b, v);
+}
+
+void U32(Bytes& b, uint32_t v) {
+  U16(b, v >> 16);
+  U16(b, v);
+}
+
+void Set32(Bytes& b, size_t at, uint32_t v) {
+  for (unsigned i = 0; i < 4; ++i) b[at + i] = v >> (24 - i * 8);
+}
+
+class QuietContext : public ots::OTSContext {
+ public:
+  void Message(int, const char*, ...) override {}
+};
+
+uint32_t Get32(const Bytes& b, size_t at) {
+  return (uint32_t(b[at]) << 24) | (uint32_t(b[at + 1]) << 16) |
+         (uint32_t(b[at + 2]) << 8) | b[at + 3];
+}
+
+std::map<uint32_t, Bytes> FontTables(const Bytes& b, size_t directory = 0) {
+  std::map<uint32_t, Bytes> tables;
+  if (b.size() < 12) return tables;
+  const unsigned count = (b[directory + 4] << 8) | b[directory + 5];
+  for (unsigned i = 0; i < count; ++i) {
+    const size_t at = directory + 12 + i * 16;
+    const uint32_t tag = Get32(b, at), offset = Get32(b, at + 8), length = Get32(b, at + 12);
+    tables[tag] = Bytes(b.begin() + offset, b.begin() + offset + length);
+  }
+  return tables;
+}
+
+Bytes MakeFont(const std::map<uint32_t, Bytes>& tables) {
+  Bytes b;
+  unsigned log2 = 0;
+  while ((1u << (log2 + 1)) <= tables.size()) ++log2;
+  U32(b, 0x00010000); U16(b, tables.size()); U16(b, 16u << log2);
+  U16(b, log2); U16(b, tables.size() * 16 - (16u << log2));
+  size_t offset = 12 + tables.size() * 16;
+  for (const auto& entry : tables) {
+    U32(b, entry.first); U32(b, 0); U32(b, offset); U32(b, entry.second.size());
+    offset = ots::Round4(offset + entry.second.size());
+  }
+  for (const auto& entry : tables) {
+    b.insert(b.end(), entry.second.begin(), entry.second.end());
+    b.resize(ots::Round4(b.size()));
+  }
+  return b;
+}
+
+Bytes SeedFont() {
+  const char* path = std::getenv("OTS_TEST_FONT");
+  if (!path) return {};
+  std::ifstream file(path, std::ios::binary);
+  return Bytes(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+}
+
+bool Sanitize(const Bytes& input, Bytes& output, uint32_t index = -1) {
+  QuietContext context;
+  ots::ExpandingMemoryStream stream(input.size() + 1, input.size() * 4 + 1024);
+  if (!context.Process(&stream, input.data(), input.size(), index)) return false;
+  const auto* data = static_cast<const uint8_t*>(stream.get());
+  output.assign(data, data + stream.Tell());
+  return true;
+}
+
+class OFFTest : public ::testing::Test {
+ protected:
+  OFFTest() : font(&file) {
+    file.context = &context;
+    auto* maxp = new ots::OpenTypeMAXP(&font, OTS_TAG_MAXP);
+    maxp->num_glyphs = 2;
+    maxp->version_1 = false;
+    Add(maxp);
+  }
+
+  void Add(ots::Table* table) {
+    ots::TableEntry entry{};
+    entry.tag = table->Tag();
+    font.AddTable(entry, table);
+  }
+
+  void AddInternalAxis() {
+    font.has_varc = true;
+    auto* gvar = new ots::OpenTypeGVAR(&font, OTS_TAG_GVAR);
+    // One axis, two glyphs, no shared tuples or glyph variation data.
+    internal_gvar = {0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+                     0, 2, 0, 0, 0, 0, 0, 26, 0, 0, 0, 0, 0, 0};
+    ASSERT_TRUE(gvar->Parse(internal_gvar.data(), internal_gvar.size()));
+    ASSERT_TRUE(gvar->ShouldSerialize());
+    Add(gvar);
+  }
+
+  Bytes Varc(const Bytes& store) {
+    Bytes b;
+    U32(b, 0x00010000);
+    U32(b, 24);  // Coverage.
+    U32(b, 37);  // MultiItemVariationStore.
+    U32(b, 0);   // Conditions.
+    U32(b, 0);   // Axis indices.
+    U32(b, 30);  // Empty glyph record.
+    U16(b, 1); U16(b, 1); U16(b, 0);
+    U32(b, 1); b.insert(b.end(), {1, 1, 1});
+    b.insert(b.end(), store.begin(), store.end());
+    return b;
+  }
+
+  bool ParseVarc(const Bytes& b) {
+    ots::OpenTypeVARC varc(&font, OTS_TAG_VARC);
+    return varc.Parse(b.data(), b.size());
+  }
+
+  void AddExtendedProfile() {
+    auto* maxp = new ots::OpenTypeMAXP(&font, OTS_TAG_MAXP_EXT);
+    maxp->num_glyphs = 70001; maxp->version_1 = false; Add(maxp);
+  }
+
+  bool ParseLookup(uint16_t type, const Bytes& subtable, bool positioning = false) {
+    Bytes b;
+    U32(b, 0x00010000); U16(b, 0); U16(b, 0); U16(b, 10);
+    U16(b, 1); U16(b, 4);
+    U16(b, type); U16(b, 0); U16(b, 1); U16(b, 8);
+    b.insert(b.end(), subtable.begin(), subtable.end());
+    if (positioning) {
+      ots::OpenTypeGPOS table(&font, OTS_TAG_GPOS);
+      return table.Parse(b.data(), b.size());
+    }
+    ots::OpenTypeGSUB table(&font, OTS_TAG_GSUB);
+    return table.Parse(b.data(), b.size());
+  }
+
+  void Coverage(Bytes& b, uint32_t glyph = 65536) {
+    U16(b, 3); U24(b, 1); U24(b, glyph);
+  }
+
+  QuietContext context;
+  ots::FontFile file;
+  ots::Font font;
+  Bytes internal_gvar;
+};
+
+TEST_F(OFFTest, ExtendedCoverageAndClasses) {
+  Bytes coverage;
+  U16(coverage, 3); U24(coverage, 2); U24(coverage, 65536); U24(coverage, 70000);
+  uint32_t count = 0, last = 0;
+  EXPECT_TRUE(ots::ParseCoverageTable(&font, coverage.data(), coverage.size(),
+                                     70001, 2, &count, &last));
+  EXPECT_EQ(2u, count);
+  EXPECT_EQ(70000u, last);
+  EXPECT_FALSE(ots::ParseCoverageTable(&font, coverage.data(), coverage.size(), 70000));
+  coverage.pop_back();
+  EXPECT_FALSE(ots::ParseCoverageTable(&font, coverage.data(), coverage.size(), 70001));
+
+  Bytes ranges;
+  U16(ranges, 4); U24(ranges, 1);
+  U24(ranges, 65536); U24(ranges, 70000); U24(ranges, 0);
+  EXPECT_TRUE(ots::ParseCoverageTable(&font, ranges.data(), ranges.size(),
+                                     70001, 4465, &count, &last));
+  EXPECT_EQ(4465u, count);
+  EXPECT_EQ(70000u, last);
+
+  Bytes classes;
+  U16(classes, 3); U24(classes, 65536); U24(classes, 2);
+  U24(classes, 1); U24(classes, 4);
+  EXPECT_TRUE(ots::ParseClassDefTable(&font, classes.data(), classes.size(), 70001, 4));
+  EXPECT_FALSE(ots::ParseClassDefTable(&font, classes.data(), classes.size(), 65537, 4));
+  classes.clear();
+  U16(classes, 4); U24(classes, 1);
+  U24(classes, 65536); U24(classes, 70000); U16(classes, 4);
+  EXPECT_TRUE(ots::ParseClassDefTable(&font, classes.data(), classes.size(), 70001, 4));
+  EXPECT_FALSE(ots::ParseClassDefTable(&font, classes.data(), classes.size(), 70000, 4));
+}
+
+TEST_F(OFFTest, ExtendedProfileAndMetrics) {
+  Bytes profile;
+  U32(profile, 0x00010000); U24(profile, 65537);
+  for (unsigned i = 0; i < 13; ++i) U16(profile, 1);
+  auto* maxp = new ots::OpenTypeMAXP(&font, OTS_TAG_MAXP_EXT);
+  ASSERT_TRUE(maxp->Parse(profile.data(), profile.size()));
+  EXPECT_EQ(65537u, maxp->num_glyphs);
+  Add(maxp);
+  EXPECT_EQ(maxp, font.GetMaxp());
+  ots::ExpandingMemoryStream out(64, 1024);
+  ASSERT_TRUE(maxp->Serialize(&out));
+  EXPECT_EQ(profile.size(), static_cast<size_t>(out.Tell()));
+  EXPECT_EQ(0, memcmp(profile.data(), out.get(), profile.size()));
+
+  Bytes header(34, 0);
+  Set32(header, 0, 0x00010000); U32(header, 65537);
+  auto* hhea = new ots::OpenTypeHHEA(&font, OTS_TAG_HHEA_EXT);
+  ASSERT_TRUE(hhea->Parse(header.data(), header.size()));
+  EXPECT_EQ(65537u, hhea->num_metrics);
+  Add(hhea);
+  Bytes metrics(65537 * 4, 0);
+  ots::OpenTypeHMTX hmtx(&font, OTS_TAG_HMTX_EXT);
+  EXPECT_TRUE(hmtx.Parse(metrics.data(), metrics.size()));
+  metrics.pop_back();
+  ots::OpenTypeHMTX truncated(&font, OTS_TAG_HMTX_EXT);
+  EXPECT_FALSE(truncated.Parse(metrics.data(), metrics.size()));
+}
+
+TEST_F(OFFTest, ExtendedOutlinesAndCompositeGlyphIDs) {
+  auto* maxp = new ots::OpenTypeMAXP(&font, OTS_TAG_MAXP_EXT);
+  maxp->num_glyphs = 65537; maxp->version_1 = false;
+  Add(maxp);
+  auto* head = new ots::OpenTypeHEAD(&font, OTS_TAG_HEAD);
+  head->index_to_loc_format = 1;
+  Add(head);
+  Add(new ots::OpenTypeNAME(&font, OTS_TAG_NAME));
+  Bytes offsets;
+  // Glyph zero is a composite of glyph 65536, a simple cubic outline.
+  U32(offsets, 0);
+  for (unsigned i = 1; i <= 65536; ++i) U32(offsets, 20);
+  U32(offsets, 40);
+  auto* loca = new ots::OpenTypeLOCA(&font, OTS_TAG_LOCA_EXT);
+  ASSERT_TRUE(loca->Parse(offsets.data(), offsets.size()));
+  Add(loca);
+  Bytes outlines;
+  U16(outlines, 0xffff);
+  for (unsigned i = 0; i < 4; ++i) U16(outlines, 0);
+  U16(outlines, 0x2002); U24(outlines, 65536);
+  U16(outlines, 0); outlines.resize(20);
+  U16(outlines, 1);
+  for (unsigned i = 0; i < 4; ++i) U16(outlines, 0);
+  U16(outlines, 3); U16(outlines, 0);
+  outlines.insert(outlines.end(), {0x31, 0xb0, 0xb0, 0x31});
+  outlines.resize(40);
+  ots::OpenTypeGLYF glyf(&font, OTS_TAG_GLYF_EXT);
+  EXPECT_TRUE(glyf.Parse(outlines.data(), outlines.size()));
+}
+
+TEST_F(OFFTest, ExtendedGlyphVariations) {
+  auto* maxp = new ots::OpenTypeMAXP(&font, OTS_TAG_MAXP_EXT);
+  maxp->num_glyphs = 65537; maxp->version_1 = false; Add(maxp);
+  font.has_varc = true;
+  Bytes gvar;
+  U16(gvar, 1); U16(gvar, 0); U16(gvar, 1); U16(gvar, 0);
+  U32(gvar, 0); U24(gvar, 65537); U16(gvar, 0);
+  U32(gvar, 21 + 65538 * 2); gvar.resize(21 + 65538 * 2);
+  ots::OpenTypeGVAR table(&font, OTS_TAG_GVAR_EXT);
+  EXPECT_TRUE(table.Parse(gvar.data(), gvar.size()));
+  EXPECT_TRUE(table.ShouldSerialize());
+  gvar.pop_back();
+  ots::OpenTypeGVAR truncated(&font, OTS_TAG_GVAR_EXT);
+  EXPECT_TRUE(truncated.Parse(gvar.data(), gvar.size()));
+  EXPECT_FALSE(truncated.ShouldSerialize());
+}
+
+TEST_F(OFFTest, DmapAndFormat15) {
+  auto* maxp = new ots::OpenTypeMAXP(&font, OTS_TAG_MAXP_EXT);
+  maxp->num_glyphs = 70001; maxp->version_1 = false; Add(maxp);
+  Bytes dmap;
+  U16(dmap, 0); U16(dmap, 1); U16(dmap, 0); U16(dmap, 5); U32(dmap, 12);
+  U16(dmap, 15); U32(dmap, 31); U32(dmap, 1);
+  U24(dmap, 0xfe0f); U32(dmap, 0); U32(dmap, 21);
+  U32(dmap, 1); U24(dmap, 0x41); U24(dmap, 70000);
+  ots::OpenTypeCMAP table(&font, OTS_TAG_DMAP);
+  ASSERT_TRUE(table.Parse(dmap.data(), dmap.size()));
+  ots::ExpandingMemoryStream out(64, 1024);
+  ASSERT_TRUE(table.Serialize(&out));
+  EXPECT_EQ(dmap.size(), static_cast<size_t>(out.Tell()));
+  EXPECT_EQ(0, memcmp(dmap.data(), out.get(), dmap.size()));
+  dmap.back()++;
+  ots::OpenTypeCMAP bad(&font, OTS_TAG_DMAP);
+  EXPECT_FALSE(bad.Parse(dmap.data(), dmap.size()));
+
+  Bytes cmap;
+  U16(cmap, 0); U16(cmap, 1); U16(cmap, 3); U16(cmap, 10); U32(cmap, 12);
+  U16(cmap, 12); U16(cmap, 0); U32(cmap, 28); U32(cmap, 0); U32(cmap, 1);
+  U32(cmap, 0x41); U32(cmap, 0x41); U32(cmap, 70000);
+  ots::OpenTypeCMAP base(&font, OTS_TAG_CMAP);
+  ASSERT_TRUE(base.Parse(cmap.data(), cmap.size()));
+  ots::ExpandingMemoryStream out_base(64, 1024);
+  EXPECT_TRUE(base.Serialize(&out_base));
+}
+
+TEST_F(OFFTest, ExtendedGdefHeaderAndCaretList) {
+  auto* maxp = new ots::OpenTypeMAXP(&font, OTS_TAG_MAXP_EXT);
+  maxp->num_glyphs = 70001; maxp->version_1 = false; Add(maxp);
+  Bytes gdef(38, 0);
+  Set32(gdef, 0, 0x00010004);
+  // A nonzero extended offset overrides even an unusable legacy offset.
+  gdef[8] = gdef[9] = 0xff;
+  Set32(gdef, 26, 65536);
+  gdef.resize(65536);
+  U32(gdef, 10); U24(gdef, 1); U24(gdef, 18);
+  U16(gdef, 3); U24(gdef, 1); U24(gdef, 70000);
+  U16(gdef, 1); U16(gdef, 4); U16(gdef, 1); U16(gdef, 100);
+  ots::OpenTypeGDEF table(&font, OTS_TAG_GDEF);
+  EXPECT_TRUE(table.Parse(gdef.data(), gdef.size()));
+  gdef.pop_back();
+  ots::OpenTypeGDEF bad(&font, OTS_TAG_GDEF);
+  EXPECT_FALSE(bad.Parse(gdef.data(), gdef.size()));
+}
+
+TEST_F(OFFTest, ExtendedLayoutHeaders) {
+  for (uint32_t tag : {OTS_TAG_GSUB, OTS_TAG_GPOS}) {
+    Bytes layout(26, 0);
+    Set32(layout, 0, 0x00010002);
+    layout[8] = layout[9] = 0xff;
+    Set32(layout, 22, 65536);
+    layout.resize(65536);
+    U16(layout, 1); U32(layout, 65536);
+    layout.resize(131072);
+    U16(layout, 1); U16(layout, 0); U16(layout, 1); U16(layout, 8);
+    U16(layout, 1); U16(layout, 6); U16(layout, 0);
+    U16(layout, 1); U16(layout, 1); U16(layout, 0);
+    if (tag == OTS_TAG_GSUB) {
+      ots::OpenTypeGSUB table(&font, tag);
+      EXPECT_TRUE(table.Parse(layout.data(), layout.size()));
+    } else {
+      ots::OpenTypeGPOS table(&font, tag);
+      EXPECT_TRUE(table.Parse(layout.data(), layout.size()));
+    }
+  }
+}
+
+TEST_F(OFFTest, ExtendedSubstitutions) {
+  AddExtendedProfile();
+  Bytes b;
+  U16(b, 3); U32(b, 9); U24(b, 0xffffff); Coverage(b);
+  EXPECT_TRUE(ParseLookup(1, b));
+  b.clear();
+  U16(b, 4); U32(b, 12); U24(b, 1); U24(b, 70000); Coverage(b);
+  EXPECT_TRUE(ParseLookup(1, b));
+  b.pop_back(); EXPECT_FALSE(ParseLookup(1, b));
+  for (uint16_t type : {2, 3}) {
+    b.clear();
+    U16(b, 2); U32(b, 17); U24(b, 1); U24(b, 12);
+    U16(b, 1); U24(b, 70000); Coverage(b);
+    EXPECT_TRUE(ParseLookup(type, b));
+    b.pop_back(); EXPECT_FALSE(ParseLookup(type, b));
+  }
+  b.clear();
+  U16(b, 2); U32(b, 25); U24(b, 1); U24(b, 12);
+  U16(b, 1); U24(b, 5); U24(b, 70000); U16(b, 2); U24(b, 65536);
+  Coverage(b);
+  EXPECT_TRUE(ParseLookup(4, b));
+  b.pop_back(); EXPECT_FALSE(ParseLookup(4, b));
+  b.clear();
+  U16(b, 2); U32(b, 16); U16(b, 0); U16(b, 0);
+  U24(b, 1); U24(b, 70000); Coverage(b);
+  EXPECT_TRUE(ParseLookup(8, b));
+  b.pop_back(); EXPECT_FALSE(ParseLookup(8, b));
+}
+
+TEST_F(OFFTest, ExtendedContexts) {
+  AddExtendedProfile();
+  Bytes b;
+  U16(b, 4); U32(b, 27); U24(b, 1); U24(b, 12);
+  U16(b, 1); U16(b, 4);  // SequenceRuleSet2 uses Offset16.
+  U16(b, 2); U16(b, 1); U24(b, 70000); U16(b, 1); U16(b, 0);
+  Coverage(b);
+  EXPECT_TRUE(ParseLookup(5, b));
+  EXPECT_TRUE(ParseLookup(7, b, true));
+  b.pop_back(); EXPECT_FALSE(ParseLookup(5, b));
+  b.clear();
+  U16(b, 5); U32(b, 42); U32(b, 31); U24(b, 1); U24(b, 16);
+  U16(b, 1); U24(b, 5);
+  U16(b, 2); U16(b, 1); U16(b, 7); U16(b, 1); U16(b, 0);
+  U16(b, 3); U24(b, 65536); U24(b, 1); U24(b, 7);
+  Coverage(b);
+  EXPECT_TRUE(ParseLookup(5, b));
+  EXPECT_TRUE(ParseLookup(7, b, true));
+  b.pop_back(); EXPECT_FALSE(ParseLookup(5, b));
+  b.clear();
+  U16(b, 6); U16(b, 1); U16(b, 1); U24(b, 13); U16(b, 0); U16(b, 0);
+  Coverage(b);
+  EXPECT_TRUE(ParseLookup(5, b));
+  EXPECT_TRUE(ParseLookup(7, b, true));
+  b.pop_back(); EXPECT_FALSE(ParseLookup(5, b));
+  b.clear();
+  U16(b, 4); U32(b, 38); U24(b, 1); U24(b, 12);
+  U16(b, 1); U24(b, 5);
+  U16(b, 1); U24(b, 70000); U16(b, 2); U24(b, 70000);
+  U16(b, 1); U24(b, 70000); U16(b, 1); U16(b, 1); U16(b, 0);
+  Coverage(b);
+  EXPECT_TRUE(ParseLookup(6, b));
+  EXPECT_TRUE(ParseLookup(8, b, true));
+  b.pop_back(); EXPECT_FALSE(ParseLookup(6, b));
+  b.clear();
+  U16(b, 5); U32(b, 41); U32(b, 0); U32(b, 28); U32(b, 28);
+  U16(b, 1); U24(b, 23); U16(b, 1); U24(b, 26);
+  U16(b, 4); U24(b, 1); U24(b, 65536); U24(b, 65536); U16(b, 0);
+  // The rule follows the coverage: no backtrack, one input, no lookahead.
+  Coverage(b);
+  U16(b, 0); U16(b, 1); U16(b, 0); U16(b, 1); U16(b, 0); U16(b, 0);
+  EXPECT_TRUE(ParseLookup(6, b));
+  EXPECT_TRUE(ParseLookup(8, b, true));
+}
+
+TEST_F(OFFTest, ExtendedPositioning) {
+  AddExtendedProfile();
+  auto check = [this](uint16_t type, Bytes b) {
+    EXPECT_TRUE(ParseLookup(type, b, true)) << "lookup type " << type;
+    b.pop_back();
+    EXPECT_FALSE(ParseLookup(type, b, true)) << "truncated lookup type " << type;
+  };
+  Bytes b;
+  U16(b, 3); U32(b, 10); U16(b, 1); U16(b, 10); Coverage(b);
+  check(1, b);
+  b.clear();
+  U16(b, 4); U32(b, 13); U16(b, 1); U24(b, 1); U16(b, 10); Coverage(b);
+  check(1, b);
+  b.clear();
+  U16(b, 3); U32(b, 24); U16(b, 1); U16(b, 0); U24(b, 1); U24(b, 16);
+  U24(b, 1); U24(b, 70000); U16(b, 10); Coverage(b);
+  check(2, b);
+  b.clear();
+  U16(b, 4); U32(b, 35); U16(b, 1); U16(b, 0);
+  U32(b, 24); U32(b, 24); U16(b, 1); U16(b, 1); U16(b, 10);
+  U16(b, 3); U24(b, 65536); U24(b, 1); U24(b, 0); Coverage(b);
+  check(2, b);
+  b.clear();
+  U16(b, 2); U32(b, 21); U24(b, 1); U24(b, 15); U24(b, 0);
+  U16(b, 1); U16(b, 0); U16(b, 0); Coverage(b);
+  check(3, b);
+  b.clear();
+  U16(b, 3); U32(b, 18); U16(b, 0x10); U16(b, 10);
+  U16(b, 1); U16(b, 1); U16(b, 1); U16(b, 0); Coverage(b);
+  check(1, b);
+}
+
+TEST_F(OFFTest, ExtendedMarkAttachments) {
+  AddExtendedProfile();
+  for (uint16_t type : {4, 5, 6}) {
+    Bytes b;
+    const uint32_t coverage = type == 4 ? 46 : type == 5 ? 51 : 45;
+    U16(b, 2); U32(b, coverage); U32(b, coverage + 8); U16(b, 1);
+    U32(b, 20); U32(b, 34);
+    U24(b, 1); U16(b, 0); U24(b, 8);
+    U16(b, 1); U16(b, 0); U16(b, 0);
+    if (type == 6) { U16(b, 1); U24(b, 5); }
+    else { U24(b, 1); U24(b, 6); }
+    if (type == 5) { U16(b, 1); U24(b, 5); }
+    U16(b, 1); U16(b, 0); U16(b, 0);
+    Coverage(b); Coverage(b, 70000);
+    EXPECT_TRUE(ParseLookup(type, b, true)) << "lookup type " << type;
+    b.pop_back();
+    EXPECT_FALSE(ParseLookup(type, b, true));
+  }
+}
+
+TEST_F(OFFTest, FeatureVariationConditionFormats) {
+  Bytes axis;
+  U32(axis, 0x00010000); U16(axis, 16); U16(axis, 2);
+  U16(axis, 1); U16(axis, 20); U16(axis, 0); U16(axis, 8);
+  U32(axis, OTS_TAG('w','g','h','t')); U32(axis, 0); U32(axis, 0); U32(axis, 65536);
+  U16(axis, 0); U16(axis, 256);
+  auto* fvar = new ots::OpenTypeFVAR(&font, OTS_TAG_FVAR);
+  ASSERT_TRUE(fvar->Parse(axis.data(), axis.size())); Add(fvar);
+  auto parse = [this](const Bytes& condition, std::vector<uint32_t> roots = {0}) {
+    Bytes b;
+    U32(b, 0x00010001); U16(b, 0); U16(b, 0); U16(b, 0); U32(b, 14);
+    U32(b, 0x00010000); U32(b, 1); U32(b, 16); U32(b, 0);
+    U16(b, roots.size());
+    for (uint32_t offset : roots) U32(b, 2 + roots.size() * 4 + offset);
+    b.insert(b.end(), condition.begin(), condition.end());
+    ots::OpenTypeGSUB table(&font, OTS_TAG_GSUB);
+    return table.Parse(b.data(), b.size());
+  };
+  for (uint16_t format : {3, 4}) {
+    Bytes c;
+    U16(c, format); c.push_back(2); U24(c, 9); U24(c, 17);
+    U16(c, 2); U16(c, 10); U16(c, 0); U16(c, 0);
+    U16(c, 5); U24(c, 5);
+    U16(c, 1); U16(c, 0); U16(c, 0xc000); U16(c, 0x4000);
+    EXPECT_TRUE(parse(c));
+    c.pop_back(); EXPECT_FALSE(parse(c));
+  }
+  Bytes c;
+  U16(c, 5); U24(c, 0); EXPECT_TRUE(parse(c));
+  c.clear();
+  for (unsigned i = 0; i < 66; ++i) { U16(c, 5); U24(c, 5); }
+  U16(c, 2); U16(c, 10); U16(c, 0); U16(c, 0);
+  EXPECT_FALSE(parse(c));
+  c.clear();
+  for (unsigned i = 0; i < 32; ++i) {
+    U16(c, 3); c.push_back(2); U24(c, 9); U24(c, 9);
+  }
+  U16(c, 2); U16(c, 10); U16(c, 0); U16(c, 0);
+  EXPECT_TRUE(parse(c));  // An exponentially shared DAG validates once per offset.
+  c.clear();
+  for (unsigned i = 0; i < 70; ++i) { U16(c, 5); U24(c, 5); }
+  U16(c, 2); U16(c, 10); U16(c, 0); U16(c, 0);
+  // Cache the 40-edge subtree first, then reach it through a 30-edge parent.
+  EXPECT_FALSE(parse(c, {150, 0}));
+
+}
+
+TEST_F(OFFTest, PaintGlyph2WithoutPalette) {
+  AddExtendedProfile();
+  Bytes colr;
+  U16(colr, 1); U16(colr, 0); U32(colr, 0); U32(colr, 0); U16(colr, 0);
+  U32(colr, 34); U32(colr, 0); U32(colr, 0); U32(colr, 0); U32(colr, 0);
+  U32(colr, 1); U16(colr, 1); U32(colr, 10);
+  colr.push_back(33); U24(colr, 7); U24(colr, 70000);
+  colr.push_back(2); U16(colr, 0xffff); U16(colr, 0x4000);
+  ots::OpenTypeCOLR table(&font, OTS_TAG_COLR);
+  EXPECT_TRUE(table.Parse(colr.data(), colr.size()));
+  colr[50]++;
+  ots::OpenTypeCOLR bad(&font, OTS_TAG_COLR);
+  EXPECT_FALSE(bad.Parse(colr.data(), colr.size()));
+}
+
+TEST(OFFIntegration, UppercaseAndHybridFonts) {
+  const Bytes seed = SeedFont(); ASSERT_FALSE(seed.empty());
+  for (bool hybrid : {false, true}) {
+    auto tables = FontTables(seed);
+    for (uint32_t tag : {OTS_TAG_MAXP, OTS_TAG_GLYF, OTS_TAG_LOCA,
+                         OTS_TAG_HHEA, OTS_TAG_HMTX, OTS_TAG_VHEA, OTS_TAG_VMTX, OTS_TAG_GVAR}) {
+      if (!tables.count(tag)) continue;
+      Bytes extended = tables[tag];
+      if (tag == OTS_TAG_MAXP) extended.insert(extended.begin() + 4, 0);
+      if (tag == OTS_TAG_HHEA || tag == OTS_TAG_VHEA) extended.insert(extended.begin() + 34, 2, 0);
+      if (tag == OTS_TAG_GVAR) {
+        const uint32_t shared = Get32(extended, 8), variations = Get32(extended, 16);
+        extended.insert(extended.begin() + 12, 0);
+        if (shared) Set32(extended, 8, shared + 1);
+        if (variations) Set32(extended, 17, variations + 1);
+      }
+      tables[tag & ~0x20202020u] = extended;
+      if (!hybrid) tables.erase(tag);
+    }
+    Bytes output, twice;
+    ASSERT_TRUE(Sanitize(MakeFont(tables), output)) << "hybrid=" << hybrid;
+    auto sanitized = FontTables(output);
+    for (uint32_t tag : {OTS_TAG_MAXP_EXT, OTS_TAG_GLYF_EXT, OTS_TAG_LOCA_EXT,
+                         OTS_TAG_HHEA_EXT, OTS_TAG_HMTX_EXT}) EXPECT_EQ(1u, sanitized.count(tag));
+    EXPECT_EQ(hybrid ? 1u : 0u, sanitized.count(OTS_TAG_MAXP));
+    EXPECT_EQ(1u, sanitized.count(OTS_TAG_FVAR));
+    EXPECT_EQ(1u, sanitized.count(OTS_TAG_GVAR_EXT));
+    ASSERT_TRUE(Sanitize(output, twice));
+    EXPECT_EQ(output, twice);
+    // The default synthesis option must retain fvar and choose GVAR for GLYF.
+    Bytes axis;
+    U32(axis, 0x00010000); U16(axis, 16); U16(axis, 2);
+    U16(axis, 1); U16(axis, 20); U16(axis, 0); U16(axis, 8);
+    U32(axis, OTS_TAG('w','g','h','t')); U32(axis, 0); U32(axis, 0); U32(axis, 65536);
+    U16(axis, 0); U16(axis, 256);
+    tables[OTS_TAG_FVAR] = axis;
+    tables.erase(OTS_TAG_GVAR);
+    tables.erase(OTS_TAG_GVAR_EXT);
+    ASSERT_TRUE(Sanitize(MakeFont(tables), output));
+    sanitized = FontTables(output);
+    EXPECT_EQ(1u, sanitized.count(OTS_TAG_FVAR));
+#ifdef OTS_SYNTHESIZE_MISSING_GVAR
+    EXPECT_EQ(1u, sanitized.count(OTS_TAG_GVAR_EXT));
+    EXPECT_EQ(hybrid ? 1u : 0u, sanitized.count(OTS_TAG_GVAR));
+#endif
+    ASSERT_TRUE(Sanitize(output, twice));
+    EXPECT_EQ(output, twice);
+  }
+}
+
+TEST(OFFIntegration, DuplicateTableTags) {
+  const Bytes seed = SeedFont(); ASSERT_FALSE(seed.empty());
+  auto tables = FontTables(seed);
+  const uint32_t duplicate = OTS_TAG('g','a','s','q');
+  tables[OTS_TAG_GASP] = {0, 1, 0, 1, 255, 255, 0, 3};
+  for (uint8_t version : {1, 2}) {
+    // Version 2 is dropped during parsing. Retrying the other directory
+    // entry used to add a second table with the same tag and assert.
+    tables[duplicate] = {0, version, 0, 1, 255, 255, 0, 3};
+    Bytes input = MakeFont(tables), output;
+    ASSERT_TRUE(Sanitize(input, output));
+    for (size_t at = 12; at < 12 + tables.size() * 16; at += 16) {
+      if (Get32(input, at) == duplicate) Set32(input, at, OTS_TAG_GASP);
+    }
+    EXPECT_FALSE(Sanitize(input, output)) << "version=" << unsigned(version);
+  }
+}
+
+TEST(OFFIntegration, ExtendedCollectionHeaders) {
+  const Bytes seed = SeedFont(); ASSERT_FALSE(seed.empty());
+  auto changed_tables = FontTables(seed);
+  Set32(changed_tables[OTS_TAG_POST], 4, 0x00010000);
+  const Bytes changed = MakeFont(changed_tables);
+  for (uint32_t version : {0x00010001u, 0x00020001u}) {
+    const uint32_t header_size = version >> 16 == 2 ? 36 : 24;
+    Bytes ttc;
+    U32(ttc, OTS_TAG('t','t','c','f')); U32(ttc, version); U32(ttc, 1); U32(ttc, header_size);
+    if (version >> 16 == 2) { U32(ttc, 0); U32(ttc, 0); U32(ttc, 0); }
+    U32(ttc, 1); U32(ttc, header_size + seed.size());
+    ttc.insert(ttc.end(), seed.begin(), seed.end());
+    ttc.insert(ttc.end(), changed.begin(), changed.end());
+    for (size_t directory : {size_t(header_size), header_size + seed.size()}) {
+      const unsigned count = (ttc[directory + 4] << 8) | ttc[directory + 5];
+      for (unsigned i = 0; i < count; ++i) {
+        const size_t at = directory + 12 + i * 16 + 8;
+        Set32(ttc, at, Get32(ttc, at) + directory);
+      }
+    }
+    Bytes selected, collection, twice;
+    ASSERT_TRUE(Sanitize(ttc, selected, 0));
+    EXPECT_EQ(0x00010000u, Get32(selected, 0));
+    EXPECT_EQ(0x00010000u, Get32(FontTables(selected)[OTS_TAG_POST], 4));
+    EXPECT_FALSE(Sanitize(ttc, selected, 1));
+    ASSERT_TRUE(Sanitize(ttc, collection));
+    EXPECT_EQ(0x00010001u, Get32(collection, 4));
+    EXPECT_EQ(1u, Get32(collection, 8));
+    EXPECT_EQ(1u, Get32(collection, 16));
+    EXPECT_EQ(0x00010000u, Get32(FontTables(collection, Get32(collection, 20))[OTS_TAG_POST], 4));
+    ASSERT_TRUE(Sanitize(collection, twice));
+    EXPECT_EQ(collection, twice);
+    Set32(ttc, header_size - 4, 0xffffffff);
+    EXPECT_FALSE(Sanitize(ttc, selected, 0));
+  }
+}
+
+TEST_F(OFFTest, ExtendedCff2GlyphCount) {
+  auto* maxp = new ots::OpenTypeMAXP(&font, OTS_TAG_MAXP_EXT);
+  maxp->num_glyphs = 65537; maxp->version_1 = false; Add(maxp);
+  Bytes cff = {2, 0, 5}; U16(cff, 20);
+  // Top DICT: CharStrings, FDArray and FDSelect offsets as long integers.
+  cff.push_back(29); U32(cff, 29); cff.push_back(17);
+  cff.push_back(29); U32(cff, 65572); cff.insert(cff.end(), {12, 36});
+  cff.push_back(29); U32(cff, 65582); cff.insert(cff.end(), {12, 37});
+  U32(cff, 0);  // Global Subrs.
+  U32(cff, 65537); cff.push_back(1); cff.insert(cff.end(), 65538, 1);
+  U32(cff, 1); cff.insert(cff.end(), {1, 1, 4, 139, 139, 18});
+  cff.push_back(4); U32(cff, 1); U32(cff, 0); U16(cff, 0); U32(cff, 65537);
+  ots::OpenTypeCFF2 table(&font, OTS_TAG_CFF2);
+  EXPECT_TRUE(table.Parse(cff.data(), cff.size()));
+  EXPECT_EQ(65537u, table.fd_select.size());
+  Set32(cff, 29, 65536);
+  ots::OpenTypeCFF2 incomplete(&font, OTS_TAG_CFF2);
+  EXPECT_FALSE(incomplete.Parse(cff.data(), cff.size()));
+  font.has_varc = true;
+  ots::OpenTypeCFF2 varc_outlines(&font, OTS_TAG_CFF2);
+  EXPECT_TRUE(varc_outlines.Parse(cff.data(), cff.size()));
+  Set32(cff, 29, 0xffffffff);
+  ots::OpenTypeCFF2 overflow(&font, OTS_TAG_CFF2);
+  EXPECT_FALSE(overflow.Parse(cff.data(), cff.size()));
+
+}
+
+TEST_F(OFFTest, VarcIndirectVariationStore) {
+  AddInternalAxis();
+  Bytes store;
+  U16(store, 1); U32(store, 12); U16(store, 1); U32(store, 34);
+  U32(store, 1); U32(store, 8);  // Sparse region list.
+  U16(store, 1); U32(store, 6);  // Sparse region axis offset.
+  U16(store, 0); U16(store, 0); U16(store, 0x4000); U16(store, 0x4000);
+  store.push_back(1); U16(store, 1); U16(store, 0); U32(store, 13);
+  U32(store, 0);  // Padding between the header and the INDEX.
+  U32(store, 1); store.insert(store.end(), {1, 1, 3, 0, 1});
+  EXPECT_TRUE(ParseVarc(Varc(store)));
+
+  Bytes bad = store;
+  Set32(bad, 22, 2);  // Axis coordinates overlap the offset array.
+  EXPECT_FALSE(ParseVarc(Varc(bad)));
+  bad = store;
+  Set32(bad, 39, 5);  // INDEX overlaps MultiItemVariationData header.
+  EXPECT_FALSE(ParseVarc(Varc(bad)));
+  bad = store;
+  Set32(bad, 39, store.size());
+  EXPECT_FALSE(ParseVarc(Varc(bad)));
+  bad = store;
+  Set32(bad, 16, 4);  // Region overlaps its list's offset array.
+  EXPECT_FALSE(ParseVarc(Varc(bad)));
+  store.pop_back();
+  EXPECT_FALSE(ParseVarc(Varc(store)));
+}
+
+TEST_F(OFFTest, VarcSharedAndNullConditions) {
+  Bytes store;
+  U16(store, 1); U32(store, 8); U16(store, 0); U32(store, 0);
+  auto parse = [this, &store](const Bytes& condition) {
+    Bytes b = Varc(store);
+    Set32(b, 12, b.size());
+    b.insert(b.end(), condition.begin(), condition.end());
+    return ParseVarc(b);
+  };
+  Bytes c;
+  U32(c, 2); U32(c, 0); U32(c, 12);
+  U16(c, 5); U24(c, 0);
+  EXPECT_TRUE(parse(c));
+  c.clear();
+  U32(c, 1); U32(c, 8);
+  for (unsigned i = 0; i < 32; ++i) {
+    U16(c, 3); c.push_back(2); U24(c, 9); U24(c, 9);
+  }
+  U16(c, 2); U16(c, 10); U32(c, 0xffffffff);
+  EXPECT_TRUE(parse(c));
+  c.clear();
+  U32(c, 2); U32(c, 162); U32(c, 12);
+  for (unsigned i = 0; i < 70; ++i) { U16(c, 5); U24(c, 5); }
+  U16(c, 2); U16(c, 10); U32(c, 0xffffffff);
+  EXPECT_FALSE(parse(c));
+}
+
+TEST_F(OFFTest, VarcUint32RegionCount) {
+  Bytes store;
+  U16(store, 1); U32(store, 8); U16(store, 0);
+  U32(store, 65536);
+  for (unsigned i = 0; i < 65536; ++i) U32(store, 4 + 4 * 65536);
+  U16(store, 0);  // All offsets share an empty region.
+  EXPECT_TRUE(ParseVarc(Varc(store)));
+  Set32(store, 8, 0xffffffff);
+  EXPECT_FALSE(ParseVarc(Varc(store)));
+}
+
+}  // namespace

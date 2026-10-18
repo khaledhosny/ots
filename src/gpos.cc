@@ -177,7 +177,7 @@ bool ParsePairSetTable(const ots::Font *font,
                        const uint8_t *data, const size_t length,
                        const uint16_t value_format1,
                        const uint16_t value_format2,
-                       const uint16_t num_glyphs) {
+                       const uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
   uint16_t value_count = 0;
@@ -207,7 +207,7 @@ bool ParsePairPosFormat1(const ots::Font *font,
                          const uint8_t *data, const size_t length,
                          const uint16_t value_format1,
                          const uint16_t value_format2,
-                         const uint16_t num_glyphs) {
+                         const uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
   // Skip 8 bytes that are already read before.
@@ -247,7 +247,7 @@ bool ParsePairPosFormat2(const ots::Font *font,
                          const uint8_t *data, const size_t length,
                          const uint16_t value_format1,
                          const uint16_t value_format2,
-                         const uint16_t num_glyphs) {
+                         const uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
   // Skip 8 bytes that are already read before.
@@ -377,8 +377,7 @@ bool ParseMarkToAttachmentSubtables(const ots::Font *font,
                                     const GPOS_TYPE type) {
   ots::Buffer subtable(data, length);
 
-  ots::OpenTypeMAXP *maxp = static_cast<ots::OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
+  ots::OpenTypeMAXP *maxp = font->GetMaxp();
   if (!maxp) {
     return OTS_FAILURE_MSG("Required maxp table missing");
   }
@@ -466,8 +465,7 @@ bool OpenTypeGPOS::ParseSingleAdjustment(const uint8_t *data,
   Font* font = GetFont();
   Buffer subtable(data, length);
 
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = font->GetMaxp();
   if (!maxp) {
     return Error("Required maxp table missing");
   }
@@ -520,8 +518,7 @@ bool OpenTypeGPOS::ParsePairAdjustment(const uint8_t *data,
   Font* font = GetFont();
   Buffer subtable(data, length);
 
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = font->GetMaxp();
   if (!maxp) {
     return Error("Required maxp table missing");
   }
@@ -570,8 +567,7 @@ bool OpenTypeGPOS::ParseCursiveAttachment(const uint8_t *data,
   Font* font = GetFont();
   Buffer subtable(data, length);
 
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = font->GetMaxp();
   if (!maxp) {
     return Error("Required maxp table missing");
   }
@@ -683,6 +679,16 @@ bool OpenTypeGPOS::ValidLookupSubtableType(const uint16_t lookup_type,
 
 bool OpenTypeGPOS::ParseLookupSubtable(const uint8_t *data, const size_t length,
                                        const uint16_t lookup_type) {
+  Buffer header(data, length);
+  uint16_t format;
+  if (!header.ReadU16(&format)) return Error("Missing lookup format");
+  const uint16_t legacy_formats[] = {0, 2, 2, 1, 1, 1, 1, 3, 3, 1};
+  if (lookup_type < arraysize(legacy_formats) && format > legacy_formats[lookup_type]) {
+    if (!ParseExtendedLayoutSubtable(GetFont(), data, length, lookup_type, NumLookups(), true)) {
+      return Error("Invalid extended positioning format %u for lookup type %u", format, lookup_type);
+    }
+    return true;
+  }
   switch (lookup_type) {
     case GPOS_TYPE_SINGLE_ADJUSTMENT:
       return ParseSingleAdjustment(data, length);

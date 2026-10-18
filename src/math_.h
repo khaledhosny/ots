@@ -28,36 +28,36 @@ class OpenTypeMATH : public Table {
   bool ParseMathValueRecordSequenceForGlyphs(ots::Buffer* subtable,
                                              const uint8_t *data,
                                              const size_t length,
-                                             const uint16_t num_glyphs);
+                                             const uint32_t num_glyphs);
   bool ParseMathItalicsCorrectionInfoTable(const uint8_t *data,
                                            size_t length,
-                                           const uint16_t num_glyphs);
+                                           const uint32_t num_glyphs);
   bool ParseMathTopAccentAttachmentTable(const uint8_t *data,
                                          size_t length,
-                                         const uint16_t num_glyphs);
+                                         const uint32_t num_glyphs);
   bool ParseMathKernTable(const uint8_t *data, size_t length);
   bool ParseMathKernInfoTable(const uint8_t *data,
                               size_t length,
-                              const uint16_t num_glyphs);
+                              const uint32_t num_glyphs);
   bool ParseMathGlyphInfoTable(const uint8_t *data,
                                size_t length,
-                               const uint16_t num_glyphs);
+                               const uint32_t num_glyphs);
   bool ParseGlyphAssemblyTable(const uint8_t *data,
                                size_t length,
-                               const uint16_t num_glyphs);
+                               const uint32_t num_glyphs);
   bool ParseMathGlyphConstructionTable(const uint8_t *data,
                                        size_t length,
-                                       const uint16_t num_glyphs);
+                                       const uint32_t num_glyphs);
   bool ParseMathGlyphConstructionSequence(ots::Buffer* subtable,
                                           const uint8_t *data,
                                           size_t length,
-                                          const uint16_t num_glyphs,
+                                          const uint32_t num_glyphs,
                                           uint16_t offset_coverage,
                                           uint16_t glyph_count,
                                           const unsigned sequence_end);
   bool ParseMathVariantsTable(const uint8_t *data,
                               size_t length,
-                              const uint16_t num_glyphs);
+                              const uint32_t num_glyphs);
 
   const uint8_t *m_data;
   size_t m_length;

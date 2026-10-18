@@ -16,7 +16,7 @@ namespace ots {
 class OpenTypeGVAR : public Table {
  public:
   explicit OpenTypeGVAR(Font* font, uint32_t tag)
-      : Table(font, tag, tag), m_ownsData(false) { }
+      : Table(font, tag, tag), m_axisCount(0), m_ownsData(false) { }
 
   virtual ~OpenTypeGVAR() {
     if (m_ownsData) {
@@ -27,6 +27,8 @@ class OpenTypeGVAR : public Table {
   bool Parse(const uint8_t* data, size_t length);
   bool Serialize(OTSStream* out);
 
+  uint16_t AxisCount() const { return m_axisCount; }
+
 #ifdef OTS_SYNTHESIZE_MISSING_GVAR
   bool InitEmpty();
 #endif
@@ -34,6 +36,7 @@ class OpenTypeGVAR : public Table {
  private:
   const uint8_t *m_data;
   size_t m_length;
+  uint16_t m_axisCount;
 
   bool m_ownsData;
 };

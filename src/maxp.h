@@ -17,7 +17,7 @@ class OpenTypeMAXP : public Table {
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);
 
-  uint16_t num_glyphs;
+  uint32_t num_glyphs;
   bool version_1;
 
   uint16_t max_points;

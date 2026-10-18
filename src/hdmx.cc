@@ -14,8 +14,7 @@ namespace ots {
 bool OpenTypeHDMX::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      GetFont()->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = GetFont()->GetMaxp();
   OpenTypeHEAD *head = static_cast<OpenTypeHEAD*>(
       GetFont()->GetTypedTable(OTS_TAG_HEAD));
   if (!head || !maxp) {

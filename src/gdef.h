@@ -26,12 +26,12 @@ class OpenTypeGDEF : public Table {
 
  private:
   bool ParseAttachListTable(const uint8_t *data, size_t length);
-  bool ParseLigCaretListTable(const uint8_t *data, size_t length);
+  bool ParseLigCaretListTable(const uint8_t *data, size_t length, bool extended);
   bool ParseMarkGlyphSetsDefTable(const uint8_t *data, size_t length);
 
   const uint8_t *m_data;
   size_t m_length;
-  uint16_t m_num_glyphs;
+  uint32_t m_num_glyphs;
 };
 
 }  // namespace ots

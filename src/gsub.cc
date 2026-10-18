@@ -31,7 +31,7 @@ enum GSUB_TYPE {
 
 bool ParseSequenceTable(const ots::Font *font,
                         const uint8_t *data, const size_t length,
-                        const uint16_t num_glyphs) {
+                        const uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
   uint16_t glyph_count = 0;
@@ -53,7 +53,7 @@ bool ParseSequenceTable(const ots::Font *font,
 
 bool ParseAlternateSetTable(const ots::Font *font,
                             const uint8_t *data, const size_t length,
-                            const uint16_t num_glyphs) {
+                            const uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
   uint16_t glyph_count = 0;
@@ -74,7 +74,7 @@ bool ParseAlternateSetTable(const ots::Font *font,
 
 bool ParseLigatureTable(const ots::Font *font,
                         const uint8_t *data, const size_t length,
-                        const uint16_t num_glyphs) {
+                        const uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
   uint16_t lig_glyph = 0;
@@ -106,7 +106,7 @@ bool ParseLigatureTable(const ots::Font *font,
 
 bool ParseLigatureSetTable(const ots::Font *font,
                            const uint8_t *data, const size_t length,
-                           const uint16_t num_glyphs) {
+                           const uint32_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
   uint16_t ligature_count = 0;
@@ -155,12 +155,11 @@ bool OpenTypeGSUB::ParseSingleSubstitution(const uint8_t *data,
     return Error("Failed to read single subst table header");
   }
 
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = font->GetMaxp();
   if (!maxp) {
     return Error("Required maxp table missing");
   }
-  const uint16_t num_glyphs = maxp->num_glyphs;
+  const uint32_t num_glyphs = maxp->num_glyphs;
   if (format == 1) {
     // Parse SingleSubstFormat1
     int16_t delta_glyph_id = 0;
@@ -224,12 +223,11 @@ bool OpenTypeGSUB::ParseMutipleSubstitution(const uint8_t *data,
     return Error("Bad multiple subst table format %d", format);
   }
 
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = font->GetMaxp();
   if (!maxp) {
     return Error("Required maxp table missing");
   }
-  const uint16_t num_glyphs = maxp->num_glyphs;
+  const uint32_t num_glyphs = maxp->num_glyphs;
   const unsigned sequence_end = static_cast<unsigned>(6) +
       sequence_count * 2;
   if (sequence_end > std::numeric_limits<uint16_t>::max()) {
@@ -281,12 +279,11 @@ bool OpenTypeGSUB::ParseAlternateSubstitution(const uint8_t *data,
     return Error("Bad alternate subst table format %d", format);
   }
 
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = font->GetMaxp();
   if (!maxp) {
     return Error("Required maxp table missing");
   }
-  const uint16_t num_glyphs = maxp->num_glyphs;
+  const uint32_t num_glyphs = maxp->num_glyphs;
   const unsigned alternate_set_end = static_cast<unsigned>(6) +
       alternate_set_count * 2;
   if (alternate_set_end > std::numeric_limits<uint16_t>::max()) {
@@ -340,12 +337,11 @@ bool OpenTypeGSUB::ParseLigatureSubstitution(const uint8_t *data,
     return Error("Bad ligature substitution table format %d", format);
   }
 
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = font->GetMaxp();
   if (!maxp) {
     return Error("Required maxp table missing");
   }
-  const uint16_t num_glyphs = maxp->num_glyphs;
+  const uint32_t num_glyphs = maxp->num_glyphs;
   const unsigned ligature_set_end = static_cast<unsigned>(6) +
       lig_set_count * 2;
   if (ligature_set_end > std::numeric_limits<uint16_t>::max()) {
@@ -404,12 +400,11 @@ bool OpenTypeGSUB::ParseReverseChainingContextSingleSubstitution(const uint8_t *
     return Error("Failed to read reverse chaining header");
   }
 
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      font->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = font->GetMaxp();
   if (!maxp) {
     return Error("Required maxp table missing");
   }
-  const uint16_t num_glyphs = maxp->num_glyphs;
+  const uint32_t num_glyphs = maxp->num_glyphs;
 
   uint16_t backtrack_glyph_count = 0;
   if (!subtable.ReadU16(&backtrack_glyph_count)) {
@@ -501,6 +496,16 @@ bool OpenTypeGSUB::ValidLookupSubtableType(const uint16_t lookup_type,
 
 bool OpenTypeGSUB::ParseLookupSubtable(const uint8_t *data, const size_t length,
                                        const uint16_t lookup_type) {
+  Buffer header(data, length);
+  uint16_t format;
+  if (!header.ReadU16(&format)) return Error("Missing lookup format");
+  const uint16_t legacy_formats[] = {0, 2, 1, 1, 1, 3, 3, 1, 1};
+  if (lookup_type < arraysize(legacy_formats) && format > legacy_formats[lookup_type]) {
+    if (!ParseExtendedLayoutSubtable(GetFont(), data, length, lookup_type, NumLookups(), false)) {
+      return Error("Invalid extended substitution format %u for lookup type %u", format, lookup_type);
+    }
+    return true;
+  }
   switch (lookup_type) {
     case GSUB_TYPE_SINGLE:
       return ParseSingleSubstitution(data, length);

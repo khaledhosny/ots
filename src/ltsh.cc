@@ -14,8 +14,7 @@ namespace ots {
 bool OpenTypeLTSH::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
-  OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      GetFont()->GetTypedTable(OTS_TAG_MAXP));
+  OpenTypeMAXP *maxp = GetFont()->GetMaxp();
   if (!maxp) {
     return Error("Required maxp table is missing");
   }

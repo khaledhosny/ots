@@ -55,12 +55,16 @@ bool OpenTypeMetricsHeader::Parse(const uint8_t *data, size_t length) {
     return Error("Unsupported metricDataFormat: %d", data_format);
   }
 
-  if (!table.ReadU16(&this->num_metrics)) {
+  const bool extended = Tag() == OTS_TAG_HHEA_EXT || Tag() == OTS_TAG_VHEA_EXT;
+  uint16_t num_metrics = 0;
+  if (!(extended ? table.ReadU32(&this->num_metrics) : table.ReadU16(&num_metrics))) {
     return Error("Failed to read number of metrics");
   }
 
+  if (!extended) this->num_metrics = num_metrics;
+
   OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      GetFont()->GetTypedTable(OTS_TAG_MAXP));
+      GetFont()->GetTypedTable(extended ? OTS_TAG_MAXP_EXT : OTS_TAG_MAXP));
   if (!maxp) {
     return Error("Missing maxp font table");
   }
@@ -86,7 +90,8 @@ bool OpenTypeMetricsHeader::Serialize(OTSStream *out) {
       !out->WriteS16(this->caret_offset) ||
       !out->WriteR64(0) ||  // reserved
       !out->WriteS16(0) ||  // metric data format
-      !out->WriteU16(this->num_metrics)) {
+      !((Tag() == OTS_TAG_HHEA_EXT || Tag() == OTS_TAG_VHEA_EXT)
+            ? out->WriteU32(this->num_metrics) : out->WriteU16(this->num_metrics))) {
     return Error("Failed to write metrics");
   }
 
@@ -103,12 +108,12 @@ bool OpenTypeMetricsTable::Parse(const uint8_t *data, size_t length) {
   if (!header) {
     return Error("Required %c%c%c%c table missing", OTS_UNTAG(m_header_tag));
   }
-  // |num_metrics| is a uint16_t, so it's bounded < 65536. This limits that
-  // amount of memory that we'll allocate for this to a sane amount.
   const unsigned num_metrics = header->num_metrics;
 
   OpenTypeMAXP *maxp = static_cast<OpenTypeMAXP*>(
-      GetFont()->GetTypedTable(OTS_TAG_MAXP));
+      GetFont()->GetTypedTable(
+          (Tag() == OTS_TAG_HMTX_EXT || Tag() == OTS_TAG_VMTX_EXT)
+              ? OTS_TAG_MAXP_EXT : OTS_TAG_MAXP));
   if (!maxp) {
     return Error("Required maxp table missing");
   }
@@ -120,6 +125,10 @@ bool OpenTypeMetricsTable::Parse(const uint8_t *data, size_t length) {
   }
   const unsigned num_sbs = maxp->num_glyphs - num_metrics;
 
+  if (static_cast<uint64_t>(num_metrics) * 4 +
+      static_cast<uint64_t>(num_sbs) * 2 > length) {
+    return Error("Metrics array exceeds table length");
+  }
   this->entries.reserve(num_metrics);
   for (unsigned i = 0; i < num_metrics; ++i) {
     uint16_t adv = 0;

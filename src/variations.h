@@ -14,7 +14,9 @@ namespace ots {
 
 bool ParseItemVariationStore(const Font* font,
                              const uint8_t* data, const size_t length,
-                             std::vector<uint16_t>* out_region_index_count = NULL);
+                             std::vector<uint16_t>* out_region_index_count = NULL,
+                             uint16_t* out_axis_count = NULL,
+                             bool allow_no_fvar = false);
 
 bool ParseDeltaSetIndexMap(const Font* font, const uint8_t* data, const size_t length);
 

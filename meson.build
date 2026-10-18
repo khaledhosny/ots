@@ -68,6 +68,7 @@ ots_sources = [
   'src/cvar.h',
   'src/cvt.cc',
   'src/cvt.h',
+  'src/extended-layout.cc',
   'src/fpgm.cc',
   'src/fpgm.h',
   'src/fvar.cc',
@@ -121,6 +122,8 @@ ots_sources = [
   'src/prep.h',
   'src/stat.cc',
   'src/stat.h',
+  'src/varc.cc',
+  'src/varc.h',
   'src/variations.cc',
   'src/variations.h',
   'src/vdmx.cc',
@@ -269,6 +272,19 @@ cff_charstring = executable('cff_charstring',
 )
 
 test('cff_charstring', cff_charstring)
+
+off_test = executable('off_test',
+  'tests/off_test.cc',
+  cpp_args: '-DHAVE_CONFIG_H',
+  include_directories: include_directories(['include', 'src']),
+  link_with: libots,
+  dependencies: gtest,
+  override_options: ['cpp_std=c++17'],
+)
+
+test('off_test', off_test,
+  env: ['OTS_TEST_FONT=' + meson.current_source_dir() / 'tests/fonts/good/00ae3c2b1b7718361fc76ee31da97253057b15b7.ttf'],
+)
 
 
 passthru_test = executable('passthru_test',
