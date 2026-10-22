@@ -400,7 +400,8 @@ bool OpenTypeCMAP::Parse31013(const uint8_t *data, size_t length,
   return true;
 }
 
-bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length) {
+bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length,
+                              uint16_t num_glyphs) {
   // Unicode Variation Selector table
   ots::Buffer subtable(data, length);
 
@@ -517,6 +518,9 @@ bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length) {
         if (mappings[j].glyph_id == 0 || mappings[j].unicode_value == 0) {
           return Error("Bad mapping (%04X -> %d) in mapping %d of variation selector %d", mappings[j].unicode_value, mappings[j].glyph_id, j, i);
         }
+        if (mappings[j].glyph_id >= num_glyphs) {
+          return Error("Glyph id too high (%d >= %d) in mapping %d of variation selector %d", mappings[j].glyph_id, num_glyphs, j, i);
+        }
         if (mappings[j].unicode_value > kUnicodeUpperLimit) {
           return Error("Invalid Unicode value (%04X > %04X) in mapping %d of variation selector %d", mappings[j].unicode_value, kUnicodeUpperLimit, j, i);
         }
@@ -536,7 +540,8 @@ bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length) {
   return true;
 }
 
-bool OpenTypeCMAP::Parse100(const uint8_t *data, size_t length) {
+bool OpenTypeCMAP::Parse100(const uint8_t *data, size_t length,
+                            uint16_t num_glyphs) {
   // Mac Roman table
   ots::Buffer subtable(data, length);
 
@@ -557,6 +562,9 @@ bool OpenTypeCMAP::Parse100(const uint8_t *data, size_t length) {
     uint8_t glyph_id = 0;
     if (!subtable.ReadU8(&glyph_id)) {
       return Error("Can't read glyph id at array[%ld] in cmap subtable", i);
+    }
+    if (glyph_id >= num_glyphs) {
+      return Error("Glyph id too high (%d >= %d) at array[%ld] in cmap subtable", glyph_id, num_glyphs, i);
     }
     this->subtable_1_0_0.push_back(glyph_id);
   }
@@ -784,7 +792,7 @@ bool OpenTypeCMAP::Parse(const uint8_t *data, size_t length) {
       } else if ((subtable_headers[i].encoding == 5) &&
                  (subtable_headers[i].format == 14)) {
         if (!Parse0514(data + subtable_headers[i].offset,
-                       subtable_headers[i].length)) {
+                       subtable_headers[i].length, num_glyphs)) {
           return Error("Failed to parse format 14 cmap subtable %d", i);
         }
       }
@@ -795,7 +803,7 @@ bool OpenTypeCMAP::Parse(const uint8_t *data, size_t length) {
           (subtable_headers[i].format == 0)) {
         // parse and output the 1-0-0 table.
         if (!Parse100(data + subtable_headers[i].offset,
-                      subtable_headers[i].length)) {
+                      subtable_headers[i].length, num_glyphs)) {
           return OTS_FAILURE();
         }
       }
