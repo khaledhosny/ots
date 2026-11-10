@@ -285,6 +285,19 @@ test('passthru_test', passthru_test,
 )
 
 
+glyf_bbox_test = executable('glyf_bbox_test',
+  'tests/glyf_bbox_test.cc',
+  include_directories: include_directories(['include']),
+  link_with: libots,
+  dependencies: gtest,
+  override_options: ['cpp_std=c++17'],
+)
+
+test('glyf_bbox_test', glyf_bbox_test,
+  env: ['OTS_TEST_FONT=' + meson.current_source_dir() / 'tests/fonts/good/5db0b354570d56fbf4ff965c44f733083c26e226.ttf'],
+  suite: 'glyf',
+)
+
 foreach file_name : bad_fonts
   test(file_name, ots_sanitize,
     args: meson.current_source_dir() / 'tests' / file_name,

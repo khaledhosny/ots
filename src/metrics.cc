@@ -4,6 +4,8 @@
 
 #include "metrics.h"
 
+#include <limits>
+
 #include "maxp.h"
 
 // OpenType horizontal and vertical common header format
@@ -140,6 +142,22 @@ bool OpenTypeMetricsTable::Parse(const uint8_t *data, size_t length) {
     this->sbs.push_back(sb);
   }
 
+  return true;
+}
+
+bool OpenTypeMetricsTable::AdjustSideBearing(uint16_t gid, int32_t delta) {
+  if (gid >= this->entries.size() + this->sbs.size()) {
+    return false;
+  }
+  int16_t &sb = gid < this->entries.size()
+                    ? this->entries[gid].second
+                    : this->sbs[gid - this->entries.size()];
+  const int64_t value = static_cast<int64_t>(sb) + delta;
+  if (value < std::numeric_limits<int16_t>::min() ||
+      value > std::numeric_limits<int16_t>::max()) {
+    return false;
+  }
+  sb = static_cast<int16_t>(value);
   return true;
 }
 

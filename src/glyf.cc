@@ -8,6 +8,7 @@
 #include <limits>
 
 #include "head.h"
+#include "hmtx.h"
 #include "loca.h"
 #include "maxp.h"
 #include "name.h"
@@ -150,6 +151,7 @@ bool OpenTypeGLYF::ParseSimpleGlyph(Buffer &glyph,
   }
 
   bool adjusted_bbox = false;
+  const int16_t original_xmin = xmin;
   int16_t x = 0, y = 0;
 
   // Read and check x-coords
@@ -227,6 +229,14 @@ bool OpenTypeGLYF::ParseSimpleGlyph(Buffer &glyph,
       Warning("Glyph bbox was incorrect; NOT adjusting tricky font (glyph %u)", gid);
     } else {
       Warning("Glyph bbox was incorrect; adjusting (glyph %u)", gid);
+      if (xmin != original_xmin) {
+        // Preserve the initial phantom point: pp1 = xMin - lsb ('hmtx').
+        OpenTypeHMTX *hmtx = static_cast<OpenTypeHMTX*>(
+            GetFont()->GetTypedTable(OTS_TAG_HMTX));
+        if (hmtx && !hmtx->AdjustSideBearing(gid, xmin - original_xmin)) {
+          return Error("Can't adjust hmtx lsb (glyph %u)", gid);
+        }
+      }
       // copy the numberOfContours field
       this->iov.push_back(std::make_pair(glyph.buffer(), 2));
       // output a fixed-up version of the bounding box
