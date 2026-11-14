@@ -151,6 +151,9 @@ bool ParseMarkArrayTable(const ots::Font *font,
   if (mark_records_end > std::numeric_limits<uint16_t>::max()) {
     return OTS_FAILURE_MSG("Bad mark table length");
   }
+  if (!ots::ChargeLayoutWork(font, mark_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < mark_count; ++i) {
     uint16_t class_value = 0;
     uint16_t offset_mark_anchor = 0;
@@ -183,6 +186,9 @@ bool ParsePairSetTable(const ots::Font *font,
   uint16_t value_count = 0;
   if (!subtable.ReadU16(&value_count)) {
     return OTS_FAILURE_MSG("Failed to read pair set table structure");
+  }
+  if (!ots::ChargeLayoutWork(font, value_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
   for (unsigned i = 0; i < value_count; ++i) {
     // Check pair value record.
@@ -223,6 +229,9 @@ bool ParsePairPosFormat1(const ots::Font *font,
   const unsigned pair_pos_end = 2 * static_cast<unsigned>(pair_set_count) + 10;
   if (pair_pos_end > std::numeric_limits<uint16_t>::max()) {
     return OTS_FAILURE_MSG("Bad pair set length %d", pair_pos_end);
+  }
+  if (!ots::ChargeLayoutWork(font, pair_set_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
   for (unsigned i = 0; i < pair_set_count; ++i) {
     uint16_t pair_set_offset = 0;
@@ -280,6 +289,9 @@ bool ParsePairPosFormat2(const ots::Font *font,
 
   // Check class 1 records.
   if (value_record1_size || value_record2_size) {
+    if (!ots::ChargeLayoutWork(font, static_cast<uint64_t>(class1_count) * class2_count)) {
+      return OTS_FAILURE_MSG("Exceeded work budget for this table");
+    }
     for (unsigned i = 0; i < class1_count; ++i) {
       // Check class 2 records.
       for (unsigned j = 0; j < class2_count; ++j) {
@@ -325,6 +337,9 @@ bool ParseAnchorArrayTable(const ots::Font *font,
   if (anchor_array_end > std::numeric_limits<uint16_t>::max()) {
     return OTS_FAILURE_MSG("Bad end of anchor array %d", anchor_array_end);
   }
+  if (!ots::ChargeLayoutWork(font, static_cast<uint64_t>(record_count) * class_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < record_count; ++i) {
     for (unsigned j = 0; j < class_count; ++j) {
       uint16_t offset_record = 0;
@@ -354,6 +369,9 @@ bool ParseLigatureArrayTable(const ots::Font *font,
   uint16_t ligature_count = 0;
   if (!subtable.ReadU16(&ligature_count)) {
     return OTS_FAILURE_MSG("Failed to read ligature count");
+  }
+  if (!ots::ChargeLayoutWork(font, ligature_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
   for (unsigned i = 0; i < ligature_count; ++i) {
     uint16_t offset_ligature_attach = 0;
@@ -491,6 +509,9 @@ bool OpenTypeGPOS::ParseSingleAdjustment(const uint8_t *data,
     if (!subtable.ReadU16(&value_count)) {
       return Error("Failed to parse format 2 single adjustment table");
     }
+    if (!ChargeLayoutWork(font, value_count)) {
+      return Error("Exceeded work budget for this table");
+    }
     for (unsigned i = 0; i < value_count; ++i) {
       if (!ParseValueRecord(font, &subtable, value_format)) {
         return Error("Failed to parse value record %d in format 2 single adjustment table", i);
@@ -594,6 +615,9 @@ bool OpenTypeGPOS::ParseCursiveAttachment(const uint8_t *data,
       2 * static_cast<unsigned>(entry_exit_count) + 6;
   if (entry_exit_records_end > std::numeric_limits<uint16_t>::max()) {
     return Error("Bad entry exit record end %d", entry_exit_records_end);
+  }
+  if (!ChargeLayoutWork(font, entry_exit_count)) {
+    return Error("Exceeded work budget for this table");
   }
   for (unsigned i = 0; i < entry_exit_count; ++i) {
     uint16_t offset_entry_anchor = 0;

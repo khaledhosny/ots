@@ -188,6 +188,9 @@ bool OpenTypeMATH::ParseMathValueRecordSequenceForGlyphs(ots::Buffer* subtable,
   }
 
   // Check sequence.
+  if (!ots::ChargeLayoutWork(GetFont(), sequence_count)) {
+    return Error("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < sequence_count; ++i) {
     if (!ParseMathValueRecord(subtable, data, length)) {
       return OTS_FAILURE();
@@ -220,6 +223,9 @@ bool OpenTypeMATH::ParseMathKernTable(const uint8_t *data, size_t length) {
   uint16_t height_count = 0;
   if (!subtable.ReadU16(&height_count)) {
     return OTS_FAILURE();
+  }
+  if (!ots::ChargeLayoutWork(GetFont(), height_count)) {
+    return Error("Exceeded work budget for this table");
   }
 
   // Check the Correction Heights.
@@ -268,6 +274,9 @@ bool OpenTypeMATH::ParseMathKernInfoTable(const uint8_t *data,
   }
 
   // Check sequence of MathKernInfoRecord
+  if (!ots::ChargeLayoutWork(GetFont(), sequence_count)) {
+    return Error("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < sequence_count; ++i) {
     // Check TopRight, TopLeft, BottomRight and BottomLeft Math Kern.
     for (unsigned j = 0; j < 4; ++j) {
@@ -370,6 +379,9 @@ bool OpenTypeMATH::ParseGlyphAssemblyTable(const uint8_t *data,
   }
 
   // Check the sequence of GlyphPartRecord.
+  if (!ots::ChargeLayoutWork(GetFont(), part_count)) {
+    return Error("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < part_count; ++i) {
     uint16_t glyph = 0;
     uint16_t part_flags = 0;
@@ -421,6 +433,9 @@ bool OpenTypeMATH::ParseMathGlyphConstructionTable(const uint8_t *data,
   }
 
   // Check the sequence of MathGlyphVariantRecord.
+  if (!ots::ChargeLayoutWork(GetFont(), variant_count)) {
+    return Error("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < variant_count; ++i) {
     uint16_t glyph = 0;
     if (!subtable.ReadU16(&glyph) ||
@@ -458,6 +473,9 @@ bool OpenTypeMATH::ParseMathGlyphConstructionSequence(ots::Buffer* subtable,
   }
 
   // Check sequence of MathGlyphConstruction.
+  if (!ots::ChargeLayoutWork(GetFont(), glyph_count)) {
+    return Error("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < glyph_count; ++i) {
       uint16_t offset_glyph_construction = 0;
       if (!subtable->ReadU16(&offset_glyph_construction)) {
@@ -524,6 +542,7 @@ bool OpenTypeMATH::Parse(const uint8_t *data, size_t length) {
   const uint16_t num_glyphs = maxp->num_glyphs;
 
   Buffer table(data, length);
+  ots::ResetLayoutWorkBudget(GetFont(), length);
 
   uint32_t version = 0;
   if (!table.ReadU32(&version)) {
