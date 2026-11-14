@@ -262,7 +262,6 @@ bool OpenTypeGLYF::ParseSimpleGlyph(Buffer &glyph,
 bool OpenTypeGLYF::ParseCompositeGlyph(
     Buffer &glyph,
     unsigned glyph_id,
-    ComponentPointCount* component_point_count,
     unsigned* skip_count) {
   uint16_t flags = 0;
   uint16_t gid = 0;
@@ -284,7 +283,6 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
       // Reset the buffer position such that all the glyph data will be dropped,
       // making it an empty (non-composite) glyph.
       glyph.set_offset(0);
-      component_point_count->gid_stack.clear();
       return true;
     }
 
@@ -365,10 +363,6 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
     }
 
     we_have_instructions = we_have_instructions || (flags & WE_HAVE_INSTRUCTIONS);
-
-    // Push initial components on stack at level 1
-    // to traverse them in parent function.
-    component_point_count->gid_stack.push_back({gid, 1});
   } while (flags & MORE_COMPONENTS);
 
   // Sort any required edits by offset in the glyph data.
@@ -493,6 +487,10 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
   std::vector<uint32_t> resulting_offsets(num_glyphs + 1);
   uint32_t current_offset = 0;
 
+  // Flattened point and component counts and depth of each glyph, filled in
+  // as composite glyphs are validated.
+  std::vector<ComponentInfo> component_info(num_glyphs);
+
   for (unsigned i = 0; i < num_glyphs; ++i) {
     // Used by ParseCompositeGlyph to return the number of bytes being skipped
     // in the glyph description, so we can adjust offsets properly.
@@ -543,55 +541,31 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
         return Error("Failed to parse glyph %d", i);
       }
     } else {
-
-      ComponentPointCount component_point_count;
-      if (!ParseCompositeGlyph(glyph, i, &component_point_count, &skip_count)) {
+      if (!ParseCompositeGlyph(glyph, i, &skip_count)) {
         return Error("Failed to parse glyph %d", i);
       }
 
-      // Check maxComponentDepth and validate maxComponentPoints.
-      // ParseCompositeGlyph placed the first set of component glyphs on the
-      // component_point_count.gid_stack, which we start to process below. If a
-      // nested glyph is in turn a component glyph, additional glyphs are placed
-      // on the stack.
-      while (component_point_count.gid_stack.size()) {
-        GidAtLevel stack_top_gid = component_point_count.gid_stack.back();
-        component_point_count.gid_stack.pop_back();
-
-        Buffer points_count_glyph(GetGlyphBufferSection(
-            data,
-            length,
-            offsets,
-            stack_top_gid.gid));
-
-        if (!points_count_glyph.buffer())
-          return false;
-
-        if (!points_count_glyph.length())
-          continue;
-
-        if (!TraverseComponentsCountingPoints(points_count_glyph,
-                                              i,
-                                              stack_top_gid.level,
-                                              &component_point_count)) {
+      // Check maxComponentDepth and validate maxComponentPoints, unless
+      // ParseCompositeGlyph discarded the glyph, leaving it empty.
+      if (glyph.offset()) {
+        if (!ComputeComponentInfo(data, length, offsets, i, &component_info)) {
           return Error("Error validating component points and depth.");
         }
 
-        if (component_point_count.accumulated_component_points >
-            std::numeric_limits<uint16_t>::max()) {
-          return Error("Illegal composite points value "
-                       "exceeding 0xFFFF for base glyph %d.", i);
-        } else if (this->maxp->version_1 &&
-                   component_point_count.accumulated_component_points >
-                   this->maxp->max_c_points) {
+        const ComponentInfo& info = component_info[i];
+        if (this->maxp->version_1 &&
+            info.points > this->maxp->max_c_points) {
           Warning("Number of composite points in glyph %d exceeds "
                   "maxp maxCompositePoints: %d vs %d, adjusting limit.",
-                  i,
-                  component_point_count.accumulated_component_points,
-                  this->maxp->max_c_points
-                  );
-          this->maxp->max_c_points =
-              component_point_count.accumulated_component_points;
+                  i, info.points, this->maxp->max_c_points);
+          this->maxp->max_c_points = info.points;
+        }
+        if (this->maxp->version_1 &&
+            info.depth > this->maxp->max_c_depth) {
+          Warning("Component depth exceeds maxp maxComponentDepth "
+                  "in glyph %d, adjust limit to %d.",
+                  i, info.depth);
+          this->maxp->max_c_depth = info.depth;
         }
       }
     }
@@ -633,11 +607,92 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
   return true;
 }
 
-bool OpenTypeGLYF::TraverseComponentsCountingPoints(
+bool OpenTypeGLYF::ComputeComponentInfo(
+    const uint8_t *data,
+    size_t length,
+    const std::vector<uint32_t>& loca_offsets,
+    uint16_t glyph_id,
+    std::vector<ComponentInfo>* component_info) {
+  // Depth-first walk of the component graph, without recursion. A composite
+  // glyph is read twice: first to push the components that have not been
+  // visited yet, and again once those are done, to add up their results.
+  // Every glyph is expanded at most once per table, so the work is linear in
+  // the size of the table however often a component is shared or repeated,
+  // and a component that refers back to a glyph still being expanded is a
+  // cycle.
+  std::vector<uint16_t> stack(1, glyph_id);
+  std::vector<uint16_t> components;
+
+  while (!stack.empty()) {
+    const uint16_t gid = stack.back();
+    ComponentInfo& info = (*component_info)[gid];
+    if (info.state == ComponentInfo::kDone) {
+      stack.pop_back();
+      continue;
+    }
+
+    Buffer glyph(GetGlyphBufferSection(data, length, loca_offsets, gid));
+    if (!glyph.buffer()) {
+      return false;
+    }
+
+    components.clear();
+    if (glyph.length() && !ReadComponentInfo(glyph, &info, &components)) {
+      return false;
+    }
+
+    if (info.state == ComponentInfo::kUnvisited && !components.empty()) {
+      info.state = ComponentInfo::kInProgress;
+      for (const uint16_t component : components) {
+        switch ((*component_info)[component].state) {
+          case ComponentInfo::kInProgress:
+            return Error("Glyph %d is used as a component of itself "
+                         "(base glyph id %d).", component, glyph_id);
+          case ComponentInfo::kUnvisited:
+            stack.push_back(component);
+            break;
+          case ComponentInfo::kDone:
+            break;
+        }
+      }
+      continue;
+    }
+
+    // Like the flattened number of points, the flattened number of components
+    // is limited to 0xFFFF, so that a glyph that is cheap to validate cannot be
+    // exponentially expensive to load. Every component is counted, including
+    // ones that expand to an empty glyph, since a renderer still traverses
+    // their records. FontTools counts a depth level for each traversed
+    // recursion, but not for empty components, so those are left out of the
+    // points and depth totals.
+    for (const uint16_t component : components) {
+      const ComponentInfo& child = (*component_info)[component];
+      info.components += child.components + 1;
+      if (info.components > std::numeric_limits<uint16_t>::max()) {
+        return Error("Illegal composite components value "
+                     "exceeding 0xFFFF for base glyph %d.", glyph_id);
+      }
+      if (child.empty) {
+        continue;
+      }
+      info.depth = std::max(info.depth, child.depth + 1);
+      info.points += child.points;
+      if (info.points > std::numeric_limits<uint16_t>::max()) {
+        return Error("Illegal composite points value "
+                     "exceeding 0xFFFF for base glyph %d.", glyph_id);
+      }
+    }
+    info.state = ComponentInfo::kDone;
+    stack.pop_back();
+  }
+
+  return true;
+}
+
+bool OpenTypeGLYF::ReadComponentInfo(
     Buffer &glyph,
-    uint16_t base_glyph_id,
-    uint32_t level,
-    ComponentPointCount* component_point_count) {
+    ComponentInfo* info,
+    std::vector<uint16_t>* components) {
 
   int16_t num_contours;
   if (!glyph.ReadS16(&num_contours) ||
@@ -652,20 +707,7 @@ bool OpenTypeGLYF::TraverseComponentsCountingPoints(
   if (num_contours == 0)
     return true;
 
-  // FontTools counts a component level for each traversed recursion. We start
-  // counting at level 0. If we reach a level that's deeper than
-  // maxComponentDepth, we expand maxComponentDepth unless it's larger than
-  // the maximum possible depth.
-  if (level > std::numeric_limits<uint16_t>::max()) {
-    return Error("Illegal component depth exceeding 0xFFFF in base glyph id %d.",
-                 base_glyph_id);
-  } else if (this->maxp->version_1 &&
-             level > this->maxp->max_c_depth) {
-    this->maxp->max_c_depth = level;
-    Warning("Component depth exceeds maxp maxComponentDepth "
-            "in glyph %d, adjust limit to %d.",
-            base_glyph_id, level);
-  }
+  info->empty = false;
 
   if (num_contours > 0) {
     uint16_t num_points = 0;
@@ -678,12 +720,12 @@ bool OpenTypeGLYF::TraverseComponentsCountingPoints(
       num_points = tmp_index + 1;
     }
 
-    component_point_count->accumulated_component_points += num_points;
+    info->points = num_points;
     return true;
   } else  {
     assert(num_contours == -1);
 
-    // Composite glyph, add gid's to stack.
+    // Composite glyph, list its components.
     uint16_t flags = 0;
     uint16_t gid = 0;
     do {
@@ -710,7 +752,7 @@ bool OpenTypeGLYF::TraverseComponentsCountingPoints(
         return Error("Invalid glyph id used in composite glyph: %d", gid);
       }
 
-      component_point_count->gid_stack.push_back({gid, level + 1u});
+      components->push_back(gid);
     } while (flags & MORE_COMPONENTS);
     return true;
   }
