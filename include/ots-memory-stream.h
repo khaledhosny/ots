@@ -85,7 +85,8 @@ class ExpandingMemoryStream : public OTSStream {
     }
     std::memcpy(static_cast<char*>(ptr_) + off_, data, length);
     off_ += static_cast<off_t>(length);
-    if (off_ > high_) high_ = off_;
+    if (off_ > high_)
+      high_ = off_;
     return true;
   }
 
