@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cstring>
 #include <cctype>
+#include <limits>
 
 // name - Naming Table
 // http://www.microsoft.com/typography/otspec/name.htm
@@ -85,6 +86,12 @@ bool OpenTypeNAME::Parse(const uint8_t* data, size_t length) {
 
   bool sort_required = false;
 
+  // String storage is addressed with 16-bit offsets, so Serialize() can never
+  // write more than 64K of string data; keep a running total of the strings we
+  // retain so that records sharing the same bytes can't make us hold many
+  // times more than that.
+  size_t total_text_length = 0;
+
   // Read all the names, discarding any with invalid IDs,
   // and any where the offset/length would be outside the table.
   // A stricter alternative would be to reject the font if there
@@ -152,6 +159,11 @@ bool OpenTypeNAME::Parse(const uint8_t* data, size_t length) {
           continue;
         }
       }
+    }
+
+    total_text_length += rec.text.size();
+    if (total_text_length > std::numeric_limits<uint16_t>::max()) {
+      return Error("Total length of name strings exceeds 64K at entry %d", i);
     }
 
     if (!this->names.empty() && !(this->names.back() < rec)) {
