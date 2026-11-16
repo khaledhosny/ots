@@ -6,6 +6,7 @@
 
 #include <cstring>
 #include <cmath>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -126,10 +127,16 @@ bool ParseIndex(ots::Buffer &table, ots::CFFIndex &index, bool cff2 = false) {
     return OTS_FAILURE();
   }
 
-  const size_t array_size = (index.count + 1) * index.off_size;
-  // less than ((64k + 1) * 4), thus does not overflow.
+  // For CFF the count is a 16-bit value, so (count + 1) * off_size is less than
+  // ((64k + 1) * 4) and cannot overflow. For CFF2 the count is read with ReadU32
+  // and can be up to 2^32-1, so the multiplication must be done in size_t and
+  // guarded against overflow (which matters on 32-bit platforms).
+  if (index.count > std::numeric_limits<size_t>::max() / index.off_size - 1) {
+    return OTS_FAILURE();
+  }
+  const size_t array_size = (static_cast<size_t>(index.count) + 1) * index.off_size;
   const size_t object_data_offset = table.offset() + array_size;
-  // does not overflow too, since offset() <= 1GB.
+  // does not overflow, since offset() <= 1GB and array_size is bounded above.
 
   if (object_data_offset >= table.length()) {
     return OTS_FAILURE();
