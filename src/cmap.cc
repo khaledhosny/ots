@@ -5,6 +5,7 @@
 #include "cmap.h"
 
 #include <algorithm>
+#include <map>
 #include <set>
 #include <utility>
 #include <vector>
@@ -400,7 +401,8 @@ bool OpenTypeCMAP::Parse31013(const uint8_t *data, size_t length,
   return true;
 }
 
-bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length) {
+bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length,
+                             uint16_t num_glyphs) {
   // Unicode Variation Selector table
   ots::Buffer subtable(data, length);
 
@@ -422,6 +424,7 @@ bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length) {
 
   std::vector<ots::OpenTypeCMAPSubtableVSRecord>& records
       = this->subtable_0_5_14;
+  records.clear();
   records.resize(num_records);
 
   for (unsigned i = 0; i < num_records; ++i) {
@@ -458,9 +461,20 @@ bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length) {
     }
   }
 
+  // Several records may share a UVS table. Each distinct table is parsed
+  // once and kept by the first record that names it; records that reuse the
+  // offset keep empty vectors and Serialize() writes the table once. The
+  // distinct tables must also fit in the subtable together, so that they
+  // don't overlap and the parsed data stays proportional to the input.
+  std::map<uint32_t, size_t> default_uvs_ends;
+  std::map<uint32_t, size_t> non_default_uvs_ends;
+  size_t uvs_bytes = 0;
+
   for (unsigned i = 0; i < num_records; ++i) {
     // Checks default UVS table
-    if (records[i].default_offset) {
+    if (default_uvs_ends.count(records[i].default_offset)) {
+      subtable.set_offset(default_uvs_ends[records[i].default_offset]);
+    } else if (records[i].default_offset) {
       subtable.set_offset(records[i].default_offset);
       uint32_t num_ranges = 0;
       if (!subtable.ReadU32(&num_ranges)) {
@@ -468,6 +482,10 @@ bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length) {
       }
       if (num_ranges == 0 || subtable.remaining() / 4 < num_ranges) {
         return Error("Bad number of ranges (%d) in record %d", num_ranges, i);
+      }
+      uvs_bytes += 4 + 4 * static_cast<size_t>(num_ranges);
+      if (uvs_bytes > length) {
+        return Error("Overlapping UVS tables in record %d", i);
       }
 
       uint32_t last_unicode_value = 0;
@@ -491,10 +509,13 @@ bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length) {
         }
         last_unicode_value = check_value;
       }
+      default_uvs_ends[records[i].default_offset] = subtable.offset();
     }
 
     // Checks non default UVS table
-    if (records[i].non_default_offset) {
+    if (non_default_uvs_ends.count(records[i].non_default_offset)) {
+      subtable.set_offset(non_default_uvs_ends[records[i].non_default_offset]);
+    } else if (records[i].non_default_offset) {
       subtable.set_offset(records[i].non_default_offset);
       uint32_t num_mappings = 0;
       if (!subtable.ReadU32(&num_mappings)) {
@@ -502,6 +523,10 @@ bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length) {
       }
       if (num_mappings == 0 || subtable.remaining() / 5 < num_mappings) {
         return Error("Bad number of mappings (%d) in variation selector record %d", num_mappings, i);
+      }
+      uvs_bytes += 4 + 5 * static_cast<size_t>(num_mappings);
+      if (uvs_bytes > length) {
+        return Error("Overlapping UVS tables in record %d", i);
       }
 
       uint32_t last_unicode_value = 0;
@@ -517,6 +542,9 @@ bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length) {
         if (mappings[j].glyph_id == 0 || mappings[j].unicode_value == 0) {
           return Error("Bad mapping (%04X -> %d) in mapping %d of variation selector %d", mappings[j].unicode_value, mappings[j].glyph_id, j, i);
         }
+        if (mappings[j].glyph_id >= num_glyphs) {
+          return Error("Glyph id too high (%d >= %d) in mapping %d of variation selector %d", mappings[j].glyph_id, num_glyphs, j, i);
+        }
         if (mappings[j].unicode_value > kUnicodeUpperLimit) {
           return Error("Invalid Unicode value (%04X > %04X) in mapping %d of variation selector %d", mappings[j].unicode_value, kUnicodeUpperLimit, j, i);
         }
@@ -526,6 +554,7 @@ bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length) {
         }
         last_unicode_value = mappings[j].unicode_value;
       }
+      non_default_uvs_ends[records[i].non_default_offset] = subtable.offset();
     }
   }
 
@@ -536,7 +565,8 @@ bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length) {
   return true;
 }
 
-bool OpenTypeCMAP::Parse100(const uint8_t *data, size_t length) {
+bool OpenTypeCMAP::Parse100(const uint8_t *data, size_t length,
+                            uint16_t num_glyphs) {
   // Mac Roman table
   ots::Buffer subtable(data, length);
 
@@ -557,6 +587,9 @@ bool OpenTypeCMAP::Parse100(const uint8_t *data, size_t length) {
     uint8_t glyph_id = 0;
     if (!subtable.ReadU8(&glyph_id)) {
       return Error("Can't read glyph id at array[%ld] in cmap subtable", i);
+    }
+    if (glyph_id >= num_glyphs) {
+      return Error("Glyph id too high (%d >= %d) at array[%ld] in cmap subtable", glyph_id, num_glyphs, i);
     }
     this->subtable_1_0_0.push_back(glyph_id);
   }
@@ -752,7 +785,21 @@ bool OpenTypeCMAP::Parse(const uint8_t *data, size_t length) {
   //    exists, the 0-3-12 table is ignored.
   //
 
+  // Any number of encoding records may point to the same subtable (see the
+  // overlap check above). Parse a given subtable only once per platform and
+  // encoding: parsing it again would only redo the same work, and a cmap with
+  // tens of thousands of identical records would take a very long time.
+  std::set<std::pair<uint32_t, uint32_t> > parsed_subtables;
+
   for (unsigned i = 0; i < num_tables; ++i) {
+    const uint32_t platform_encoding =
+        (static_cast<uint32_t>(subtable_headers[i].platform) << 16) |
+        subtable_headers[i].encoding;
+    if (!parsed_subtables.insert(std::make_pair(
+            platform_encoding, subtable_headers[i].offset)).second) {
+      continue;
+    }
+
     if (subtable_headers[i].platform == 0) {
       // Unicode platform
 
@@ -784,7 +831,7 @@ bool OpenTypeCMAP::Parse(const uint8_t *data, size_t length) {
       } else if ((subtable_headers[i].encoding == 5) &&
                  (subtable_headers[i].format == 14)) {
         if (!Parse0514(data + subtable_headers[i].offset,
-                       subtable_headers[i].length)) {
+                       subtable_headers[i].length, num_glyphs)) {
           return Error("Failed to parse format 14 cmap subtable %d", i);
         }
       }
@@ -795,7 +842,7 @@ bool OpenTypeCMAP::Parse(const uint8_t *data, size_t length) {
           (subtable_headers[i].format == 0)) {
         // parse and output the 1-0-0 table.
         if (!Parse100(data + subtable_headers[i].offset,
-                      subtable_headers[i].length)) {
+                      subtable_headers[i].length, num_glyphs)) {
           return OTS_FAILURE();
         }
       }
@@ -898,7 +945,9 @@ bool OpenTypeCMAP::Serialize(OTSStream *out) {
       }
     }
     for (unsigned i = 0; i < num_records; ++i) {
-      if (records[i].default_offset) {
+      // An empty vector means the table is shared with an earlier record,
+      // which has already written it (see Parse0514()).
+      if (records[i].default_offset && !records[i].ranges.empty()) {
         const std::vector<ots::OpenTypeCMAPSubtableVSRange> &ranges
             = records[i].ranges;
         const unsigned num_ranges = ranges.size();
@@ -913,7 +962,7 @@ bool OpenTypeCMAP::Serialize(OTSStream *out) {
           }
         }
       }
-      if (records[i].non_default_offset) {
+      if (records[i].non_default_offset && !records[i].mappings.empty()) {
         const std::vector<ots::OpenTypeCMAPSubtableVSMapping> &mappings
             = records[i].mappings;
         const unsigned num_mappings = mappings.size();
@@ -928,6 +977,11 @@ bool OpenTypeCMAP::Serialize(OTSStream *out) {
           }
         }
       }
+    }
+    // The last table written need not be the last one in the subtable when
+    // tables are shared, so move past the whole subtable explicitly.
+    if (!out->Seek(offset_0514 + this->subtable_0_5_14_length)) {
+      return OTS_FAILURE();
     }
   }
 

@@ -127,7 +127,7 @@ class OpenTypeSILF : public Table {
       uint16_t pConstraint;
       std::vector<uint16_t> oConstraints;
       std::vector<uint16_t> oActions;
-      std::vector<std::vector<uint16_t>> stateTrans;
+      std::vector<uint16_t> stateTrans;  // numTransitional * numColumns
       uint8_t reserved2;
       std::vector<uint8_t> passConstraints;
       std::vector<uint8_t> ruleConstraints;

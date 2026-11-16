@@ -803,16 +803,17 @@ SILPass::ParsePart(Buffer& table, const size_t SILSub_init_offset,
     }
   }
 
-  //this->stateTrans.resize(this->numTransitional);
-  for (unsigned i = 0; i < this->numTransitional; ++i) {
+  // The transition table is stored flat (row-major) so that every element
+  // appended is backed by bytes read from the table; a pass declaring many
+  // rows of zero (or few) columns must not cost more than its size in memory.
+  unsigned long stateTrans_len =
+      static_cast<unsigned long>(this->numTransitional) * this->numColumns;
+  //this->stateTrans.resize(stateTrans_len);
+  for (unsigned long i = 0; i < stateTrans_len; ++i) {
     this->stateTrans.emplace_back();
-    //this->stateTrans[i].resize(this->numColumns);
-    for (unsigned j = 0; j < this->numColumns; ++j) {
-      this->stateTrans[i].emplace_back();
-      if (!table.ReadU16(&stateTrans[i][j])) {
-        return parent->Error("SILPass: Failed to read stateTrans[%u][%u]",
-                             i, j);
-      }
+    if (!table.ReadU16(&this->stateTrans[i])) {
+      return parent->Error("SILPass: Failed to read stateTrans[%lu][%lu]",
+                           i / this->numColumns, i % this->numColumns);
     }
   }
 
