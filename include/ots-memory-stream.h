@@ -50,7 +50,7 @@ class MemoryStream : public OTSStream {
 class ExpandingMemoryStream : public OTSStream {
  public:
   ExpandingMemoryStream(size_t initial, size_t limit)
-      : length_(initial), limit_(limit), off_(0) {
+      : length_(initial < limit ? initial : limit), limit_(limit), off_(0) {
     ptr_ = new uint8_t[length_];
   }
 
@@ -67,7 +67,7 @@ class ExpandingMemoryStream : public OTSStream {
   bool WriteRaw(const void *data, size_t length) override {
     if ((off_ + length > length_) ||
         (length > std::numeric_limits<size_t>::max() - off_)) {
-      if (length_ == limit_)
+      if (length_ >= limit_)
         return false;
       size_t new_length = (length_ + 1) * 2;
       if (new_length < length_)

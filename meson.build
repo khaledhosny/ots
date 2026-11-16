@@ -285,6 +285,17 @@ test('passthru_test', passthru_test,
 )
 
 
+memory_stream_test = executable('memory_stream_test',
+  'tests/memory_stream_test.cc',
+  include_directories: include_directories(['include']),
+  link_with: libots,
+  dependencies: gtest,
+  override_options: ['cpp_std=c++17'],
+)
+
+test('memory_stream_test', memory_stream_test)
+
+
 foreach file_name : bad_fonts
   test(file_name, ots_sanitize,
     args: meson.current_source_dir() / 'tests' / file_name,
