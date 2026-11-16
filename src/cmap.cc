@@ -401,7 +401,7 @@ bool OpenTypeCMAP::Parse31013(const uint8_t *data, size_t length,
 }
 
 bool OpenTypeCMAP::Parse0514(const uint8_t *data, size_t length,
-                              uint16_t num_glyphs) {
+                             uint16_t num_glyphs) {
   // Unicode Variation Selector table
   ots::Buffer subtable(data, length);
 
