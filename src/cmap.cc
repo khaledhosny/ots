@@ -752,7 +752,21 @@ bool OpenTypeCMAP::Parse(const uint8_t *data, size_t length) {
   //    exists, the 0-3-12 table is ignored.
   //
 
+  // Any number of encoding records may point to the same subtable (see the
+  // overlap check above). Parse a given subtable only once per platform and
+  // encoding: parsing it again would only redo the same work, and a cmap with
+  // tens of thousands of identical records would take a very long time.
+  std::set<std::pair<uint32_t, uint32_t> > parsed_subtables;
+
   for (unsigned i = 0; i < num_tables; ++i) {
+    const uint32_t platform_encoding =
+        (static_cast<uint32_t>(subtable_headers[i].platform) << 16) |
+        subtable_headers[i].encoding;
+    if (!parsed_subtables.insert(std::make_pair(
+            platform_encoding, subtable_headers[i].offset)).second) {
+      continue;
+    }
+
     if (subtable_headers[i].platform == 0) {
       // Unicode platform
 
