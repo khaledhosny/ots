@@ -30,15 +30,16 @@ class OpenTypeGLYF : public Table {
   bool Serialize(OTSStream *out);
 
  private:
-  struct GidAtLevel {
-    uint16_t gid;
-    uint32_t level;
-  };
-
-  struct ComponentPointCount {
-    ComponentPointCount() : accumulated_component_points(0) {};
-    uint32_t accumulated_component_points;
-    std::vector<GidAtLevel> gid_stack;
+  // What a glyph contributes when it is used as a component of a composite
+  // glyph. Computed at most once per glyph, so that shared and repeated
+  // components are not expanded again for every path that reaches them.
+  struct ComponentInfo {
+    enum State : uint8_t { kUnvisited, kInProgress, kDone };
+    State state = kUnvisited;
+    bool empty = true;        // no glyph data, or numberOfContours == 0
+    uint32_t points = 0;      // number of points after flattening components
+    uint32_t components = 0;  // number of components after flattening
+    uint32_t depth = 0;       // levels of nested components below this glyph
   };
 
   bool ParseFlagsForSimpleGlyph(Buffer &glyph,
@@ -60,14 +61,23 @@ class OpenTypeGLYF : public Table {
   bool ParseCompositeGlyph(
       Buffer &glyph,
       unsigned glyph_id,
-      ComponentPointCount* component_point_count,
       unsigned* skip_count);
 
-  bool TraverseComponentsCountingPoints(
+  // Fills in component_info for glyph_id and every glyph it refers to,
+  // directly or through nested components.
+  bool ComputeComponentInfo(
+      const uint8_t *data,
+      size_t length,
+      const std::vector<uint32_t>& loca_offsets,
+      uint16_t glyph_id,
+      std::vector<ComponentInfo>* component_info);
+
+  // Reads the point count of a simple glyph into info, or the component
+  // glyph ids of a composite glyph into components.
+  bool ReadComponentInfo(
       Buffer& glyph,
-      uint16_t base_glyph_id,
-      uint32_t level,
-      ComponentPointCount* component_point_count);
+      ComponentInfo* info,
+      std::vector<uint16_t>* components);
 
   Buffer GetGlyphBufferSection(
       const uint8_t *data,
