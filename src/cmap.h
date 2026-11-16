@@ -78,8 +78,8 @@ class OpenTypeCMAP : public Table {
                     size_t length, uint16_t num_glyphs);
   bool Parse31012(const uint8_t *data, size_t length, uint16_t num_glyphs);
   bool Parse31013(const uint8_t *data, size_t length, uint16_t num_glyphs);
-  bool Parse0514(const uint8_t *data, size_t length);
-  bool Parse100(const uint8_t *data, size_t length);
+  bool Parse0514(const uint8_t *data, size_t length, uint16_t num_glyphs);
+  bool Parse100(const uint8_t *data, size_t length, uint16_t num_glyphs);
 };
 
 }  // namespace ots
