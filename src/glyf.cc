@@ -401,8 +401,9 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
   // Record the glyph data in this->iov, accounting for any required edits.
   *skip_count = 0;
   unsigned offset = 0;
-  while (!edits.empty()) {
-    auto& edit = edits.front();
+  size_t next_edit = 0;
+  while (next_edit < edits.size()) {
+    auto& edit = edits[next_edit];
     // Handle any glyph data between current offset and the next edit position.
     if (edit.first > offset) {
       this->iov.push_back(std::make_pair(glyph.buffer() + offset, edit.first - offset));
@@ -420,8 +421,8 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
         std::memcpy(&flags, glyph.buffer() + offset, 2);
         flags = ots_ntohs(flags);
         // Apply all flag changes for the current offset.
-        while (!edits.empty() && edits.front().first == offset) {
-          auto& e = edits.front();
+        while (next_edit < edits.size() && edits[next_edit].first == offset) {
+          auto& e = edits[next_edit];
           switch (e.second.first) {
             case edit_t::set_flag:
               flags |= e.second.second;
@@ -433,7 +434,7 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
               assert(false);
               break;
           }
-          edits.erase(edits.begin());
+          ++next_edit;
         }
         // Record the modified flags word.
         flags = ots_htons(flags);
@@ -448,7 +449,7 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
       case edit_t::skip_bytes:
         offset = edit.first + action.second;
         *skip_count += action.second;
-        edits.erase(edits.begin());
+        ++next_edit;
         break;
 
       default:
