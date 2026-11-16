@@ -5,6 +5,8 @@
 #include "stat.h"
 #include "name.h"
 
+#include <limits>
+
 namespace ots {
 
 // -----------------------------------------------------------------------------
@@ -102,7 +104,17 @@ bool OpenTypeSTAT::Parse(const uint8_t* data, size_t length) {
     }
   }
 
+  // Serialize() writes a separate copy of every axis value table after the
+  // offsets array, even when several offsets share one table in the input,
+  // and each copy must be addressable by a 16-bit offset. Keep track of where
+  // the next copy will start so that we can reject tables that would not fit;
+  // this also bounds how much memory shared tables can expand into.
+  size_t serializedOffset = size_t(this->axisValueCount) * sizeof(uint16_t);
+
   for (size_t i = 0; i < this->axisValueCount; i++) {
+    if (serializedOffset > std::numeric_limits<uint16_t>::max()) {
+      return Drop("Axis value tables too large for 16-bit offsets");
+    }
     table.set_offset(this->offsetToAxisValueOffsets + i * sizeof(uint16_t));
     uint16_t axisValueOffset;
     if (!table.ReadU16(&axisValueOffset)) {
@@ -216,6 +228,7 @@ bool OpenTypeSTAT::Parse(const uint8_t* data, size_t length) {
     default:
       return Drop("Unknown axis value format");
     }
+    serializedOffset += axisValue.Length();
   }
 
   return true;
