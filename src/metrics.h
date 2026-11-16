@@ -44,6 +44,10 @@ struct OpenTypeMetricsTable : public Table {
   bool Parse(const uint8_t *data, size_t length);
   bool Serialize(OTSStream *out);
 
+  // Add |delta| to glyph |gid|'s side bearing. Return false without changes
+  // if |gid| is invalid or the result does not fit int16_t.
+  bool AdjustSideBearing(uint16_t gid, int32_t delta);
+
  private:
   uint32_t m_header_tag;
 
