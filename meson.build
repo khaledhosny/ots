@@ -310,6 +310,20 @@ memory_stream_test = executable('memory_stream_test',
 test('memory_stream_test', memory_stream_test)
 
 
+vdmx_test = executable('vdmx_test',
+  'tests/vdmx_test.cc',
+  include_directories: include_directories(['include']),
+  link_with: libots,
+  dependencies: gtest,
+  override_options: ['cpp_std=c++17'],
+)
+
+test('vdmx_test', vdmx_test,
+  env: ['OTS_TEST_FONT=' + meson.current_source_dir() / 'tests/fonts/good/a29b6af1965f9cac3b4ada03258bcce6a155b168.ttf'],
+  suite: 'vdmx',
+)
+
+
 foreach file_name : bad_fonts
   test(file_name, ots_sanitize,
     args: meson.current_source_dir() / 'tests' / file_name,
