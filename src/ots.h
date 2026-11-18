@@ -328,6 +328,11 @@ struct Font {
 
   FontFile *file;
 
+  // Work remaining for the layout table (GSUB, GPOS, GDEF, MATH) currently
+  // being parsed; see ResetLayoutWorkBudget() in layout.h. Mutable because
+  // the layout parsing helpers only hold a const Font.
+  mutable uint64_t layout_work_budget = 0;
+
   uint32_t version;
   uint16_t num_tables;
   uint16_t search_range;

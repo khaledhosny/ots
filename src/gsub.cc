@@ -38,6 +38,9 @@ bool ParseSequenceTable(const ots::Font *font,
   if (!subtable.ReadU16(&glyph_count)) {
     return OTS_FAILURE_MSG("Failed to read glyph count in sequence table");
   }
+  if (!ots::ChargeLayoutWork(font, glyph_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < glyph_count; ++i) {
     uint16_t substitute = 0;
     if (!subtable.ReadU16(&substitute)) {
@@ -59,6 +62,9 @@ bool ParseAlternateSetTable(const ots::Font *font,
   uint16_t glyph_count = 0;
   if (!subtable.ReadU16(&glyph_count)) {
     return OTS_FAILURE_MSG("Failed to read alternate set header");
+  }
+  if (!ots::ChargeLayoutWork(font, glyph_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
   for (unsigned i = 0; i < glyph_count; ++i) {
     uint16_t alternate = 0;
@@ -91,6 +97,9 @@ bool ParseLigatureTable(const ots::Font *font,
   if (comp_count == 0) {
     return OTS_FAILURE_MSG("Component count cannot be 0");
   }
+  if (!ots::ChargeLayoutWork(font, comp_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < comp_count - static_cast<unsigned>(1); ++i) {
     uint16_t component = 0;
     if (!subtable.ReadU16(&component)) {
@@ -118,6 +127,9 @@ bool ParseLigatureSetTable(const ots::Font *font,
   const unsigned ligature_end = static_cast<unsigned>(2) + ligature_count * 2;
   if (ligature_end > std::numeric_limits<uint16_t>::max()) {
     return OTS_FAILURE_MSG("Bad end of ligature %d in ligature set", ligature_end);
+  }
+  if (!ots::ChargeLayoutWork(font, ligature_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
   for (unsigned i = 0; i < ligature_count; ++i) {
     uint16_t offset_ligature = 0;
@@ -179,6 +191,9 @@ bool OpenTypeGSUB::ParseSingleSubstitution(const uint8_t *data,
     if (glyph_count > num_glyphs) {
       return Error("Bad glyph count %d > %d in format 2 single subst table", glyph_count, num_glyphs);
     }
+    if (!ChargeLayoutWork(font, glyph_count)) {
+      return Error("Exceeded work budget for this table");
+    }
     for (unsigned i = 0; i < glyph_count; ++i) {
       uint16_t substitute = 0;
       if (!subtable.ReadU16(&substitute)) {
@@ -234,6 +249,9 @@ bool OpenTypeGSUB::ParseMutipleSubstitution(const uint8_t *data,
       sequence_count * 2;
   if (sequence_end > std::numeric_limits<uint16_t>::max()) {
     return Error("Bad sequence end %d, in multiple subst", sequence_end);
+  }
+  if (!ChargeLayoutWork(font, sequence_count)) {
+    return Error("Exceeded work budget for this table");
   }
   for (unsigned i = 0; i < sequence_count; ++i) {
     uint16_t offset_sequence = 0;
@@ -291,6 +309,9 @@ bool OpenTypeGSUB::ParseAlternateSubstitution(const uint8_t *data,
       alternate_set_count * 2;
   if (alternate_set_end > std::numeric_limits<uint16_t>::max()) {
     return Error("Bad end of alternate set %d", alternate_set_end);
+  }
+  if (!ChargeLayoutWork(font, alternate_set_count)) {
+    return Error("Exceeded work budget for this table");
   }
   for (unsigned i = 0; i < alternate_set_count; ++i) {
     uint16_t offset_alternate_set = 0;
@@ -350,6 +371,9 @@ bool OpenTypeGSUB::ParseLigatureSubstitution(const uint8_t *data,
       lig_set_count * 2;
   if (ligature_set_end > std::numeric_limits<uint16_t>::max()) {
     return Error("Bad end of ligature set %d in ligature substitution table", ligature_set_end);
+  }
+  if (!ChargeLayoutWork(font, lig_set_count)) {
+    return Error("Exceeded work budget for this table");
   }
   for (unsigned i = 0; i < lig_set_count; ++i) {
     uint16_t offset_ligature_set = 0;
@@ -415,6 +439,9 @@ bool OpenTypeGSUB::ParseReverseChainingContextSingleSubstitution(const uint8_t *
   if (!subtable.ReadU16(&backtrack_glyph_count)) {
     return Error("Failed to read backtrack glyph count in reverse chaining table");
   }
+  if (!ChargeLayoutWork(font, backtrack_glyph_count)) {
+    return Error("Exceeded work budget for this table");
+  }
   std::vector<uint16_t> offsets_backtrack;
   offsets_backtrack.reserve(backtrack_glyph_count);
   for (unsigned i = 0; i < backtrack_glyph_count; ++i) {
@@ -429,6 +456,9 @@ bool OpenTypeGSUB::ParseReverseChainingContextSingleSubstitution(const uint8_t *
   if (!subtable.ReadU16(&lookahead_glyph_count)) {
     return Error("Failed to read look ahead glyph count");
   }
+  if (!ChargeLayoutWork(font, lookahead_glyph_count)) {
+    return Error("Exceeded work budget for this table");
+  }
   std::vector<uint16_t> offsets_lookahead;
   offsets_lookahead.reserve(lookahead_glyph_count);
   for (unsigned i = 0; i < lookahead_glyph_count; ++i) {
@@ -442,6 +472,9 @@ bool OpenTypeGSUB::ParseReverseChainingContextSingleSubstitution(const uint8_t *
   uint16_t glyph_count = 0;
   if (!subtable.ReadU16(&glyph_count)) {
     return Error("Can't read glyph count in reverse chaining table");
+  }
+  if (!ChargeLayoutWork(font, glyph_count)) {
+    return Error("Exceeded work budget for this table");
   }
   for (unsigned i = 0; i < glyph_count; ++i) {
     uint16_t substitute = 0;

@@ -226,6 +226,7 @@ bad_fonts = [
   'fonts/bad/cf6934b8e2d100b495e219d1b079fa2c34133d08.ttf',
   'fonts/bad/d052cc5e62def2facb5772d1b38112779539ef0a.otf',
   'fonts/bad/d262af9b0b7836f7395ae8b1a4a37e38fa0ae6c3.ttf',
+  'fonts/bad/d2af0040480bd26ab8b58c82ccad21ecc67c9102.ttf',
   'fonts/bad/dbcd1243ae657ee8934a699d474be2d0ba79da94.ttf',
   'fonts/bad/dcc4f3316f90bc8a4c05e0086d2b49fddd3a059b.otf',
   'fonts/bad/e071a5082117ad5a64dc3db1bfcd0a31d6db93ae.ttf',

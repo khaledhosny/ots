@@ -48,6 +48,9 @@ bool OpenTypeGDEF::ParseAttachListTable(const uint8_t *data, size_t length) {
   if (glyph_count > this->m_num_glyphs) {
     return Error("Bad glyph count %u", glyph_count);
   }
+  if (!ChargeLayoutWork(GetFont(), glyph_count)) {
+    return Error("Exceeded work budget for this table");
+  }
 
   std::vector<uint16_t> attach_points;
   attach_points.resize(glyph_count);
@@ -76,6 +79,9 @@ bool OpenTypeGDEF::ParseAttachListTable(const uint8_t *data, size_t length) {
     }
     if (point_count == 0) {
       return Error("zero point count %d", i);
+    }
+    if (!ChargeLayoutWork(GetFont(), point_count)) {
+      return Error("Exceeded work budget for this table");
     }
     uint16_t last_point_index = 0;
     uint16_t point_index = 0;
@@ -114,6 +120,9 @@ bool OpenTypeGDEF::ParseLigCaretListTable(const uint8_t *data, size_t length) {
   if (lig_glyph_count > this->m_num_glyphs) {
     return Error("bad ligature glyph count: %u", lig_glyph_count);
   }
+  if (!ChargeLayoutWork(GetFont(), lig_glyph_count)) {
+    return Error("Exceeded work budget for this table");
+  }
 
   std::vector<uint16_t> lig_glyphs;
   lig_glyphs.resize(lig_glyph_count);
@@ -141,6 +150,9 @@ bool OpenTypeGDEF::ParseLigCaretListTable(const uint8_t *data, size_t length) {
     }
     if (caret_count == 0) {
       return Error("bad caret value count: %u", caret_count);
+    }
+    if (!ChargeLayoutWork(GetFont(), caret_count)) {
+      return Error("Exceeded work budget for this table");
     }
 
     std::vector<uint16_t> caret_value_offsets;
@@ -209,6 +221,9 @@ bool OpenTypeGDEF::ParseMarkGlyphSetsDefTable(const uint8_t *data, size_t length
   if (mark_sets_end > std::numeric_limits<uint16_t>::max()) {
     return Error("Bad mark_set %d", mark_sets_end);
   }
+  if (!ChargeLayoutWork(GetFont(), mark_set_count)) {
+    return Error("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < mark_set_count; ++i) {
     uint32_t offset_coverage = 0;
     if (!subtable.ReadU32(&offset_coverage)) {
@@ -239,6 +254,7 @@ bool OpenTypeGDEF::Parse(const uint8_t *data, size_t length) {
   this->m_num_glyphs = maxp->num_glyphs;
 
   Buffer table(data, length);
+  ResetLayoutWorkBudget(GetFont(), length);
 
   uint16_t version_major = 0, version_minor = 0;
   if (!table.ReadU16(&version_major) ||

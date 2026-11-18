@@ -67,6 +67,9 @@ bool ParseLangSysTable(const ots::Font *font,
   if (feature_count > num_features) {
     return OTS_FAILURE_MSG("Bad feature count %d for langsys tag %c%c%c%c", feature_count, OTS_UNTAG(tag));
   }
+  if (!ots::ChargeLayoutWork(font, feature_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
 
   for (unsigned i = 0; i < feature_count; ++i) {
     uint16_t feature_index = 0;
@@ -105,6 +108,9 @@ bool ParseScriptTable(const ots::Font *font,
       6 * static_cast<unsigned>(lang_sys_count) + 4;
   if (lang_sys_record_end > std::numeric_limits<uint16_t>::max()) {
     return OTS_FAILURE_MSG("Bad end of langsys record %d for script tag %c%c%c%c", lang_sys_record_end, OTS_UNTAG(tag));
+  }
+  if (!ots::ChargeLayoutWork(font, lang_sys_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
 
   std::vector<LangSysRecord> lang_sys_records;
@@ -161,6 +167,9 @@ bool ParseFeatureTable(const ots::Font *font,
        offset_feature_params >= length)) {
     return OTS_FAILURE_MSG("Bad feature params offset %d", offset_feature_params);
   }
+  if (!ots::ChargeLayoutWork(font, lookup_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
 
   for (unsigned i = 0; i < lookup_count; ++i) {
     uint16_t lookup_index = 0;
@@ -201,6 +210,9 @@ bool ParseClassDefFormat1(const ots::Font *font,
   if (glyph_count > num_glyphs) {
     return OTS_FAILURE_MSG("bad glyph count: %u", glyph_count);
   }
+  if (!ots::ChargeLayoutWork(font, glyph_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < glyph_count; ++i) {
     uint16_t class_value = 0;
     if (!subtable.ReadU16(&class_value)) {
@@ -231,6 +243,9 @@ bool ParseClassDefFormat2(const ots::Font *font,
   }
   if (range_count > num_glyphs) {
     return OTS_FAILURE_MSG("classRangeCount > glyph count: %u > %u", range_count, num_glyphs);
+  }
+  if (!ots::ChargeLayoutWork(font, range_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
 
   uint16_t last_end = 0;
@@ -276,6 +291,9 @@ bool ParseCoverageFormat1(const ots::Font *font,
   if (glyph_count > num_glyphs) {
     return OTS_FAILURE_MSG("bad glyph count: %u", glyph_count);
   }
+  if (!ots::ChargeLayoutWork(font, glyph_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < glyph_count; ++i) {
     uint16_t glyph = 0;
     if (!subtable.ReadU16(&glyph)) {
@@ -310,6 +328,9 @@ bool ParseCoverageFormat2(const ots::Font *font,
   }
   if (range_count > num_glyphs) {
     return OTS_FAILURE_MSG("bad range count: %u", range_count);
+  }
+  if (!ots::ChargeLayoutWork(font, range_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
   uint16_t last_end = 0;
   uint16_t last_start_coverage_index = 0;
@@ -381,6 +402,9 @@ bool ParseRuleSubtable(const ots::Font *font,
   if (glyph_count == 0) {
     return OTS_FAILURE_MSG("Bad glyph count %d in rule subtable", glyph_count);
   }
+  if (!ots::ChargeLayoutWork(font, glyph_count + lookup_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < glyph_count - static_cast<unsigned>(1); ++i) {
     uint16_t glyph_id = 0;
     if (!subtable.ReadU16(&glyph_id)) {
@@ -412,6 +436,9 @@ bool ParseRuleSetTable(const ots::Font *font,
   const unsigned rule_end = 2 * static_cast<unsigned>(rule_count) + 2;
   if (rule_end > std::numeric_limits<uint16_t>::max()) {
     return OTS_FAILURE_MSG("Bad end of rule %d in rule set", rule_end);
+  }
+  if (!ots::ChargeLayoutWork(font, rule_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
 
   for (unsigned i = 0; i < rule_count; ++i) {
@@ -450,6 +477,9 @@ bool ParseContextFormat1(const ots::Font *font,
       rule_set_count * 2;
   if (rule_set_end > std::numeric_limits<uint16_t>::max()) {
     return OTS_FAILURE_MSG("Bad end of rule set %d of context format 1", rule_set_end);
+  }
+  if (!ots::ChargeLayoutWork(font, rule_set_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
   if (offset_coverage < rule_set_end || offset_coverage >= length) {
     return OTS_FAILURE_MSG("Bad coverage offset %d in context format 1", offset_coverage);
@@ -492,6 +522,9 @@ bool ParseClassRuleTable(const ots::Font *font,
   if (glyph_count == 0) {
     return OTS_FAILURE_MSG("Glyph count cannot be 0 in class rule table");
   }
+  if (!ots::ChargeLayoutWork(font, lookup_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
 
   // ClassRule table contains an array of classes. Each value of classes
   // could take arbitrary values including zero so we don't check these value.
@@ -522,6 +555,9 @@ bool ParseClassSetTable(const ots::Font *font,
       2 * static_cast<unsigned>(class_rule_count) + 2;
   if (class_rule_end > std::numeric_limits<uint16_t>::max()) {
     return OTS_FAILURE_MSG("bad class rule end %d in class set table", class_rule_end);
+  }
+  if (!ots::ChargeLayoutWork(font, class_rule_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
   for (unsigned i = 0; i < class_rule_count; ++i) {
     uint16_t offset_class_rule = 0;
@@ -561,6 +597,9 @@ bool ParseContextFormat2(const ots::Font *font,
   const unsigned class_set_end = 2 * static_cast<unsigned>(class_set_cnt) + 8;
   if (class_set_end > std::numeric_limits<uint16_t>::max()) {
     return OTS_FAILURE_MSG("Bad end of class set %d for context format 2", class_set_end);
+  }
+  if (!ots::ChargeLayoutWork(font, class_set_cnt)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
   if (offset_coverage < class_set_end || offset_coverage >= length) {
     return OTS_FAILURE_MSG("Bad coverage offset %d in context format 2", offset_coverage);
@@ -619,6 +658,9 @@ bool ParseContextFormat3(const ots::Font *font,
   if (lookup_record_end > std::numeric_limits<uint16_t>::max()) {
     return OTS_FAILURE_MSG("Bad end of lookup %d in context format 3", lookup_record_end);
   }
+  if (!ots::ChargeLayoutWork(font, glyph_count + lookup_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < glyph_count; ++i) {
     uint16_t offset_coverage = 0;
     if (!subtable.ReadU16(&offset_coverage)) {
@@ -654,6 +696,9 @@ bool ParseChainRuleSubtable(const ots::Font *font,
   if (!subtable.ReadU16(&backtrack_count)) {
     return OTS_FAILURE_MSG("Failed to read backtrack count in chain rule subtable");
   }
+  if (!ots::ChargeLayoutWork(font, backtrack_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < backtrack_count; ++i) {
     uint16_t glyph_id = 0;
     if (!subtable.ReadU16(&glyph_id)) {
@@ -671,6 +716,9 @@ bool ParseChainRuleSubtable(const ots::Font *font,
   if (input_count == 0) {
     return OTS_FAILURE_MSG("Bad input count %d in chain rule subtable", input_count);
   }
+  if (!ots::ChargeLayoutWork(font, input_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < input_count - static_cast<unsigned>(1); ++i) {
     uint16_t glyph_id = 0;
     if (!subtable.ReadU16(&glyph_id)) {
@@ -685,6 +733,9 @@ bool ParseChainRuleSubtable(const ots::Font *font,
   if (!subtable.ReadU16(&lookahead_count)) {
     return OTS_FAILURE_MSG("Failed to read lookahead count in chain rule subtable");
   }
+  if (!ots::ChargeLayoutWork(font, lookahead_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < lookahead_count; ++i) {
     uint16_t glyph_id = 0;
     if (!subtable.ReadU16(&glyph_id)) {
@@ -698,6 +749,9 @@ bool ParseChainRuleSubtable(const ots::Font *font,
   uint16_t lookup_count = 0;
   if (!subtable.ReadU16(&lookup_count)) {
     return OTS_FAILURE_MSG("Failed to read lookup count in chain rule subtable");
+  }
+  if (!ots::ChargeLayoutWork(font, lookup_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
   for (unsigned i = 0; i < lookup_count; ++i) {
     if (!ParseLookupRecord(font, &subtable, num_glyphs, num_lookups)) {
@@ -722,6 +776,9 @@ bool ParseChainRuleSetTable(const ots::Font *font,
       2 * static_cast<unsigned>(chain_rule_count) + 2;
   if (chain_rule_end > std::numeric_limits<uint16_t>::max()) {
     return OTS_FAILURE_MSG("Bad end of chain rule %d in chain rule set", chain_rule_end);
+  }
+  if (!ots::ChargeLayoutWork(font, chain_rule_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
   for (unsigned i = 0; i < chain_rule_count; ++i) {
     uint16_t offset_chain_rule = 0;
@@ -760,6 +817,9 @@ bool ParseChainContextFormat1(const ots::Font *font,
       2 * static_cast<unsigned>(chain_rule_set_count) + 6;
   if (chain_rule_set_end > std::numeric_limits<uint16_t>::max()) {
     return OTS_FAILURE_MSG("Bad chain rule end %d in chain context format 1", chain_rule_set_end);
+  }
+  if (!ots::ChargeLayoutWork(font, chain_rule_set_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
   if (offset_coverage < chain_rule_set_end || offset_coverage >= length) {
     return OTS_FAILURE_MSG("Bad coverage offset %d in chain context format 1", chain_rule_set_end);
@@ -828,6 +888,9 @@ bool ParseChainClassRuleSubtable(const ots::Font *font,
   if (!subtable.ReadU16(&lookup_count)) {
     return OTS_FAILURE_MSG("Failed to read lookup count in chain class rule subtable");
   }
+  if (!ots::ChargeLayoutWork(font, lookup_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < lookup_count; ++i) {
     if (!ParseLookupRecord(font, &subtable, num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse lookup record %d in chain class rule subtable", i);
@@ -851,6 +914,9 @@ bool ParseChainClassSetTable(const ots::Font *font,
       2 * static_cast<unsigned>(chain_class_rule_count) + 2;
   if (chain_class_rule_end > std::numeric_limits<uint16_t>::max()) {
     return OTS_FAILURE_MSG("Bad end of chain class set %d in chain class set", chain_class_rule_end);
+  }
+  if (!ots::ChargeLayoutWork(font, chain_class_rule_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
   for (unsigned i = 0; i < chain_class_rule_count; ++i) {
     uint16_t offset_chain_class_rule = 0;
@@ -896,6 +962,9 @@ bool ParseChainContextFormat2(const ots::Font *font,
       2 * static_cast<unsigned>(chain_class_set_count) + 12;
   if (chain_class_set_end > std::numeric_limits<uint16_t>::max()) {
     return OTS_FAILURE_MSG("Bad chain class set end %d in chain context format 2", chain_class_set_end);
+  }
+  if (!ots::ChargeLayoutWork(font, chain_class_set_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
   if (offset_coverage < chain_class_set_end || offset_coverage >= length) {
     return OTS_FAILURE_MSG("Bad coverage offset %d in chain context format 2", offset_coverage);
@@ -974,6 +1043,9 @@ bool ParseChainContextFormat3(const ots::Font *font,
       !subtable.ReadU16(&backtrack_count)) {
     return OTS_FAILURE_MSG("Failed to read backtrack count in chain context format 3");
   }
+  if (!ots::ChargeLayoutWork(font, backtrack_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
 
   std::vector<uint16_t> offsets_backtrack;
   offsets_backtrack.reserve(backtrack_count);
@@ -992,6 +1064,9 @@ bool ParseChainContextFormat3(const ots::Font *font,
   if (!subtable.ReadU16(&input_count)) {
     return OTS_FAILURE_MSG("Failed to read input count in chain context format 3");
   }
+  if (!ots::ChargeLayoutWork(font, input_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
   std::vector<uint16_t> offsets_input;
   offsets_input.reserve(input_count);
   for (unsigned i = 0; i < input_count; ++i) {
@@ -1009,6 +1084,9 @@ bool ParseChainContextFormat3(const ots::Font *font,
   if (!subtable.ReadU16(&lookahead_count)) {
     return OTS_FAILURE_MSG("Failed ot read lookahead count in chain context format 3");
   }
+  if (!ots::ChargeLayoutWork(font, lookahead_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
   std::vector<uint16_t> offsets_lookahead;
   offsets_lookahead.reserve(lookahead_count);
   for (unsigned i = 0; i < lookahead_count; ++i) {
@@ -1025,6 +1103,9 @@ bool ParseChainContextFormat3(const ots::Font *font,
   uint16_t lookup_count = 0;
   if (!subtable.ReadU16(&lookup_count)) {
     return OTS_FAILURE_MSG("Failed to read lookup count in chain context format 3");
+  }
+  if (!ots::ChargeLayoutWork(font, lookup_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
   for (unsigned i = 0; i < lookup_count; ++i) {
     if (!ParseLookupRecord(font, &subtable, num_glyphs, num_lookups)) {
@@ -1087,6 +1168,9 @@ bool ParseFeatureTableSubstitutionTable(const ots::Font *font,
       !subtable.ReadU16(&version_minor) ||
       !subtable.ReadU16(&substitution_count)) {
     return OTS_FAILURE_MSG("Failed to read feature table substitution table header");
+  }
+  if (!ots::ChargeLayoutWork(font, substitution_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
   }
 
   for (uint16_t i = 0; i < substitution_count; i++) {
@@ -1165,6 +1249,9 @@ bool ParseConditionSetTable(const ots::Font *font,
   if (!subtable.ReadU16(&condition_count)) {
     return OTS_FAILURE_MSG("Failed to read condition count");
   }
+  if (!ots::ChargeLayoutWork(font, condition_count)) {
+    return OTS_FAILURE_MSG("Exceeded work budget for this table");
+  }
 
   for (uint16_t i = 0; i < condition_count; i++) {
     uint32_t condition_offset = 0;
@@ -1202,6 +1289,9 @@ bool OpenTypeLayoutTable::ParseScriptListTable(const uint8_t *data, const size_t
       6 * static_cast<unsigned>(script_count) + 2;
   if (script_record_end > std::numeric_limits<uint16_t>::max()) {
     return Error("Bad end of script record %d in script list table", script_record_end);
+  }
+  if (!ChargeLayoutWork(GetFont(), script_count)) {
+    return Error("Exceeded work budget for this table");
   }
   std::vector<ScriptRecord> script_list;
   script_list.reserve(script_count);
@@ -1258,6 +1348,9 @@ bool OpenTypeLayoutTable::ParseFeatureListTable(const uint8_t *data, const size_
       6 * static_cast<unsigned>(feature_count) + 2;
   if (feature_record_end > std::numeric_limits<uint16_t>::max()) {
     return Error("Bad end of feature record %d", feature_record_end);
+  }
+  if (!ChargeLayoutWork(GetFont(), feature_count)) {
+    return Error("Exceeded work budget for this table");
   }
   uint32_t last_tag = 0;
   for (unsigned i = 0; i < feature_count; ++i) {
@@ -1318,6 +1411,9 @@ bool OpenTypeLayoutTable::ParseLookupTable(const uint8_t *data,
   if (lookup_table_end > std::numeric_limits<uint16_t>::max()) {
     return Error("Bad end of lookup %d", lookup_table_end);
   }
+  if (!ChargeLayoutWork(GetFont(), subtable_count)) {
+    return Error("Exceeded work budget for this table");
+  }
   for (unsigned i = 0; i < subtable_count; ++i) {
     uint16_t offset_subtable = 0;
     if (!subtable.ReadU16(&offset_subtable)) {
@@ -1375,6 +1471,9 @@ bool OpenTypeLayoutTable::ParseLookupListTable(const uint8_t *data,
       2 * static_cast<unsigned>(m_num_lookups) + 2;
   if (lookup_end > std::numeric_limits<uint16_t>::max()) {
     return Error("Bad end of lookups %d", lookup_end);
+  }
+  if (!ChargeLayoutWork(GetFont(), m_num_lookups)) {
+    return Error("Exceeded work budget for this table");
   }
   for (unsigned i = 0; i < m_num_lookups; ++i) {
     uint16_t offset = 0;
@@ -1600,6 +1699,10 @@ bool OpenTypeLayoutTable::ParseFeatureVariationsTable(const uint8_t *data, const
   }
   const uint16_t axis_count = fvar->AxisCount();
 
+  if (!ChargeLayoutWork(GetFont(), feature_variation_record_count)) {
+    return Error("Exceeded work budget for this table");
+  }
+
   const size_t kEndOfFeatureVariationRecords =
     2 * sizeof(uint16_t) + sizeof(uint32_t) +
     feature_variation_record_count * 2 * sizeof(uint32_t);
@@ -1647,6 +1750,7 @@ const size_t kHeaderSize_1_1 = 4 + 3 * 2 + 4;
 
 bool OpenTypeLayoutTable::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
+  ResetLayoutWorkBudget(GetFont(), length);
 
   uint16_t version_major = 0, version_minor = 0;
   uint16_t offset_script_list = 0;
