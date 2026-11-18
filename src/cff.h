@@ -31,6 +31,7 @@ class OpenTypeCFF : public Table {
   explicit OpenTypeCFF(Font *font, uint32_t tag)
       : Table(font, tag, tag),
         major(0),
+        cid_keyed(false),
         font_dict_length(0),
         charstrings_index(NULL),
         local_subrs(NULL),
@@ -48,6 +49,9 @@ class OpenTypeCFF : public Table {
 
   // Name INDEX. This name is used in name.cc as a postscript font name.
   std::string name;
+
+  // True if the Top DICT has an ROS operator, i.e. a CID-keyed font.
+  bool cid_keyed;
 
   // The number of fonts the file has.
   size_t font_dict_length;

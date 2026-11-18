@@ -119,10 +119,12 @@ bool AddSubr(const int *subr, size_t subr_len,
   return true;
 }
 
-// Validates |char_string| and returns true if it's valid.
+// Validates |char_string| and returns true if it's valid. With |cff2|, it is
+// validated as a CFF2 CharString with one variation region.
 bool Validate(const int *char_string, size_t char_string_len,
               const int *global_subrs, size_t global_subrs_len,
-              const int *local_subrs, size_t local_subrs_len) {
+              const int *local_subrs, size_t local_subrs_len,
+              bool cff2 = false) {
   std::vector<uint8_t> buffer;
   ots::CFFIndex* char_strings_index = new ots::CFFIndex;
   ots::CFFIndex global_subrs_index;
@@ -155,6 +157,13 @@ bool Validate(const int *char_string, size_t char_string_len,
   ots::OpenTypeCFF* cff = new ots::OpenTypeCFF(font, OTS_TAG_CFF);
   cff->charstrings_index = char_strings_index;
   cff->local_subrs = local_subrs_index;
+  if (cff2) {
+    // A CFF2 font has its Local Subrs in the FDArray, but without one they
+    // are taken from |local_subrs| as for CFF.
+    cff->major = 2;
+    cff->region_index_count.push_back(1);
+    cff->vsindex_per_font.push_back(0);
+  }
   bool ret = ots::ValidateCFFCharStrings(*cff,
                                          global_subrs_index,
                                          &ots_buffer);
@@ -1007,6 +1016,55 @@ TEST(ValidateTest, TestStemsFirst) {
     };
     EXPECT_FALSE(ValidateCharStrings(char_string, ARRAYSIZE(char_string)));
   }
+  {
+    const int char_string[] = {
+      1, 2, kOpPrefix, ots::kHStemHm,
+      kOpPrefix, ots::kHintMask, 0x00,
+      3, 4, kOpPrefix, ots::kHintMask, 0x00,  // implicit vstem after hintmask
+      kOpPrefix, ots::kEndChar,
+    };
+    EXPECT_FALSE(ValidateCharStrings(char_string, ARRAYSIZE(char_string)));
+  }
+  {
+    const int char_string[] = {
+      1, 2, kOpPrefix, ots::kHStemHm,
+      kOpPrefix, ots::kCntrMask, 0x00,
+      3, 4, kOpPrefix, ots::kHintMask, 0x00,  // implicit vstem after cntrmask
+      kOpPrefix, ots::kEndChar,
+    };
+    EXPECT_FALSE(ValidateCharStrings(char_string, ARRAYSIZE(char_string)));
+  }
+  {
+    const int char_string[] = {
+      1, 2, kOpPrefix, ots::kHStemHm,
+      1, kOpPrefix, ots::kVMoveTo,
+      3, 4, kOpPrefix, ots::kHintMask, 0x00,  // implicit vstem after moveto
+      kOpPrefix, ots::kEndChar,
+    };
+    EXPECT_FALSE(ValidateCharStrings(char_string, ARRAYSIZE(char_string)));
+  }
+  {
+    const int char_string[] = {
+      1, 2, kOpPrefix, ots::kHStemHm,
+      1, 2, kOpPrefix, ots::kRLineTo,
+      3, 4, kOpPrefix, ots::kVStemHm,  // stems after a path operator
+      kOpPrefix, ots::kHintMask, 0x00,
+      kOpPrefix, ots::kEndChar,
+    };
+    EXPECT_FALSE(ValidateCharStrings(char_string, ARRAYSIZE(char_string)));
+  }
+  {
+    const int char_string[] = {
+      1, 2, kOpPrefix, ots::kHStemHm,
+      3, 4, kOpPrefix, ots::kCntrMask, 0x00,  // implicit vstem
+      kOpPrefix, ots::kHintMask, 0x00,
+      1, kOpPrefix, ots::kVMoveTo,
+      kOpPrefix, ots::kHintMask, 0x00,
+      1, 2, kOpPrefix, ots::kRLineTo,
+      kOpPrefix, ots::kEndChar,
+    };
+    EXPECT_TRUE(ValidateCharStrings(char_string, ARRAYSIZE(char_string)));
+  }
 }
 
 TEST(ValidateTest, TestCntrMask) {
@@ -1516,6 +1574,42 @@ TEST(ValidateTest, TestCallGSubrWithComputedValues) {
     EXPECT_FALSE(Validate(char_string, ARRAYSIZE(char_string),
                           global_subrs, ARRAYSIZE(global_subrs),
                           NULL, 0));
+  }
+}
+
+TEST(ValidateTest, TestCallSubrWithBlendedValues) {
+  {
+    const int char_string[] = {
+      1, 2, 3, 4, 2, kOpPrefix, ots::kBlend,
+      kOpPrefix, ots::kRLineTo,
+    };
+    EXPECT_TRUE(Validate(char_string, ARRAYSIZE(char_string),
+                         NULL, 0, NULL, 0, true));
+  }
+  {
+    // The blended value depends on the variation instance, so it can't be
+    // used as a subroutine number.
+    const int char_string[] = {
+      GET_SUBR_NUMBER(0), 1, 1, kOpPrefix, ots::kBlend,
+      kOpPrefix, ots::kCallSubr,
+    };
+    const int local_subrs[] = {
+      1, 2, kOpPrefix, ots::kRLineTo,
+    };
+    EXPECT_FALSE(Validate(char_string, ARRAYSIZE(char_string),
+                          NULL, 0,
+                          local_subrs, ARRAYSIZE(local_subrs), true));
+  }
+  {
+    const int char_string[] = {
+      GET_SUBR_NUMBER(0), kOpPrefix, ots::kCallSubr,
+    };
+    const int local_subrs[] = {
+      1, 2, kOpPrefix, ots::kRLineTo,
+    };
+    EXPECT_TRUE(Validate(char_string, ARRAYSIZE(char_string),
+                         NULL, 0,
+                         local_subrs, ARRAYSIZE(local_subrs), true));
   }
 }
 
