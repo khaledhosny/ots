@@ -86,7 +86,9 @@ bool OpenTypeVDMX::Parse(const uint8_t *data, size_t length) {
   }
 
   this->groups.reserve(this->num_recs);
+  std::set<size_t> group_offsets;
   for (unsigned i = 0; i < this->num_recs; ++i) {
+    group_offsets.insert(table.offset());
     OpenTypeVDMXGroup group;
     if (!table.ReadU16(&group.recs) ||
         !table.ReadU8(&group.startsz) ||
@@ -114,6 +116,14 @@ bool OpenTypeVDMX::Parse(const uint8_t *data, size_t length) {
       group.entries.push_back(vt);
     }
     this->groups.push_back(group);
+  }
+
+  // Only the groups parsed above are serialized, so every ratio offset must
+  // point at the start of one of them.
+  for (unsigned i = 0; i < this->num_ratios; ++i) {
+    if (!group_offsets.count(this->offsets[i])) {
+      return Drop("Ratio offset %d doesn't point to a VDMXGroup", i);
+    }
   }
 
   return true;
