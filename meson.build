@@ -294,7 +294,10 @@ glyf_bbox_test = executable('glyf_bbox_test',
 )
 
 test('glyf_bbox_test', glyf_bbox_test,
-  env: ['OTS_TEST_FONT=' + meson.current_source_dir() / 'tests/fonts/good/5db0b354570d56fbf4ff965c44f733083c26e226.ttf'],
+  env: [
+    'OTS_TEST_FONT=' + meson.current_source_dir() / 'tests/fonts/good/5db0b354570d56fbf4ff965c44f733083c26e226.ttf',
+    'OTS_COMPOSITE_TEST_FONT=' + meson.current_source_dir() / 'tests/fonts/good/6ada26a3d7d52786e78f26183cc41f190ffc637f.ttf',
+  ],
   suite: 'glyf',
 )
 

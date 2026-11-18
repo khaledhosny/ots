@@ -5,6 +5,7 @@
 #include "glyf.h"
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 
 #include "head.h"
@@ -90,6 +91,33 @@ bool OpenTypeGLYF::ParseFlagsForSimpleGlyph(Buffer &glyph,
   return true;
 }
 
+const uint8_t* OpenTypeGLYF::FixGlyphHeader(unsigned gid,
+                                            const uint8_t* data,
+                                            size_t length,
+                                            const Bounds& bbox,
+                                            const Bounds& bounds) {
+  Bounds fixed = bbox;
+  fixed.Add(bounds);
+  if (fixed.xmin != bbox.xmin) {
+    // Preserve the initial phantom point: pp1 = xMin - lsb ('hmtx').
+    OpenTypeHMTX *hmtx = static_cast<OpenTypeHMTX*>(
+        GetFont()->GetTypedTable(OTS_TAG_HMTX));
+    if (hmtx && !hmtx->AdjustSideBearing(gid, fixed.xmin - bbox.xmin)) {
+      return NULL;
+    }
+  }
+
+  uint8_t* fixed_data = new uint8_t[length];
+  replacements.push_back(fixed_data);
+  std::memcpy(fixed_data, data, length);
+  const int16_t values[] = {fixed.xmin, fixed.ymin, fixed.xmax, fixed.ymax};
+  for (unsigned i = 0; i < 4; ++i) {
+    const int16_t value = ots_htons(values[i]);
+    std::memcpy(fixed_data + 2 + 2 * i, &value, 2);
+  }
+  return fixed_data;
+}
+
 #define X_SHORT_VECTOR                        (1u << 1)
 #define Y_SHORT_VECTOR                        (1u << 2)
 #define X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR  (1u << 4)
@@ -98,11 +126,9 @@ bool OpenTypeGLYF::ParseFlagsForSimpleGlyph(Buffer &glyph,
 bool OpenTypeGLYF::ParseSimpleGlyph(Buffer &glyph,
                                     unsigned gid,
                                     int16_t num_contours,
-                                    int16_t xmin,
-                                    int16_t ymin,
-                                    int16_t xmax,
-                                    int16_t ymax,
-                                    bool is_tricky_font) {
+                                    const Bounds& bbox,
+                                    bool is_tricky_font,
+                                    ComponentInfo* info) {
   // read the end-points array
   uint16_t num_flags = 0;
   for (int i = 0; i < num_contours; ++i) {
@@ -119,6 +145,8 @@ bool OpenTypeGLYF::ParseSimpleGlyph(Buffer &glyph,
     }
     num_flags = tmp_index + 1;
   }
+  info->points = num_flags;
+  Bounds& bounds = info->bounds;
 
   if (this->maxp->version_1 &&
       num_flags > this->maxp->max_points) {
@@ -150,72 +178,34 @@ bool OpenTypeGLYF::ParseSimpleGlyph(Buffer &glyph,
     }
   }
 
-  bool adjusted_bbox = false;
-  const int16_t original_xmin = xmin;
-  int16_t x = 0, y = 0;
-
-  // Read and check x-coords
-  for (uint32_t i = 0; i < num_flags; ++i) {
-    uint8_t flag = flags[i];
-    if (flag & X_SHORT_VECTOR) {
-      uint8_t dx;
-      if (!glyph.ReadU8(&dx)) {
+  // Coordinates are stored as all x deltas followed by all y deltas.
+  const auto read_coordinates = [&](uint8_t short_vector,
+                                    uint8_t same_or_positive,
+                                    int16_t& minimum,
+                                    int16_t& maximum) -> bool {
+    int16_t coordinate = 0;
+    for (uint8_t flag : flags) {
+      int16_t delta = 0;
+      if (flag & short_vector) {
+        uint8_t magnitude;
+        if (!glyph.ReadU8(&magnitude)) {
+          return Error("Glyph too short %d (glyph %u)", glyph.length(), gid);
+        }
+        delta = flag & same_or_positive ? magnitude : -magnitude;
+      } else if (!(flag & same_or_positive) && !glyph.ReadS16(&delta)) {
         return Error("Glyph too short %d (glyph %u)", glyph.length(), gid);
       }
-      if (flag & X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR) {
-        x += dx;
-      } else {
-        x -= dx;
-      }
-    } else if (flag & X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR) {
-      // x remains unchanged
-    } else {
-      int16_t dx;
-      if (!glyph.ReadS16(&dx)) {
-        return Error("Glyph too short %d (glyph %u)", glyph.length(), gid);
-      }
-      x += dx;
+      coordinate += delta;
+      minimum = std::min(minimum, coordinate);
+      maximum = std::max(maximum, coordinate);
     }
-    if (x < xmin) {
-      xmin = x;
-      adjusted_bbox = true;
-    }
-    if (x > xmax) {
-      xmax = x;
-      adjusted_bbox = true;
-    }
-  }
-
-  // Read and check y-coords
-  for (uint32_t i = 0; i < num_flags; ++i) {
-    uint8_t flag = flags[i];
-    if (flag & Y_SHORT_VECTOR) {
-      uint8_t dy;
-      if (!glyph.ReadU8(&dy)) {
-        return Error("Glyph too short %d (glyph %u)", glyph.length(), gid);
-      }
-      if (flag & Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR) {
-        y += dy;
-      } else {
-        y -= dy;
-      }
-    } else if (flag & Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR) {
-      // x remains unchanged
-    } else {
-      int16_t dy;
-      if (!glyph.ReadS16(&dy)) {
-        return Error("Glyph too short %d (glyph %u)", glyph.length(), gid);
-      }
-      y += dy;
-    }
-    if (y < ymin) {
-      ymin = y;
-      adjusted_bbox = true;
-    }
-    if (y > ymax) {
-      ymax = y;
-      adjusted_bbox = true;
-    }
+    return true;
+  };
+  if (!read_coordinates(X_SHORT_VECTOR, X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR,
+                        bounds.xmin, bounds.xmax) ||
+      !read_coordinates(Y_SHORT_VECTOR, Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR,
+                        bounds.ymin, bounds.ymax)) {
+    return false;
   }
 
   if (glyph.remaining() > 3) {
@@ -224,33 +214,17 @@ bool OpenTypeGLYF::ParseSimpleGlyph(Buffer &glyph,
     Warning("Extra bytes at end of the glyph: %d (glyph %u)", glyph.remaining(), gid);
   }
 
-  if (adjusted_bbox) {
+  if (!bbox.Contains(bounds)) {
     if (is_tricky_font) {
       Warning("Glyph bbox was incorrect; NOT adjusting tricky font (glyph %u)", gid);
     } else {
       Warning("Glyph bbox was incorrect; adjusting (glyph %u)", gid);
-      if (xmin != original_xmin) {
-        // Preserve the initial phantom point: pp1 = xMin - lsb ('hmtx').
-        OpenTypeHMTX *hmtx = static_cast<OpenTypeHMTX*>(
-            GetFont()->GetTypedTable(OTS_TAG_HMTX));
-        if (hmtx && !hmtx->AdjustSideBearing(gid, xmin - original_xmin)) {
-          return Error("Can't adjust hmtx lsb (glyph %u)", gid);
-        }
+      const uint8_t* header =
+          FixGlyphHeader(gid, glyph.buffer(), 10, bbox, bounds);
+      if (!header) {
+        return Error("Can't adjust hmtx lsb (glyph %u)", gid);
       }
-      // copy the numberOfContours field
-      this->iov.push_back(std::make_pair(glyph.buffer(), 2));
-      // output a fixed-up version of the bounding box
-      uint8_t* fixed_bbox = new uint8_t[8];
-      replacements.push_back(fixed_bbox);
-      xmin = ots_htons(xmin);
-      std::memcpy(fixed_bbox, &xmin, 2);
-      ymin = ots_htons(ymin);
-      std::memcpy(fixed_bbox + 2, &ymin, 2);
-      xmax = ots_htons(xmax);
-      std::memcpy(fixed_bbox + 4, &xmax, 2);
-      ymax = ots_htons(ymax);
-      std::memcpy(fixed_bbox + 6, &ymax, 2);
-      this->iov.push_back(std::make_pair(fixed_bbox, 8));
+      this->iov.push_back(std::make_pair(header, 10));
       // copy the remainder of the glyph data
       this->iov.push_back(std::make_pair(glyph.buffer() + 10, glyph.offset() - 10));
       return true;
@@ -262,19 +236,67 @@ bool OpenTypeGLYF::ParseSimpleGlyph(Buffer &glyph,
   return true;
 }
 
-#define ARG_1_AND_2_ARE_WORDS    (1u << 0)
-#define WE_HAVE_A_SCALE          (1u << 3)
-#define MORE_COMPONENTS          (1u << 5)
-#define WE_HAVE_AN_X_AND_Y_SCALE (1u << 6)
-#define WE_HAVE_A_TWO_BY_TWO     (1u << 7)
-#define WE_HAVE_INSTRUCTIONS     (1u << 8)
+#define ARG_1_AND_2_ARE_WORDS     (1u << 0)
+#define ARGS_ARE_XY_VALUES        (1u << 1)
+#define WE_HAVE_A_SCALE           (1u << 3)
+#define MORE_COMPONENTS           (1u << 5)
+#define WE_HAVE_AN_X_AND_Y_SCALE  (1u << 6)
+#define WE_HAVE_A_TWO_BY_TWO      (1u << 7)
+#define WE_HAVE_INSTRUCTIONS      (1u << 8)
+#define SCALED_COMPONENT_OFFSET   (1u << 11)
+#define UNSCALED_COMPONENT_OFFSET (1u << 12)
+
+bool OpenTypeGLYF::ReadComponent(Buffer& glyph, Component* component) {
+  if (!glyph.ReadU16(&component->flags) || !glyph.ReadU16(&component->gid)) {
+    return Error("Can't read composite glyph flags or glyphIndex");
+  }
+  const uint16_t flags = component->flags;
+
+  if (component->gid >= this->maxp->num_glyphs) {
+    return Error("Invalid glyph id used in composite glyph: %d",
+                 component->gid);
+  }
+
+  if (flags & ARG_1_AND_2_ARE_WORDS) {
+    if (!glyph.ReadS16(&component->dx) || !glyph.ReadS16(&component->dy)) {
+      return Error("Can't read argument1 or argument2");
+    }
+  } else {
+    uint8_t argument1;
+    uint8_t argument2;
+    if (!glyph.ReadU8(&argument1) || !glyph.ReadU8(&argument2)) {
+      return Error("Can't read argument1 or argument2");
+    }
+    // Offsets are signed bytes; point numbers are unused.
+    component->dx = static_cast<int8_t>(argument1);
+    component->dy = static_cast<int8_t>(argument2);
+  }
+
+  if (flags & WE_HAVE_A_SCALE) {
+    if (!glyph.ReadS16(&component->xx)) {
+      return Error("Can't read scale");
+    }
+    component->yy = component->xx;
+  } else if (flags & WE_HAVE_AN_X_AND_Y_SCALE) {
+    if (!glyph.ReadS16(&component->xx) || !glyph.ReadS16(&component->yy)) {
+      return Error("Can't read xscale or yscale");
+    }
+  } else if (flags & WE_HAVE_A_TWO_BY_TWO) {
+    if (!glyph.ReadS16(&component->xx) ||
+        !glyph.ReadS16(&component->yx) ||
+        !glyph.ReadS16(&component->xy) ||
+        !glyph.ReadS16(&component->yy)) {
+      return Error("Can't read transform");
+    }
+  }
+  return true;
+}
 
 bool OpenTypeGLYF::ParseCompositeGlyph(
     Buffer &glyph,
     unsigned glyph_id,
     unsigned* skip_count) {
   uint16_t flags = 0;
-  uint16_t gid = 0;
   enum class edit_t : uint8_t {
     skip_bytes,  // param is number of bytes to skip from offset
     set_flag,    // param is flag to be set (in the 16-bit field at offset)
@@ -298,51 +320,12 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
 
     unsigned start = glyph.offset();
 
-    if (!glyph.ReadU16(&flags) || !glyph.ReadU16(&gid)) {
-      return Error("Can't read composite glyph flags or glyphIndex");
+    Component component;
+    if (!ReadComponent(glyph, &component)) {
+      return false;
     }
-
-    if (gid >= this->maxp->num_glyphs) {
-      return Error("Invalid glyph id used in composite glyph: %d", gid);
-    }
-
-    if (flags & ARG_1_AND_2_ARE_WORDS) {
-      int16_t argument1;
-      int16_t argument2;
-      if (!glyph.ReadS16(&argument1) || !glyph.ReadS16(&argument2)) {
-        return Error("Can't read argument1 or argument2");
-      }
-    } else {
-      uint8_t argument1;
-      uint8_t argument2;
-      if (!glyph.ReadU8(&argument1) || !glyph.ReadU8(&argument2)) {
-        return Error("Can't read argument1 or argument2");
-      }
-    }
-
-    if (flags & WE_HAVE_A_SCALE) {
-      int16_t scale;
-      if (!glyph.ReadS16(&scale)) {
-        return Error("Can't read scale");
-      }
-    } else if (flags & WE_HAVE_AN_X_AND_Y_SCALE) {
-      int16_t xscale;
-      int16_t yscale;
-      if (!glyph.ReadS16(&xscale) || !glyph.ReadS16(&yscale)) {
-        return Error("Can't read xscale or yscale");
-      }
-    } else if (flags & WE_HAVE_A_TWO_BY_TWO) {
-      int16_t xscale;
-      int16_t scale01;
-      int16_t scale10;
-      int16_t yscale;
-      if (!glyph.ReadS16(&xscale) ||
-          !glyph.ReadS16(&scale01) ||
-          !glyph.ReadS16(&scale10) ||
-          !glyph.ReadS16(&yscale)) {
-        return Error("Can't read transform");
-      }
-    }
+    flags = component.flags;
+    const uint16_t gid = component.gid;
 
     if (this->loca->offsets[gid] == this->loca->offsets[gid + 1]) {
       Warning("empty gid %u used as component in glyph %u", gid, glyph_id);
@@ -498,9 +481,19 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
   std::vector<uint32_t> resulting_offsets(num_glyphs + 1);
   uint32_t current_offset = 0;
 
-  // Flattened point and component counts and depth of each glyph, filled in
-  // as composite glyphs are validated.
+  // Flattened point and component counts, depth and bounds of each glyph,
+  // filled in as glyphs are parsed and composite glyphs are validated.
   std::vector<ComponentInfo> component_info(num_glyphs);
+
+  // Composite glyphs to validate and fix once all their components are
+  // parsed. Their first iov entry starts with their header, since edits
+  // come after it.
+  struct CompositeGlyph {
+    uint32_t header_iov_index;
+    uint16_t gid;
+    Bounds bbox;
+  };
+  std::vector<CompositeGlyph> composites;
 
   for (unsigned i = 0; i < num_glyphs; ++i) {
     // Used by ParseCompositeGlyph to return the number of bytes being skipped
@@ -512,6 +505,7 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
       return false;
 
     if (!glyph.length()) {
+      component_info[i].state = ComponentInfo::kDone;
       resulting_offsets[i] = current_offset;
       continue;
     }
@@ -543,41 +537,33 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
       return Error("Bad bounding box values bl=(%d, %d), tr=(%d, %d) in glyph %d", xmin, ymin, xmax, ymax, i);
     }
 
+    Bounds bbox;
+    bbox.Add(xmin, ymin);
+    bbox.Add(xmax, ymax);
+    ComponentInfo& info = component_info[i];
+    info.empty = num_contours == 0;
+    if (num_contours >= 0) {
+      // Simple and empty glyphs need no further component traversal.
+      info.state = ComponentInfo::kDone;
+    }
+
     if (num_contours == 0) {
       // This is an empty glyph and shouldn’t have any glyph data, but if it
       // does we will simply ignore it.
       glyph.set_offset(0);
     } else if (num_contours > 0) {
-      if (!ParseSimpleGlyph(glyph, i, num_contours, xmin, ymin, xmax, ymax, is_tricky)) {
+      if (!ParseSimpleGlyph(glyph, i, num_contours, bbox, is_tricky, &info)) {
         return Error("Failed to parse glyph %d", i);
       }
     } else {
+      const size_t header_iov_index = this->iov.size();
       if (!ParseCompositeGlyph(glyph, i, &skip_count)) {
         return Error("Failed to parse glyph %d", i);
       }
-
-      // Check maxComponentDepth and validate maxComponentPoints, unless
-      // ParseCompositeGlyph discarded the glyph, leaving it empty.
+      // ParseCompositeGlyph may have discarded the glyph, leaving it empty.
       if (glyph.offset()) {
-        if (!ComputeComponentInfo(data, length, offsets, i, &component_info)) {
-          return Error("Error validating component points and depth.");
-        }
-
-        const ComponentInfo& info = component_info[i];
-        if (this->maxp->version_1 &&
-            info.points > this->maxp->max_c_points) {
-          Warning("Number of composite points in glyph %d exceeds "
-                  "maxp maxCompositePoints: %d vs %d, adjusting limit.",
-                  i, info.points, this->maxp->max_c_points);
-          this->maxp->max_c_points = info.points;
-        }
-        if (this->maxp->version_1 &&
-            info.depth > this->maxp->max_c_depth) {
-          Warning("Component depth exceeds maxp maxComponentDepth "
-                  "in glyph %d, adjust limit to %d.",
-                  i, info.depth);
-          this->maxp->max_c_depth = info.depth;
-        }
+        composites.push_back({static_cast<uint32_t>(header_iov_index),
+                              static_cast<uint16_t>(i), bbox});
       }
     }
 
@@ -596,6 +582,50 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
     current_offset += new_size;
   }
   resulting_offsets[num_glyphs] = current_offset;
+
+  // Check maxComponentDepth and validate maxComponentPoints, then fix the
+  // bbox of composite glyphs whose outline exceeds it.
+  for (const CompositeGlyph& composite : composites) {
+    const uint16_t i = composite.gid;
+    if (!ComputeComponentInfo(data, length, offsets, i, &component_info)) {
+      return Error("Error validating component points and depth.");
+    }
+
+    const ComponentInfo& info = component_info[i];
+    if (this->maxp->version_1 &&
+        info.points > this->maxp->max_c_points) {
+      Warning("Number of composite points in glyph %d exceeds "
+              "maxp maxCompositePoints: %d vs %d, adjusting limit.",
+              i, info.points, this->maxp->max_c_points);
+      this->maxp->max_c_points = info.points;
+    }
+    if (this->maxp->version_1 &&
+        info.depth > this->maxp->max_c_depth) {
+      Warning("Component depth exceeds maxp maxComponentDepth "
+              "in glyph %d, adjust limit to %d.",
+              i, info.depth);
+      this->maxp->max_c_depth = info.depth;
+    }
+
+    if (info.unknown_bounds || composite.bbox.Contains(info.bounds)) {
+      continue;
+    }
+    if (is_tricky) {
+      Warning("Composite glyph bbox was incorrect; NOT adjusting tricky font "
+              "(glyph %u)", i);
+      continue;
+    }
+    // The bounds may be overestimated, so keep the glyph if lsb overflows.
+    std::pair<const uint8_t*, size_t>& chunk =
+        this->iov[composite.header_iov_index];
+    const uint8_t* fixed_chunk = FixGlyphHeader(
+                                                i, chunk.first, chunk.second, composite.bbox, info.bounds);
+    Warning("Composite glyph bbox was incorrect; %sadjusting (glyph %u)",
+            fixed_chunk ? "" : "NOT ", i);
+    if (fixed_chunk) {
+      chunk.first = fixed_chunk;
+    }
+  }
 
   const uint16_t max16 = std::numeric_limits<uint16_t>::max();
   if ((*std::max_element(resulting_offsets.begin(),
@@ -618,6 +648,63 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
   return true;
 }
 
+bool OpenTypeGLYF::AddComponentBounds(const Component& component,
+                                      const Bounds& component_bounds,
+                                      Bounds* bounds) {
+  if (component_bounds.empty()) {
+    return true;
+  }
+  if (!(component.flags & ARGS_ARE_XY_VALUES)) {
+    // Point matching needs attachment coordinates, which aren't stored.
+    return false;
+  }
+
+  const double xx = component.xx / 16384.0;
+  const double yx = component.yx / 16384.0;
+  const double xy = component.xy / 16384.0;
+  const double yy = component.yy / 16384.0;
+  const double dx = component.dx;
+  const double dy = component.dy;
+  // Rasterizers disagree on whether and how the offset is scaled, so take
+  // every plausible placement: unscaled, scaled by the row lengths of the
+  // matrix (FreeType) or transformed by it (Apple). UNSCALED wins over
+  // SCALED, as in FreeType; without either flag, only a uniform scale may
+  // scale the offset (see fontTools' SCALE_COMPONENT_OFFSET_DEFAULT).
+  const double offsets[][2] = {
+      {dx, dy},
+      {dx * std::hypot(xx, xy), dy * std::hypot(yy, yx)},
+      {xx * dx + xy * dy, yx * dx + yy * dy},
+  };
+  const bool scaled_only = (component.flags & SCALED_COMPONENT_OFFSET) &&
+                           !(component.flags & UNSCALED_COMPONENT_OFFSET);
+  const bool unscaled_only =
+      !scaled_only && ((component.flags & UNSCALED_COMPONENT_OFFSET) ||
+                       !(component.flags & WE_HAVE_A_SCALE));
+
+  // Bound the transformed component using its bbox corners. The bounds must
+  // fit in a glyph header.
+  const double kMin = std::numeric_limits<int16_t>::min();
+  const double kMax = std::numeric_limits<int16_t>::max();
+  const int16_t xs[] = {component_bounds.xmin, component_bounds.xmax};
+  const int16_t ys[] = {component_bounds.ymin, component_bounds.ymax};
+  for (unsigned i = scaled_only ? 1 : 0; i < (unscaled_only ? 1 : 3); ++i) {
+    for (int16_t x : xs) {
+      for (int16_t y : ys) {
+        const double tx = xx * x + xy * y + offsets[i][0];
+        const double ty = yx * x + yy * y + offsets[i][1];
+        const double xmin = std::floor(tx), xmax = std::ceil(tx);
+        const double ymin = std::floor(ty), ymax = std::ceil(ty);
+        if (xmin < kMin || xmax > kMax || ymin < kMin || ymax > kMax) {
+          return false;
+        }
+        bounds->Add(static_cast<int16_t>(xmin), static_cast<int16_t>(ymin));
+        bounds->Add(static_cast<int16_t>(xmax), static_cast<int16_t>(ymax));
+      }
+    }
+  }
+  return true;
+}
+
 bool OpenTypeGLYF::ComputeComponentInfo(
     const uint8_t *data,
     size_t length,
@@ -632,7 +719,7 @@ bool OpenTypeGLYF::ComputeComponentInfo(
   // and a component that refers back to a glyph still being expanded is a
   // cycle.
   std::vector<uint16_t> stack(1, glyph_id);
-  std::vector<uint16_t> components;
+  std::vector<Component> components;
 
   while (!stack.empty()) {
     const uint16_t gid = stack.back();
@@ -648,19 +735,27 @@ bool OpenTypeGLYF::ComputeComponentInfo(
     }
 
     components.clear();
-    if (glyph.length() && !ReadComponentInfo(glyph, &info, &components)) {
-      return false;
+    // Simple and empty glyphs are already done. Only composites reach here,
+    // and their headers were validated during parsing.
+    if (!glyph.Skip(10)) {
+      return Error("Can't read glyph header.");
     }
+    do {
+      components.emplace_back();
+      if (!ReadComponent(glyph, &components.back())) {
+        return false;
+      }
+    } while (components.back().flags & MORE_COMPONENTS);
 
-    if (info.state == ComponentInfo::kUnvisited && !components.empty()) {
+    if (info.state == ComponentInfo::kUnvisited) {
       info.state = ComponentInfo::kInProgress;
-      for (const uint16_t component : components) {
-        switch ((*component_info)[component].state) {
+      for (const Component& component : components) {
+        switch ((*component_info)[component.gid].state) {
           case ComponentInfo::kInProgress:
             return Error("Glyph %d is used as a component of itself "
-                         "(base glyph id %d).", component, glyph_id);
+                         "(base glyph id %d).", component.gid, glyph_id);
           case ComponentInfo::kUnvisited:
-            stack.push_back(component);
+            stack.push_back(component.gid);
             break;
           case ComponentInfo::kDone:
             break;
@@ -676,8 +771,8 @@ bool OpenTypeGLYF::ComputeComponentInfo(
     // their records. FontTools counts a depth level for each traversed
     // recursion, but not for empty components, so those are left out of the
     // points and depth totals.
-    for (const uint16_t component : components) {
-      const ComponentInfo& child = (*component_info)[component];
+    for (const Component& component : components) {
+      const ComponentInfo& child = (*component_info)[component.gid];
       info.components += child.components + 1;
       if (info.components > std::numeric_limits<uint16_t>::max()) {
         return Error("Illegal composite components value "
@@ -692,81 +787,15 @@ bool OpenTypeGLYF::ComputeComponentInfo(
         return Error("Illegal composite points value "
                      "exceeding 0xFFFF for base glyph %d.", glyph_id);
       }
+      info.unknown_bounds = info.unknown_bounds || child.unknown_bounds ||
+                            !AddComponentBounds(component, child.bounds,
+                                                &info.bounds);
     }
     info.state = ComponentInfo::kDone;
     stack.pop_back();
   }
 
   return true;
-}
-
-bool OpenTypeGLYF::ReadComponentInfo(
-    Buffer &glyph,
-    ComponentInfo* info,
-    std::vector<uint16_t>* components) {
-
-  int16_t num_contours;
-  if (!glyph.ReadS16(&num_contours) ||
-      !glyph.Skip(8)) {
-    return Error("Can't read glyph header.");
-  }
-
-  if (num_contours <= -2) {
-    return Error("Bad number of contours %d in glyph.", num_contours);
-  }
-
-  if (num_contours == 0)
-    return true;
-
-  info->empty = false;
-
-  if (num_contours > 0) {
-    uint16_t num_points = 0;
-    for (int i = 0; i < num_contours; ++i) {
-      // Simple glyph, add contour points.
-      uint16_t tmp_index = 0;
-      if (!glyph.ReadU16(&tmp_index)) {
-        return Error("Can't read contour index %d", i);
-      }
-      num_points = tmp_index + 1;
-    }
-
-    info->points = num_points;
-    return true;
-  } else  {
-    assert(num_contours == -1);
-
-    // Composite glyph, list its components.
-    uint16_t flags = 0;
-    uint16_t gid = 0;
-    do {
-      if (!glyph.ReadU16(&flags) || !glyph.ReadU16(&gid)) {
-        return Error("Can't read composite glyph flags or glyphIndex");
-      }
-
-      size_t skip_bytes = 0;
-      skip_bytes += flags & ARG_1_AND_2_ARE_WORDS ? 4 : 2;
-
-      if (flags & WE_HAVE_A_SCALE) {
-        skip_bytes += 2;
-      } else if (flags & WE_HAVE_AN_X_AND_Y_SCALE) {
-        skip_bytes += 4;
-      } else if (flags & WE_HAVE_A_TWO_BY_TWO) {
-        skip_bytes += 8;
-      }
-
-      if (!glyph.Skip(skip_bytes)) {
-        return Error("Failed to parse component glyph.");
-      }
-
-      if (gid >= this->maxp->num_glyphs) {
-        return Error("Invalid glyph id used in composite glyph: %d", gid);
-      }
-
-      components->push_back(gid);
-    } while (flags & MORE_COMPONENTS);
-    return true;
-  }
 }
 
 Buffer OpenTypeGLYF::GetGlyphBufferSection(
