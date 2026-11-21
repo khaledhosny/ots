@@ -324,6 +324,20 @@ test('vdmx_test', vdmx_test,
 )
 
 
+gvar_test = executable('gvar_test',
+  'tests/gvar_test.cc',
+  include_directories: include_directories(['include']),
+  link_with: libots,
+  dependencies: gtest,
+  override_options: ['cpp_std=c++17'],
+)
+
+test('gvar_test', gvar_test,
+  env: ['OTS_TEST_FONT=' + meson.current_source_dir() / 'tests/fonts/good/224f3a28601603e869da5ab0650148ae8cbadd2d.ttf'],
+  suite: 'gvar',
+)
+
+
 foreach file_name : bad_fonts
   test(file_name, ots_sanitize,
     args: meson.current_source_dir() / 'tests' / file_name,

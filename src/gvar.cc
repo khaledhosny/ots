@@ -54,11 +54,17 @@ static bool ParseGlyphVariationDataArray(const Font* font, const uint8_t* data, 
       offset = halfOffset * 2;
     }
 
-    if (i > 0 && offset > prevOffset) {
-      if (prevOffset > glyphVariationDataLength) {
-        return OTS_FAILURE_MSG("Invalid GlyphVariationData offset");
+    if (offset > glyphVariationDataLength) {
+      return OTS_FAILURE_MSG("GlyphVariationData offset %u out of bounds",
+                             offset);
+    }
+    if (i > 0) {
+      if (offset < prevOffset) {
+        return OTS_FAILURE_MSG("Out of order GlyphVariationData offset "
+                               "%u < %u", offset, prevOffset);
       }
-      if (!ParseVariationData(font, glyphVariationData + prevOffset,
+      if (offset > prevOffset &&
+          !ParseVariationData(font, glyphVariationData + prevOffset,
                               glyphVariationDataLength - prevOffset,
                               axisCount, sharedTupleCount)) {
         return OTS_FAILURE_MSG("Failed to parse GlyphVariationData");
