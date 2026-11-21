@@ -324,6 +324,20 @@ test('vdmx_test', vdmx_test,
 )
 
 
+hvar_test = executable('hvar_test',
+  'tests/hvar_test.cc',
+  include_directories: include_directories(['include']),
+  link_with: libots,
+  dependencies: gtest,
+  override_options: ['cpp_std=c++17'],
+)
+
+test('hvar_test', hvar_test,
+  env: ['OTS_TEST_FONT=' + meson.current_source_dir() / 'tests/fonts/good/8df517d0db2e2e3b65fe3f8e93cf5c0cffaff3d9.ttf'],
+  suite: 'hvar',
+)
+
+
 foreach file_name : bad_fonts
   test(file_name, ots_sanitize,
     args: meson.current_source_dir() / 'tests' / file_name,

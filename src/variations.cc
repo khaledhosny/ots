@@ -168,18 +168,35 @@ ParseItemVariationStore(const Font* font,
 bool ParseDeltaSetIndexMap(const Font* font, const uint8_t* data, const size_t length) {
   Buffer subtable(data, length);
 
-  uint16_t entryFormat;
-  uint16_t mapCount;
+  uint8_t format;
+  uint8_t entryFormat;
+  uint32_t mapCount;
 
-  if (!subtable.ReadU16(&entryFormat) ||
-      !subtable.ReadU16(&mapCount)) {
+  if (!subtable.ReadU8(&format) ||
+      !subtable.ReadU8(&entryFormat)) {
     return OTS_FAILURE_MSG("Failed to read delta set index map header");
   }
 
-  const uint16_t MAP_ENTRY_SIZE_MASK = 0x0030;
+  // Format 0 has a 16-bit mapCount, format 1 a 32-bit one.
+  if (format == 0) {
+    uint16_t mapCount16;
+    if (!subtable.ReadU16(&mapCount16)) {
+      return OTS_FAILURE_MSG("Failed to read delta set index map header");
+    }
+    mapCount = mapCount16;
+  } else if (format == 1) {
+    if (!subtable.ReadU32(&mapCount)) {
+      return OTS_FAILURE_MSG("Failed to read delta set index map header");
+    }
+  } else {
+    return OTS_FAILURE_MSG("Unknown delta set index map format %u", format);
+  }
 
-  const uint16_t entrySize = (((entryFormat & MAP_ENTRY_SIZE_MASK) >> 4) + 1);
-  if (!subtable.Skip(entrySize * mapCount)) {
+  const uint8_t MAP_ENTRY_SIZE_MASK = 0x30;
+
+  const size_t entrySize = (((entryFormat & MAP_ENTRY_SIZE_MASK) >> 4) + 1);
+  if (mapCount > subtable.remaining() / entrySize ||
+      !subtable.Skip(entrySize * mapCount)) {
     return OTS_FAILURE_MSG("Failed to read delta set index map data");
   }
 
