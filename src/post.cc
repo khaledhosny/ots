@@ -11,6 +11,10 @@
 
 namespace ots {
 
+// "Names must be no longer than 63 characters; some older implementations may
+// assume a length limit of 31 characters."
+const int MAX_GLYPH_NAME_LENGTH = 63;
+
 bool OpenTypePOST::Parse(const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
@@ -91,6 +95,10 @@ bool OpenTypePOST::Parse(const uint8_t *data, size_t length) {
   for (;;) {
     if (strings == strings_end) break;
     const unsigned string_length = *strings;
+    if (string_length > MAX_GLYPH_NAME_LENGTH) {
+      std::string bad_glyph (reinterpret_cast<const char*>(strings + 1), string_length);
+      Warning("Glyph name %s too long", bad_glyph.c_str());
+    }
     if (strings + 1 + string_length > strings_end) {
       return Error("Bad string length %d", string_length);
     }
